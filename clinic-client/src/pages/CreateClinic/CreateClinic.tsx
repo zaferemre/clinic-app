@@ -24,14 +24,17 @@ const CreateClinicPage: React.FC<CreateClinicProps> = ({
     }
 
     try {
-      const res = await fetch("http://localhost:3001/clinic/new", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ name: name.trim() }),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/clinic/new`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ name: name.trim() }),
+        }
+      );
       const data = await res.json();
 
       if (res.status === 409 && data.clinic) {

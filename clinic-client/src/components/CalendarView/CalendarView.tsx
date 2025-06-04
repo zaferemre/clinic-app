@@ -34,7 +34,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     if (!idToken || !clinicId) return;
     try {
       const res = await fetch(
-        `http://localhost:3001/clinic/${clinicId}/appointments`,
+        `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/appointments`,
         {
           method: "GET",
           headers: {
@@ -60,7 +60,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
     try {
       const res = await fetch(
-        `http://localhost:3001/clinic/${clinicId}/patients`,
+        `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/patients`,
         {
           method: "GET",
           headers: {
@@ -110,7 +110,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     try {
       const { startStr, endStr } = selectedSpan;
       const res = await fetch(
-        `http://localhost:3001/clinic/${clinicId}/appointments`,
+        `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/appointments`,
         {
           method: "POST",
           headers: {
@@ -148,7 +148,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       try {
         const apptId = clickInfo.event.id;
         const res = await fetch(
-          `http://localhost:3001/clinic/${clinicId}/appointments/${apptId}/complete`,
+          `${
+            import.meta.env.VITE_API_BASE_URL
+          }/clinic/${clinicId}/appointments/${apptId}/complete`,
           {
             method: "PATCH",
             headers: {

@@ -58,13 +58,16 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
           // b) Immediately fetch this user’s clinic from our backend:
           setCheckingClinic(true);
           try {
-            const res = await fetch("http://localhost:3001/clinic/by-email", {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-            });
+            const res = await fetch(
+              `${import.meta.env.VITE_API_BASE_URL}/clinic/by-email`,
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
             if (res.ok) {
               const data = await res.json();
               // We assume backend returns { _id, name, ownerEmail, workers, … }

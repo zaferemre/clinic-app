@@ -65,7 +65,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ idToken, clinicId }) => {
 
     try {
       const res = await fetch(
-        `http://localhost:3001/clinic/${clinicId}/patients`,
+        `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/patients`,
         {
           method: "POST",
           headers: {

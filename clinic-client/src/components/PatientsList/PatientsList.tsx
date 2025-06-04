@@ -21,7 +21,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
 
   useEffect(() => {
     // Fetch all patients for this clinic
-    fetch(`http://localhost:3001/clinic/${clinicId}/patients`, {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/patients`, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${idToken}`,
@@ -42,28 +42,34 @@ export const PatientsList: React.FC<PatientsListProps> = ({
     setPatients((prev) =>
       prev.map((p) => (p._id === id ? { ...p, credit: newCredit } : p))
     );
-    fetch(`http://localhost:3001/clinic/${clinicId}/patients/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({ credit: newCredit }),
-    }).catch((err) => console.error("Credit update failed:", err));
+    fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/patients/${id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ credit: newCredit }),
+      }
+    ).catch((err) => console.error("Credit update failed:", err));
   };
 
   const handleBalanceChange = (id: string, newBalance: number) => {
     setPatients((prev) =>
       prev.map((p) => (p._id === id ? { ...p, balanceDue: newBalance } : p))
     );
-    fetch(`http://localhost:3001/clinic/${clinicId}/patients/${id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({ balanceDue: newBalance }),
-    }).catch((err) => console.error("Balance update failed:", err));
+    fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/patients/${id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ balanceDue: newBalance }),
+      }
+    ).catch((err) => console.error("Balance update failed:", err));
   };
 
   const handleRecordPayment = (
@@ -90,7 +96,9 @@ export const PatientsList: React.FC<PatientsListProps> = ({
     );
 
     fetch(
-      `http://localhost:3001/clinic/${clinicId}/patients/${id}/record-payment`,
+      `${
+        import.meta.env.VITE_API_BASE_URL
+      }/clinic/${clinicId}/patients/${id}/record-payment`,
       {
         method: "PATCH",
         headers: {
