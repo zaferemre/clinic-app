@@ -1,14 +1,15 @@
 // src/components/CalendarPreview.tsx
 import React, { useState, useEffect } from "react";
-import FullCalendar, { EventInput, DateSelectArg } from "@fullcalendar/react";
+import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import { EventClickArg } from "@fullcalendar/core"; // Import correct type for event click
 
 interface CalendarPreviewProps {
   idToken: string;
   clinicId: string;
-  onEventClick?: (info: any) => void; // optional callback when user clicks a slot/event
+  onEventClick?: (info: EventClickArg) => void; // optional callback when user clicks a slot/event
 }
 
 export const CalendarPreview: React.FC<CalendarPreviewProps> = ({
@@ -16,7 +17,15 @@ export const CalendarPreview: React.FC<CalendarPreviewProps> = ({
   clinicId,
   onEventClick,
 }) => {
-  const [events, setEvents] = useState<EventInput[]>([]);
+  interface CalendarEvent {
+    title: string;
+    start: string;
+    end?: string;
+    color?: string;
+    [key: string]: unknown;
+  }
+
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
 
   useEffect(() => {
     // Option A: Fetch “appointments” from your backend for “today” only.
@@ -29,12 +38,12 @@ export const CalendarPreview: React.FC<CalendarPreviewProps> = ({
       },
     })
       .then((res) => res.json())
-      .then((data: EventInput[]) => {
+      .then((data: CalendarEvent[]) => {
         // Assume data is an array of { title, start, end, color }
         // Filter down to events where start is “today”
         const todayStr = new Date().toISOString().split("T")[0]; // “YYYY-MM-DD”
-        const todaysEvents = data.filter(
-          (ev) => ev.start && (ev.start as string).startsWith(todayStr)
+        const todaysEvents = data.filter((ev) =>
+          ev.start?.startsWith(todayStr)
         );
         setEvents(todaysEvents);
       })
@@ -48,7 +57,6 @@ export const CalendarPreview: React.FC<CalendarPreviewProps> = ({
   return (
     <div className="bg-white shadow rounded-md p-2 overflow-hidden">
       <div className="h-60">
-        {" "}
         {/* fixed height so it doesn’t overflow */}
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}

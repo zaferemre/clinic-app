@@ -22,7 +22,6 @@ function AppRoutes() {
     checkingClinic,
 
     setClinicId,
-    setClinicName,
   } = useAuth();
 
   if (!idToken) {
@@ -39,8 +38,7 @@ function AppRoutes() {
     return (
       <CreateClinicPage
         idToken={idToken}
-        setClinicId={(id) => setClinicId(id)}
-        setClinicName={(name) => setClinicName(name)}
+        setClinicId={(id: string) => setClinicId(id)}
       />
     );
   }
