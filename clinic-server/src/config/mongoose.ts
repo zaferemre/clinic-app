@@ -1,22 +1,13 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-
 dotenv.config();
 
-export const connectDB = async (): Promise<void> => {
-  const uri = process.env.MONGO_URI;
-  if (!uri) {
-    console.error("❌ MONGO_URI must be defined in .env");
-    process.exit(1);
+export const connectDB = async () => {
+  if (!process.env.MONGO_URI) {
+    throw new Error("MONGO_URI not found in environment");
   }
-
-  try {
-    await mongoose.connect(uri, {
-      dbName: "clinic", // Atlas’ta “clinic” DB’sini kullanıyoruz
-    });
-    console.log("✅ MongoDB connected successfully to 'clinic' DB");
-  } catch (error) {
-    console.error("❌ MongoDB connection error:", error);
-    process.exit(1);
-  }
+  await mongoose.connect(process.env.MONGO_URI, {
+    dbName: "clinic",
+  });
+  console.log("✅ MongoDB connected");
 };

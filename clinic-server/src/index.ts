@@ -1,16 +1,16 @@
-import express from "express";
-import dotenv from "dotenv";
+// src/index.ts
+import express, { Request, Response } from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+dotenv.config();
+
+import { connectDB } from "./config/mongoose";
+import { verifyFirebaseToken } from "./middlewares/verifyFirebaseToken";
 import clinicRoutes from "./routes/clinicRoutes";
 import patientRoutes from "./routes/patientRoutes";
-import appointmentRoutes from "./routes/appointmentRoutes"; // <— new
-import { verifyFirebaseToken } from "./middlewares/verifyFirebaseToken";
-import { connectDB } from "./config/mongoose";
+import appointmentRoutes from "./routes/appointmentRoutes";
 
-dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 3001;
-
 app.use(
   cors({
     origin: "https://sweet-fascination-production.up.railway.app",
@@ -19,24 +19,15 @@ app.use(
 );
 app.use(express.json());
 
-// All /clinic/* routes require Firebase token first
 app.use("/clinic", verifyFirebaseToken, clinicRoutes);
 app.use("/clinic", verifyFirebaseToken, patientRoutes);
-app.use("/clinic", verifyFirebaseToken, appointmentRoutes); // <— new
+app.use("/clinic", verifyFirebaseToken, appointmentRoutes);
 
-app.get("/", (_req, res) => {
-  res.send("Clinic API is running.");
+app.get("/", (req: Request, res: Response) => {
+  res.send("Clinic API Running");
 });
-
-if (process.env.NODE_ENV !== "production") {
-  connectDB()
-    .then(() => {
-      app.listen(PORT, () =>
-        console.log(`🚀 Local server running at http://localhost:${PORT}`)
-      );
-    })
-    .catch((err) => {
-      console.error("❌ MongoDB connection error:", err);
-      process.exit(1);
-    });
-}
+connectDB().then(() => {
+  app.listen(process.env.PORT ?? 3001, () => {
+    console.log(`🚀 Server running on port ${process.env.PORT ?? 3001}`);
+  });
+});

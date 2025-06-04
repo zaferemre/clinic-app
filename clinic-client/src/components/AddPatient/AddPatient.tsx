@@ -64,17 +64,16 @@ const AddPatient: React.FC<AddPatientProps> = ({ idToken, clinicId }) => {
     };
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/patients`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const apiUrl =
+        import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001";
+      const res = await fetch(`${apiUrl}/clinic/${clinicId}/patients`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
 
       if (!res.ok) {
         const errData = await res.json();

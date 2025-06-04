@@ -31,15 +31,13 @@ export const CalendarPreview: React.FC<CalendarPreviewProps> = ({
     // Option A: Fetch “appointments” from your backend for “today” only.
     // For demonstration, let’s fetch all and filter in UI—but ideally your API accepts a “date” param.
 
-    fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/appointments`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      }
-    )
+    const apiUrl = import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001";
+    fetch(`${apiUrl}/clinic/${clinicId}/appointments`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+    })
       .then((res) => res.json())
       .then((data: CalendarEvent[]) => {
         // Assume data is an array of { title, start, end, color }

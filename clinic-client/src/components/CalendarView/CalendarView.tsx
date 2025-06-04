@@ -6,6 +6,8 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 
+const apiUrl = import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001";
+
 interface PatientOption {
   _id: string;
   name: string;
@@ -33,16 +35,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const fetchAppointments = async () => {
     if (!idToken || !clinicId) return;
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/appointments`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-        }
-      );
+      const res = await fetch(`${apiUrl}/clinic/${clinicId}/appointments`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
       if (!res.ok) throw new Error("Randevular alınamadı");
       const data: EventInput[] = await res.json();
       setEvents(data);
@@ -59,16 +58,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       return;
     }
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/patients`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-        }
-      );
+      const res = await fetch(`${apiUrl}/clinic/${clinicId}/patients`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
       if (!res.ok) throw new Error("Hastalar alınamadı");
       const data: PatientOption[] = await res.json();
       setPatients(data);
@@ -109,21 +105,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
     try {
       const { startStr, endStr } = selectedSpan;
-      const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/appointments`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({
-            patientId: selectedPatient,
-            start: startStr,
-            end: endStr,
-          }),
-        }
-      );
+      const res = await fetch(`${apiUrl}/clinic/${clinicId}/appointments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          patientId: selectedPatient,
+          start: startStr,
+          end: endStr,
+        }),
+      });
       const data = await res.json();
       if (!res.ok) {
         alert(data.error || "Randevu oluşturulamadı.");
@@ -148,9 +141,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       try {
         const apptId = clickInfo.event.id;
         const res = await fetch(
-          `${
-            import.meta.env.VITE_API_BASE_URL
-          }/clinic/${clinicId}/appointments/${apptId}/complete`,
+          `${apiUrl}/clinic/${clinicId}/appointments/${apptId}/complete`,
           {
             method: "PATCH",
             headers: {

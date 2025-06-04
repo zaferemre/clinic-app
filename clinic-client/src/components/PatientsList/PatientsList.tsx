@@ -1,6 +1,7 @@
-// src/components/PatientsList.tsx
 import React, { useState, useEffect } from "react";
 import { PatientCard, Patient } from "../PatientCard/PatientCard";
+
+const apiUrl = import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001";
 
 interface PatientsListProps {
   idToken: string;
@@ -21,7 +22,7 @@ export const PatientsList: React.FC<PatientsListProps> = ({
 
   useEffect(() => {
     // Fetch all patients for this clinic
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/patients`, {
+    fetch(`${apiUrl}/clinic/${clinicId}/patients`, {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${idToken}`,
@@ -42,34 +43,28 @@ export const PatientsList: React.FC<PatientsListProps> = ({
     setPatients((prev) =>
       prev.map((p) => (p._id === id ? { ...p, credit: newCredit } : p))
     );
-    fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/patients/${id}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ credit: newCredit }),
-      }
-    ).catch((err) => console.error("Credit update failed:", err));
+    fetch(`${apiUrl}/clinic/${clinicId}/patients/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ credit: newCredit }),
+    }).catch((err) => console.error("Credit update failed:", err));
   };
 
   const handleBalanceChange = (id: string, newBalance: number) => {
     setPatients((prev) =>
       prev.map((p) => (p._id === id ? { ...p, balanceDue: newBalance } : p))
     );
-    fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/clinic/${clinicId}/patients/${id}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ balanceDue: newBalance }),
-      }
-    ).catch((err) => console.error("Balance update failed:", err));
+    fetch(`${apiUrl}/clinic/${clinicId}/patients/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ balanceDue: newBalance }),
+    }).catch((err) => console.error("Balance update failed:", err));
   };
 
   const handleRecordPayment = (
@@ -95,19 +90,14 @@ export const PatientsList: React.FC<PatientsListProps> = ({
       )
     );
 
-    fetch(
-      `${
-        import.meta.env.VITE_API_BASE_URL
-      }/clinic/${clinicId}/patients/${id}/record-payment`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ method, date: newEntry.date }),
-      }
-    ).catch((err) => console.error("Record payment failed:", err));
+    fetch(`${apiUrl}/clinic/${clinicId}/patients/${id}/record-payment`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ method, date: newEntry.date }),
+    }).catch((err) => console.error("Record payment failed:", err));
   };
 
   // Filter logic based on filterMode:

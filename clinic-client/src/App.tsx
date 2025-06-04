@@ -13,6 +13,7 @@ import CalendarPage from "./pages/Calendar/Calendar";
 import CreateClinicPage from "./pages/CreateClinic/CreateClinic";
 
 import { AuthContextProvider, useAuth } from "./context/AuthContext";
+import LoginPage from "./pages/LoginPage/LoginPage";
 
 function AppRoutes() {
   const {
@@ -24,9 +25,6 @@ function AppRoutes() {
     setClinicId,
   } = useAuth();
 
-  if (!idToken) {
-    return <Navigate to="/login" replace />;
-  }
   if (checkingClinic) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -34,18 +32,24 @@ function AppRoutes() {
       </div>
     );
   }
-  if (!clinicId) {
-    return (
-      <CreateClinicPage
-        idToken={idToken}
-        setClinicId={(id: string) => setClinicId(id)}
-      />
-    );
-  }
 
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route
+        path="/login"
+        element={
+          idToken ? (
+            <Navigate to="/" replace />
+          ) : (
+            <LoginPage
+              onSignOut={signOut}
+              setClinicId={setClinicId}
+              setClinicName={setClinicName}
+            />
+          )
+        }
+      />
       <Route path="/patients" element={<PatientsPage />} />
       <Route path="/calendar" element={<CalendarPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
