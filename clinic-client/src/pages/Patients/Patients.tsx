@@ -1,12 +1,12 @@
 // src/pages/Patients.tsx
 import React from "react";
-import { Header } from "../../components/Header/Header";
+
 import { PatientsList } from "../../components/PatientsList/PatientsList";
 import { Footer } from "../../components/Footer/Footer";
 import { useAuth } from "../../context/AuthContext";
 
 const PatientsPage: React.FC = () => {
-  const { idToken, clinicId, clinicName, user, signOut } = useAuth();
+  const { idToken, clinicId, clinicName, user } = useAuth();
 
   if (!idToken || !clinicId || !clinicName || !user) {
     return null;

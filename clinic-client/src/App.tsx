@@ -1,5 +1,5 @@
 // src/App.tsx
-import React from "react";
+
 import {
   BrowserRouter as Router,
   Routes,
@@ -18,10 +18,9 @@ function AppRoutes() {
   const {
     idToken,
     clinicId,
-    clinicName,
+
     checkingClinic,
-    user,
-    signOut,
+
     setClinicId,
     setClinicName,
   } = useAuth();

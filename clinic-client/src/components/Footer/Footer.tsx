@@ -83,9 +83,13 @@ export const Footer: React.FC = () => {
       {menuOpen && (
         <>
           {/* Backdrop with fadeIn */}
-          <div
+          <button
+            type="button"
+            aria-label="Kapat"
             className="fixed inset-0 bg-black/50 z-30 animate-fadeIn"
             onClick={closeMenu}
+            tabIndex={0}
+            style={{ all: "unset", cursor: "pointer" }}
           />
 
           {/* Sliding Panel (slideUp) */}
