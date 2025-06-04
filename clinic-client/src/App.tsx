@@ -15,7 +15,7 @@ import LoginPage from "./pages/LoginPage/LoginPage";
 import { AuthContextProvider, useAuth } from "./context/AuthContext";
 
 function AppRoutes() {
-  const { idToken, clinicId, checkingClinic } = useAuth();
+  const { idToken, clinicId, checkingClinic, setClinicId } = useAuth();
 
   // 1) While we’re still checking (e.g. fetching “does this user have a clinic?”), show a loading screen:
   if (checkingClinic) {
@@ -40,7 +40,12 @@ function AppRoutes() {
   if (!clinicId) {
     return (
       <Routes>
-        <Route path="/create-clinic" element={<CreateClinicPage />} />
+        <Route
+          path="/create-clinic"
+          element={
+            <CreateClinicPage idToken={idToken} setClinicId={setClinicId} />
+          }
+        />
         <Route path="*" element={<Navigate to="/create-clinic" replace />} />
       </Routes>
     );
