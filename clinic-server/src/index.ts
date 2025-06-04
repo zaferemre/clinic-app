@@ -13,7 +13,10 @@ import appointmentRoutes from "./routes/appointmentRoutes";
 const app = express();
 app.use(
   cors({
-    origin: "https://sweet-fascination-production.up.railway.app",
+    origin: [
+      "https://sweet-fascination-production.up.railway.app",
+      "http://localhost:5173",
+    ],
     credentials: true,
   })
 );

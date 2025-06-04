@@ -1,16 +1,17 @@
-import mongoose from "mongoose";
+// models/Clinic.ts
+import mongoose, { Document, Schema } from "mongoose";
 
-const clinicSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    ownerEmail: { type: String, required: true },
-    workers: [{ type: String }], // e-postalar listesi
-  },
-  {
-    timestamps: true,
-  }
-);
+export interface IClinic extends Document {
+  name: string;
+  ownerEmail: string;
+  workers: string[];
+}
 
-// Model adı "Clinic" ise koleksiyon adı otomatik lowercase çoğul “clinics” olur
-const Clinic = mongoose.model("Clinic", clinicSchema);
-export default Clinic;
+const clinicSchema = new Schema<IClinic>({
+  name: { type: String, required: true },
+  ownerEmail: { type: String, required: true },
+  workers: { type: [String], default: [] },
+});
+
+export default mongoose.models.Clinic ||
+  mongoose.model<IClinic>("Clinic", clinicSchema);
