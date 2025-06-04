@@ -28,11 +28,15 @@ app.get("/", (_req, res) => {
   res.send("Clinic API is running.");
 });
 
-connectDB()
-  .then(() => {
-    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-  })
-  .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
-    process.exit(1);
-  });
+if (process.env.NODE_ENV !== "production") {
+  connectDB()
+    .then(() => {
+      app.listen(PORT, () =>
+        console.log(`🚀 Local server running at http://localhost:${PORT}`)
+      );
+    })
+    .catch((err) => {
+      console.error("❌ MongoDB connection error:", err);
+      process.exit(1);
+    });
+}
