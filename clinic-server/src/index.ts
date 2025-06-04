@@ -11,7 +11,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "https://sweet-fascination-production.up.railway.app",
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // All /clinic/* routes require Firebase token first
