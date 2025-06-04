@@ -1,0 +1,86 @@
+/* src/CreateClinic.css */
+
+:root {
+  --color-dark-text: #111827;
+  --color-accent-green: #a3f97b;
+  --color-input-border: #e5e7eb;
+  --font-family: "Work Sans", sans-serif;
+}
+
+/* Center container on small screens */
+.create‐wrapper {
+  padding: 1rem;
+  max-width: 400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.create‐title {
+  font-size: 1.5rem; /* ~24px */
+  font-weight: 700;
+  color: var(--color-dark-text);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.create‐form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.create‐label {
+  font-size: 0.875rem; /* ~14px */
+  font-weight: 500;
+  color: var(--color-dark-text);
+}
+
+.create‐input {
+  width: 100%;
+  padding: 0.75rem 1rem; /* 12px 16px */
+  font-size: 1rem;
+  border: 1px solid var(--color-input-border);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.create‐input:focus {
+  border-color: var(--color-accent-green);
+  box-shadow: 0 0 0 3px rgba(163, 249, 123, 0.2);
+}
+
+.create‐error {
+  color: #dc2626; /* Red‐600 */
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.create‐btn {
+  margin-top: 0.5rem;
+}
+
+/* We can reuse the btn‐primary from LoginPage, but ensure mobile‐first */
+.btn‐primary {
+  width: 100%;
+  padding: 0.75rem;
+  background‐color: var(--color-accent-green);
+  color: #111827;
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background‐color 0.2s, transform 0.1s;
+}
+
+.btn‐primary:hover {
+  background‐color: #91dc6a; /* Slightly darker mint on hover */
+  transform: translateY(-1px);
+}
+
+.btn‐primary:active {
+  transform: translateY(0);
+}

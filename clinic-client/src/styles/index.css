@@ -1,0 +1,14 @@
+/* src/index.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom @apply rules */
+html,
+body,
+#root {
+  @apply bg-brand-gray-100 h-full w-full font-sans;
+  margin: 0;
+  padding: 0;
+}

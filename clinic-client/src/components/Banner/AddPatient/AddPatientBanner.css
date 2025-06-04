@@ -1,0 +1,120 @@
+/* src/components/AddPatientBanner.css */
+
+@import url("https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;700&display=swap");
+
+:root {
+  --color-accent-green: #a3f97b;
+  --color-dark-text: #111827;
+  --color-white: #ffffff;
+  --color-gray-200: #e5e7eb;
+  --color-overlay-bg: rgba(0, 0, 0, 0.4);
+  --font-family: "Work Sans", sans-serif;
+}
+
+/* -------------------------------------------------------
+   1) The banner strip at the top of the home page
+   ------------------------------------------------------- */
+.add‐patient‐banner {
+  width: 100%;
+  background‐color: var(--color-accent-green);
+  padding: 2rem 1rem;
+  display: flex;
+  justify‐content: center;
+  font‐family: var(--font-family);
+}
+
+.banner‐content {
+  max‐width: 960px;
+  width: 100%;
+  display: flex;
+  align‐items: center;
+  gap: 1.5rem;
+}
+
+.banner‐icon {
+  flex: 0 0 auto;
+}
+
+.banner‐icon‐img {
+  width: 64px;
+  height: 64px;
+}
+
+/* Text block */
+.banner‐text {
+  flex: 1 1 auto;
+  color: var(--color-dark-text);
+}
+
+.banner‐text h2 {
+  margin: 0;
+  font‐size: 1.75rem; /* ~28px */
+  font-weight: 700;
+}
+
+.banner‐text p {
+  margin: 0.25rem 0 0;
+  font‐size: 1rem; /* ~16px */
+  font-weight: 500;
+}
+
+/* Call‐to‐action button */
+.banner‐cta {
+  background: var(--color-white);
+  border: none;
+  color: var(--color-dark-text);
+  font‐size: 1rem;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border‐radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.banner‐cta:hover {
+  background: #f0fdf4; /* even lighter green */
+  transform: translateY(-1px);
+}
+
+/* -------------------------------------------------------
+   2) Overlay + container for the AddPatient form 
+   ------------------------------------------------------- */
+.add‐patient‐form‐overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--color-overlay-bg);
+  display: flex;
+  justify‐content: center;
+  align‐items: center;
+  z‐index: 1000;
+}
+
+.add‐patient‐form‐container {
+  background: var(--color-white);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 90%;
+  padding: 2rem;
+  position: relative;
+}
+
+/* “X” close button in top‐right of form */
+.close‐form‐btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  font-size: 1.25rem; /* ~20px */
+  cursor: pointer;
+  color: var(--color-gray-200);
+  transition: color 0.2s;
+}
+
+.close‐form‐btn:hover {
+  color: var(--color-dark-text);
+}

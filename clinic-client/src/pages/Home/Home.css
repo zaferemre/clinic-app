@@ -1,0 +1,108 @@
+/* src/Home.css */
+
+:root {
+  --color-dark-text: #111827;
+  --color-light-green: #f0fdf4;
+  --color-white: #ffffff;
+  --color-input-border: #e5e7eb;
+  --font-family: "Work Sans", sans-serif;
+}
+
+.home‐main‐wrapper,
+.home‐create‐wrapper {
+  min-height: 100vh;
+  background: var(--color-light-green);
+  font-family: var(--font-family);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Simple header */
+.home‐header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem;
+  background: transparent;
+  z-index: 10;
+}
+
+.signout‐btn {
+  background: transparent;
+  border: none;
+  color: var(--color-dark-text);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+/* Create view (no clinic yet) */
+.home‐create‐wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 
+    ====== Banner for “Add Patient” ====== 
+    Mobile‐first: full width, box centered.
+  */
+.add‐patient‐banner {
+  background: var(--color-light-green);
+  padding: 1rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.add‐patient‐box {
+  background: var(--color-white);
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.add‐patient‐box:hover {
+  transform: translateY(-2px);
+}
+
+.add‐patient‐icon {
+  width: 32px;
+  height: 32px;
+  margin-right: 0.75rem;
+  object-fit: contain;
+}
+
+.add‐patient‐text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-dark-text);
+}
+
+/* When “AddPatient” form is toggled on, show it full‐width */
+.add‐patient‐form‐wrapper {
+  background: var(--color-light-green);
+  padding: 1rem;
+}
+
+/* Media query for larger than 600px—center content with max‐width */
+@media (min-width: 600px) {
+  .add‐patient‐banner {
+    padding: 1.5rem 0;
+  }
+  .add‐patient‐box {
+    padding: 1rem 2rem;
+  }
+  .add‐patient‐icon {
+    width: 40px;
+    height: 40px;
+    margin-right: 1rem;
+  }
+  .add‐patient‐text {
+    font-size: 1.25rem;
+  }
+}
