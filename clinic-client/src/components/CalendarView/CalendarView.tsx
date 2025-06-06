@@ -425,6 +425,9 @@ export const CalendarView: React.FC = () => {
             .fc .fc-timegrid-body {
               user-select: none;
             }
+                  .fc-touch-start {
+      touch-action: none !important;
+    }
             `}
           </style>
 
