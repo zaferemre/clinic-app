@@ -129,6 +129,8 @@ const NotificationsPage: React.FC = () => {
                     onClick={() => handleDial(n.patientId as any)}
                     className="
                       mr-2 px-3 py-1 rounded-lg text-sm
+                      border border-brand-green-300
+                      shadow-md
                       bg-brand-blue-400 hover:bg-brand-blue-500
                       text-black focus:ring-2 focus:ring-brand-blue-300
                     "

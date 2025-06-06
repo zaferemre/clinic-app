@@ -1,5 +1,3 @@
-// src/components/AddPatient/AddPatient.tsx
-
 import React, { useState, ChangeEvent, FormEvent } from "react";
 import { createPatient } from "../../api/client";
 
@@ -8,26 +6,24 @@ interface AddPatientProps {
   clinicId: string;
 }
 
-const AddPatient: React.FC<AddPatientProps> = ({ idToken, clinicId }) => {
-  const [name, setName] = useState<string>("");
+export default function AddPatient({ idToken, clinicId }: AddPatientProps) {
+  const [name, setName] = useState("");
   const [gender, setGender] = useState<"Male" | "Female" | "Other">("Male");
-  const [age, setAge] = useState<string>("");
-  const [phone, setPhone] = useState<string>("");
-  const [credit, setCredit] = useState<string>("0");
-  const [serviceName, setServiceName] = useState<string>("");
+  const [age, setAge] = useState("");
+  const [phone, setPhone] = useState("");
+  const [credit, setCredit] = useState("0");
+  const [serviceName, setServiceName] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<
     "Unpaid" | "Havale" | "Card" | "Cash"
   >("Unpaid");
-  const [paymentNote, setPaymentNote] = useState<string>("");
-  const [note, setNote] = useState<string>("");
-
-  const [message, setMessage] = useState<string>("");
+  const [paymentNote, setPaymentNote] = useState("");
+  const [note, setNote] = useState("");
+  const [message, setMessage] = useState("");
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setMessage("");
 
-    // Build the payload, making sure that `method` is the exact union type
     const payload: {
       name: string;
       gender: "Male" | "Female" | "Other";
@@ -53,20 +49,15 @@ const AddPatient: React.FC<AddPatientProps> = ({ idToken, clinicId }) => {
       note: note.trim() || undefined,
     };
 
-    // If the user entered a service name, add one object into `services[]`
     if (serviceName.trim()) {
-      payload.services.push({
-        name: serviceName.trim(),
-        // you can set default pointsLeft or sessionsTaken here if needed
-      });
+      payload.services.push({ name: serviceName.trim() });
     }
 
-    // If paymentMethod is not "Unpaid", push a record into `paymentHistory[]`
     if (paymentMethod !== "Unpaid") {
       payload.paymentHistory.push({
         date: new Date().toISOString(),
-        method: paymentMethod, // now TS knows this is one of the four allowed strings
-        amount: 0, // you could ask the user to input an actual amount if needed
+        method: paymentMethod,
+        amount: 0,
         note: paymentNote.trim(),
       });
     }
@@ -75,7 +66,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ idToken, clinicId }) => {
       const newPatient = await createPatient(idToken, clinicId, payload);
       setMessage(`Hasta başarıyla eklendi: ${newPatient._id}`);
 
-      // Clear the form fields
+      // Clear fields
       setName("");
       setGender("Male");
       setAge("");
@@ -97,288 +88,259 @@ const AddPatient: React.FC<AddPatientProps> = ({ idToken, clinicId }) => {
   };
 
   return (
-    <div className="w-full bg-white rounded-xl shadow p-6 max-w-lg mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* İsim */}
-        <div>
-          <label
-            htmlFor="patient-name"
-            className="block text-sm font-medium text-brand-black"
-          >
-            İsim
-          </label>
-          <input
-            id="patient-name"
-            type="text"
-            className="
-              mt-1 block w-full
-              border border-brand-gray-300 
-              rounded-lg 
-              px-3 py-2 
-              focus:outline-none focus:ring-2 focus:ring-brand-green-300
-            "
-            value={name}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setName(e.target.value)
-            }
-            required
-            placeholder="Tam isim"
-          />
-        </div>
+    <form
+      onSubmit={handleSubmit}
+      className=" bg-white rounded-lg shadow p-8 max-w-2xl mx-auto mb-12"
+    >
+      {/* Section: Patient Details */}
+      <div className="border-b border-gray-900/10 pb-6">
+        <h2 className="text-base font-semibold text-gray-900">
+          Yeni Hasta Oluştur
+        </h2>
 
-        {/* Cinsiyet */}
-        <div>
-          <label
-            htmlFor="patient-gender"
-            className="block text-sm font-medium text-brand-black"
-          >
-            Cinsiyet
-          </label>
-          <select
-            id="patient-gender"
-            value={gender}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-              setGender(e.target.value as "Male" | "Female" | "Other")
-            }
-            className="
-              mt-1 block w-full
-              border border-brand-gray-300 
-              rounded-lg 
-              px-3 py-2 
-              focus:outline-none focus:ring-2 focus:ring-brand-green-300
-            "
-          >
-            <option value="Male">Erkek</option>
-            <option value="Female">Kadın</option>
-            <option value="Other">Diğer</option>
-          </select>
-        </div>
-
-        {/* Yaş */}
-        <div>
-          <label
-            htmlFor="patient-age"
-            className="block text-sm font-medium text-brand-black"
-          >
-            Yaş
-          </label>
-          <input
-            id="patient-age"
-            type="number"
-            min="0"
-            className="
-              mt-1 block w-full
-              border border-brand-gray-300 
-              rounded-lg 
-              px-3 py-2 
-              focus:outline-none focus:ring-2 focus:ring-brand-green-300
-            "
-            value={age}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setAge(e.target.value)
-            }
-            placeholder="Yaş"
-          />
-        </div>
-
-        {/* Telefon */}
-        <div>
-          <label
-            htmlFor="patient-phone"
-            className="block text-sm font-medium text-brand-black"
-          >
-            Telefon
-          </label>
-          <input
-            id="patient-phone"
-            type="text"
-            className="
-              mt-1 block w-full
-              border border-brand-gray-300 
-              rounded-lg 
-              px-3 py-2 
-              focus:outline-none focus:ring-2 focus:ring-brand-green-300
-            "
-            value={phone}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setPhone(e.target.value)
-            }
-            placeholder="(555) 123-4567"
-          />
-        </div>
-
-        {/* Kredi */}
-        <div>
-          <label
-            htmlFor="patient-credit"
-            className="block text-sm font-medium text-brand-black"
-          >
-            Kredi
-          </label>
-          <input
-            id="patient-credit"
-            type="number"
-            min="0"
-            className="
-              mt-1 block w-full
-              border border-brand-gray-300 
-              rounded-lg 
-              px-3 py-2 
-              focus:outline-none focus:ring-2 focus:ring-brand-green-300
-            "
-            value={credit}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setCredit(e.target.value)
-            }
-            placeholder="0"
-          />
-        </div>
-
-        {/* Hizmet Adı */}
-        <div>
-          <label
-            htmlFor="service-name"
-            className="block text-sm font-medium text-brand-black"
-          >
-            Hizmet Adı
-          </label>
-          <input
-            id="service-name"
-            type="text"
-            className="
-              mt-1 block w-full
-              border border-brand-gray-300 
-              rounded-lg 
-              px-3 py-2 
-              focus:outline-none focus:ring-2 focus:ring-brand-green-300
-            "
-            value={serviceName}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setServiceName(e.target.value)
-            }
-            placeholder="Örneğin: Fizik Tedavi"
-          />
-        </div>
-
-        {/* Ödeme Durumu */}
-        <div>
-          <label
-            htmlFor="payment-method"
-            className="block text-sm font-medium text-brand-black"
-          >
-            Ödeme Durumu
-          </label>
-          <select
-            id="payment-method"
-            value={paymentMethod}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-              setPaymentMethod(
-                e.target.value as "Unpaid" | "Havale" | "Card" | "Cash"
-              )
-            }
-            className="
-              mt-1 block w-full
-              border border-brand-gray-300 
-              rounded-lg 
-              px-3 py-2 
-              focus:outline-none focus:ring-2 focus:ring-brand-green-300
-            "
-          >
-            <option value="Unpaid">Ödenmedi</option>
-            <option value="Havale">Havale</option>
-            <option value="Card">Kart</option>
-            <option value="Cash">Nakit</option>
-          </select>
-        </div>
-
-        {/* Ödeme Notu */}
-        {paymentMethod !== "Unpaid" && (
-          <div>
+        <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+          {/* Name */}
+          <div className="sm:col-span-4">
             <label
-              htmlFor="payment-note"
-              className="block text-sm font-medium text-brand-black"
+              htmlFor="patient-name"
+              className="block text-sm font-medium text-gray-900"
             >
-              Ödeme Notu
+              İsim
             </label>
-            <input
-              id="payment-note"
-              type="text"
-              className="
-                mt-1 block w-full
-                border border-brand-gray-300 
-                rounded-lg 
-                px-3 py-2 
-                focus:outline-none focus:ring-2 focus:ring-brand-green-300
-              "
-              value={paymentNote}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setPaymentNote(e.target.value)
-              }
-              placeholder="Ödeme ile ilgili not (örneğin dekont numarası)"
-            />
+            <div className="mt-2">
+              <input
+                id="patient-name"
+                type="text"
+                required
+                placeholder="Tam isim"
+                value={name}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setName(e.target.value)
+                }
+                className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-brand-red-300 sm:text-sm"
+              />
+            </div>
           </div>
-        )}
 
-        {/* Not */}
-        <div>
-          <label
-            htmlFor="patient-note"
-            className="block text-sm font-medium text-brand-black"
-          >
-            Not
-          </label>
-          <textarea
-            id="patient-note"
-            className="
-              mt-1 block w-full
-              border border-brand-gray-300 
-              rounded-lg 
-              px-3 py-2 
-              focus:outline-none focus:ring-2 focus:ring-brand-green-300
-            "
-            rows={3}
-            value={note}
-            onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-              setNote(e.target.value)
-            }
-            placeholder="Ek bilgi (alerjiler, yorumlar vb.)"
-          />
+          {/* Gender */}
+          <div className="sm:col-span-2">
+            <label
+              htmlFor="patient-gender"
+              className="block text-sm font-medium text-gray-900"
+            >
+              Cinsiyet
+            </label>
+            <div className="mt-2">
+              <select
+                id="patient-gender"
+                value={gender}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  setGender(e.target.value as any)
+                }
+                className="block w-full rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-brand-red-300 sm:text-sm"
+              >
+                <option value="Male">Erkek</option>
+                <option value="Female">Kadın</option>
+                <option value="Other">Diğer</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Age */}
+          <div className="sm:col-span-2">
+            <label
+              htmlFor="patient-age"
+              className="block text-sm font-medium text-gray-900"
+            >
+              Yaş
+            </label>
+            <div className="mt-2">
+              <input
+                id="patient-age"
+                type="number"
+                min="0"
+                placeholder="Yaş"
+                value={age}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setAge(e.target.value)
+                }
+                className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-brand-red-300 sm:text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Phone */}
+          <div className="sm:col-span-3">
+            <label
+              htmlFor="patient-phone"
+              className="block text-sm font-medium text-gray-900"
+            >
+              Telefon
+            </label>
+            <div className="mt-2">
+              <input
+                id="patient-phone"
+                type="text"
+                placeholder="(555) 123-4567"
+                value={phone}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setPhone(e.target.value)
+                }
+                className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-brand-red-300 sm:text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Credit */}
+          <div className="sm:col-span-3">
+            <label
+              htmlFor="patient-credit"
+              className="block text-sm font-medium text-gray-900"
+            >
+              Kredi
+            </label>
+            <div className="mt-2">
+              <input
+                id="patient-credit"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={credit}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setCredit(e.target.value)
+                }
+                className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-brand-red-300 sm:text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Service Name */}
+          <div className="col-span-full">
+            <label
+              htmlFor="service-name"
+              className="block text-sm font-medium text-gray-900"
+            >
+              Hizmet Adı
+            </label>
+            <div className="mt-2">
+              <input
+                id="service-name"
+                type="text"
+                placeholder="Örneğin: Fizik Tedavi"
+                value={serviceName}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setServiceName(e.target.value)
+                }
+                className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-brand-red-300 sm:text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Payment Method */}
+          <div className="sm:col-span-3">
+            <label
+              htmlFor="payment-method"
+              className="block text-sm font-medium text-gray-900"
+            >
+              Ödeme Durumu
+            </label>
+            <div className="mt-2">
+              <select
+                id="payment-method"
+                value={paymentMethod}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  setPaymentMethod(e.target.value as any)
+                }
+                className="block w-full rounded-md bg-white py-1.5 pr-8 pl-3 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-brand-red-300 sm:text-sm"
+              >
+                <option value="Unpaid">Ödenmedi</option>
+                <option value="Havale">Havale</option>
+                <option value="Card">Kart</option>
+                <option value="Cash">Nakit</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Payment Note (conditional) */}
+          {paymentMethod !== "Unpaid" && (
+            <div className="sm:col-span-3">
+              <label
+                htmlFor="payment-note"
+                className="block text-sm font-medium text-gray-900"
+              >
+                Ödeme Notu
+              </label>
+              <div className="mt-2">
+                <input
+                  id="payment-note"
+                  type="text"
+                  placeholder="Ödeme ile ilgili not (örneğin dekont numarası)"
+                  value={paymentNote}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setPaymentNote(e.target.value)
+                  }
+                  className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-brand-red-300 sm:text-sm"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Note */}
+          <div className="col-span-full">
+            <label
+              htmlFor="patient-note"
+              className="block text-sm font-medium text-gray-900"
+            >
+              Not
+            </label>
+            <div className="mt-2">
+              <textarea
+                id="patient-note"
+                rows={3}
+                placeholder="Ek bilgi (alerjiler, yorumlar vb.)"
+                value={note}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                  setNote(e.target.value)
+                }
+                className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-brand-red-300 sm:text-sm"
+              />
+            </div>
+          </div>
         </div>
+      </div>
 
-        {/* İşlem Sonucu Mesajı */}
+      {/* Section: Message & Submit */}
+      <div className="pt-6">
         {message && (
           <div
-            className={`
-              text-sm p-2 rounded-md
-              ${
-                message.startsWith("Hata")
-                  ? "bg-red-100 text-red-700"
-                  : "bg-green-100 text-green-700"
-              }
-            `}
+            className={`text-sm p-4 rounded-md ${
+              message.startsWith("Hata")
+                ? "bg-red-100 text-red-700"
+                : "bg-green-100 text-green-700"
+            }`}
           >
             {message}
           </div>
         )}
 
-        {/* Gönder Butonu */}
-        <div>
+        <div className="mt-6 flex justify-end space-x-4">
+          <button
+            type="button"
+            onClick={() => {
+              // Optionally clear form or navigate back
+            }}
+            className="text-sm font-medium text-gray-900"
+          >
+            İptal
+          </button>
           <button
             type="submit"
-            className="
-              w-full text-center
-              bg-brand-green-500 hover:bg-brand-green-600
-              text-white font-medium
-              px-4 py-2 rounded-lg
-              focus:outline-none focus:ring-2 focus:ring-brand-green-300
-            "
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
             Hasta Oluştur
           </button>
         </div>
-      </form>
-    </div>
+      </div>
+    </form>
   );
-};
-
-export default AddPatient;
+}

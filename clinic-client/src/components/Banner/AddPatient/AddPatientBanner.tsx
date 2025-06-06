@@ -26,9 +26,7 @@ const AddPatientBanner: React.FC<AddPatientBannerProps> = ({
 
         {/* Text */}
         <div className="flex-1 px-4">
-          <h2 className="text-lg font-semibold text-brand-black">
-            Yeni Hasta Ekle
-          </h2>
+          <h2 className="text-lg font-semibold text-brand-black">Yeni Hasta</h2>
         </div>
 
         {/* Toggle Button */}
@@ -47,7 +45,7 @@ const AddPatientBanner: React.FC<AddPatientBannerProps> = ({
 
       {/* — AddPatient Form (inline, collapsible) — */}
       {showForm && (
-        <div className="mt-4 bg-white rounded-xl shadow p-6">
+        <div className="mt-4 mb-10 bg-white rounded-xl shadow p-6">
           <AddPatient clinicId={clinicId} idToken={idToken} />
         </div>
       )}
