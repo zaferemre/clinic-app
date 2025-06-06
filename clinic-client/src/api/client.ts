@@ -1,6 +1,6 @@
 // src/api/client.ts
 
-const API_BASE = "http://localhost:3001"; // ← or set this via VITE_API_BASE in your .env
+const API_BASE = import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001"; // Use VITE_API_BASE from .env or fallback to localhost
 
 export type PatientDetail = {
   _id: string;

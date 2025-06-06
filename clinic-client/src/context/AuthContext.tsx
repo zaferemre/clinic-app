@@ -28,7 +28,7 @@ interface AuthContextProps {
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
-const API_BASE = "http://localhost:3001";
+const API_BASE = import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001"; // Use VITE_API_BASE from .env or fallback to localhost
 
 export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
   children,

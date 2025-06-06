@@ -27,7 +27,7 @@ import {
   CalendarEmployeeSelector,
 } from "../CalendarEmployeeSelector/CalendarEmployeeSelector";
 
-const API_BASE = "http://localhost:3001";
+const API_BASE = import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001"; // Use VITE_API_BASE from .env or fallback to localhost
 
 export const CalendarView: React.FC = () => {
   const { idToken, clinicId } = useAuth();
