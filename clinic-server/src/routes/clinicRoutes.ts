@@ -1,98 +1,47 @@
-import { Router, Request, Response, NextFunction } from "express";
-import Clinic from "../models/Clinic";
+import express from "express";
+import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
+import { authorizeClinicAccess } from "../middlewares/authorizeClinicAccess";
+import {
+  getClinicByEmail,
+  createClinic,
+  getClinicById,
+  addWorker,
+  removeWorker,
+  updateWorker,
+  joinClinic, // ← make sure this is imported
+  getWorkersList,
+} from "../controllers/clinicController";
 
-const router = Router();
+const router = express.Router();
 
-// GET /clinic/by-email
-router.get(
-  "/by-email",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const ownerEmail = (req as any).user?.email as string | undefined;
-      if (!ownerEmail) {
-        res.status(401).json({ error: "User not authenticated" });
-        return;
-      }
+// 1) PUBLIC (but still require a valid Firebase ID token):
+router.get("/by-email", verifyFirebaseToken, getClinicByEmail);
+router.post("/new", verifyFirebaseToken, createClinic);
+router.get("/:clinicId", verifyFirebaseToken, getClinicById);
 
-      const clinic = await Clinic.findOne({
-        $or: [{ ownerEmail: ownerEmail }, { workers: ownerEmail }],
-      }).exec();
+// 2) JOIN → Any authenticated user can join by providing the joinCode
+//    This MUST come *before* the “/workers” routes, because otherwise
+//    Express will try to match "/:clinicId/workers" before it ever sees "/:clinicId/join".
+router.post("/:clinicId/join", verifyFirebaseToken, joinClinic);
 
-      if (!clinic) {
-        res.status(404).json({ error: "No clinic for this user" });
-        return;
-      }
-
-      res.status(200).json(clinic);
-      return;
-    } catch (err: any) {
-      console.error("Error in GET /clinic/by-email:", err);
-      res.status(500).json({ error: "Server error", details: err.message });
-      return;
-    }
-  }
+// 3) OWNER‐only routes for adding/removing/updating workers:
+router.post("/:clinicId/workers", verifyFirebaseToken, addWorker);
+router.delete(
+  "/:clinicId/workers/:workerEmail",
+  verifyFirebaseToken,
+  removeWorker
 );
-
-// POST /clinic/new
-router.post("/new", async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const ownerEmail = (req as any).user?.email as string | undefined;
-    if (!ownerEmail) {
-      res.status(401).json({ error: "User not authenticated" });
-      return;
-    }
-
-    const { name } = req.body as { name?: string };
-    if (!name || !name.trim()) {
-      res.status(400).json({ error: "Clinic name is required" });
-      return;
-    }
-
-    const existing = await Clinic.findOne({ ownerEmail }).exec();
-    if (existing) {
-      res
-        .status(409)
-        .json({ error: "You already have a clinic", clinic: existing });
-      return;
-    }
-
-    const newClinic = new Clinic({
-      name: name.trim(),
-      ownerEmail,
-      workers: [],
-    });
-    const saved = await newClinic.save();
-    res.status(201).json(saved);
-    return;
-  } catch (err: any) {
-    console.error("⚠️ Error in POST /clinic/new:", err);
-    res
-      .status(500)
-      .json({ error: "Failed to create clinic", details: err.message });
-    return;
-  }
-});
-
-// ——— NEW ROUTE ADDED HERE ———
-// GET /clinic/:clinicId
+router.patch(
+  "/:clinicId/workers/:workerEmail",
+  verifyFirebaseToken,
+  updateWorker
+);
+// This returns just the array of workers[]
 router.get(
-  "/:clinicId",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { clinicId } = req.params;
-      const clinic = await Clinic.findById(clinicId).exec();
-      if (!clinic) {
-        res.status(404).json({ error: "Clinic not found" });
-        return;
-      }
-      res.status(200).json(clinic);
-      return;
-    } catch (err: any) {
-      console.error("Error in GET /clinic/:clinicId:", err);
-      res.status(500).json({ error: "Server error", details: err.message });
-      return;
-    }
-  }
+  "/:clinicId/workers",
+  verifyFirebaseToken,
+  authorizeClinicAccess,
+  getWorkersList
 );
 
 export default router;

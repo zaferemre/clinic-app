@@ -8,13 +8,17 @@ import {
 import Home from "./pages/Home/Home";
 import PatientsPage from "./pages/Patients/Patients";
 import CalendarPage from "./pages/Calendar/Calendar";
-import CreateClinicPage from "./pages/CreateClinic/CreateClinic";
 import LoginPage from "./pages/LoginPage/LoginPage";
-
+import Workers from "./pages/Workers/Workers";
+import NotificationsPage from "./pages/Notifications/Notifications";
 import { AuthContextProvider, useAuth } from "./context/AuthContext";
+import { Dashboard } from "./pages/Dashboard/Dashboard";
+import { MessagingPage } from "./pages/Messaging/MessagingPage";
+import EditPatientPage from "./pages/EditPatientPage/EditPatientPage";
+import NewUserPage from "./pages/NewUserPage/NewUserPage";
 
 function AppRoutes() {
-  const { idToken, clinicId, checkingClinic, setClinicId } = useAuth();
+  const { idToken, clinicId, checkingClinic } = useAuth();
 
   if (checkingClinic) {
     return (
@@ -36,12 +40,7 @@ function AppRoutes() {
   if (!clinicId) {
     return (
       <Routes>
-        <Route
-          path="/"
-          element={
-            <CreateClinicPage idToken={idToken} setClinicId={setClinicId} />
-          }
-        />
+        <Route path="/" element={<NewUserPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -52,6 +51,11 @@ function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/patients" element={<PatientsPage />} />
       <Route path="/calendar" element={<CalendarPage />} />
+      <Route path="/workers" element={<Workers />} />
+      <Route path="/notifications" element={<NotificationsPage />} />
+      <Route path="/patients/:id/edit" element={<EditPatientPage />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/messaging" element={<MessagingPage />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -1,12 +1,12 @@
-// src/pages/Patients.tsx
-import React from "react";
-
+import React, { useState } from "react";
 import { PatientsList } from "../../components/PatientsList/PatientsList";
-import { Footer } from "../../components/Footer/Footer";
+import AddPatientBanner from "../../components/Banner/AddPatient/AddPatientBanner";
 import { useAuth } from "../../context/AuthContext";
+import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 
 const PatientsPage: React.FC = () => {
   const { idToken, clinicId, clinicName, user } = useAuth();
+  const [showForm, setShowForm] = useState(false);
 
   if (!idToken || !clinicId || !clinicName || !user) {
     return null;
@@ -14,19 +14,22 @@ const PatientsPage: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen pb-16 bg-brand-gray-100">
+      <AddPatientBanner clinicId={clinicId} idToken={idToken} />
       <div className="flex-1 overflow-auto">
-        <PatientsList
-          idToken={idToken}
-          clinicId={clinicId}
-          onAddPatientClick={() => {
-            // e.g. open a modal or navigate to AddPatient page
-          }}
-        />
+        <PatientsList />
       </div>
 
-      <Footer />
+      <NavigationBar />
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 z-30 flex items-center justify-center">
+          <div className="bg-white rounded-t-xl shadow-lg h-[85vh] w-full max-w-md p-4">
+            <AddPatientBanner clinicId={clinicId} idToken={idToken} />
+            <button onClick={() => setShowForm(false)}>✕ Kapat</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
 export default PatientsPage;

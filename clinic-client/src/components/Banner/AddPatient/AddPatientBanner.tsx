@@ -1,7 +1,8 @@
-// src/components/AddPatientBanner.tsx
+// src/components/AddPatientBanner/AddPatientBanner.tsx
+
 import React, { useState } from "react";
-import AddPatient from "../../AddPatient/AddPatient"; // or wherever your form lives
-import "./AddPatientBanner.css";
+import AddPatient from "../../AddPatient/AddPatient";
+import { UserPlusIcon } from "@heroicons/react/24/outline";
 
 interface AddPatientBannerProps {
   clinicId: string;
@@ -15,44 +16,42 @@ const AddPatientBanner: React.FC<AddPatientBannerProps> = ({
   const [showForm, setShowForm] = useState(false);
 
   return (
-    <>
-      <section className="add‐patient‐banner">
-        <div className="banner‐content">
-          <div className="banner‐icon">
-            {/* You can swap out this placeholder for any image or SVG */}
-            <img
-              src="/icons/add_patient_icon.svg"
-              alt="Add Patient"
-              className="banner‐icon‐img"
-            />
-          </div>
-          <div className="banner‐text">
-            <h2>Yeni Hasta Ekle</h2>
-            <p>Hızlıca yeni bir hasta kaydı oluşturmak için tıklayın.</p>
-          </div>
-          <button
-            className="banner‐cta"
-            onClick={() => setShowForm((prev) => !prev)}
-          >
-            {!showForm ? "Formu Aç" : "Formu Kapat"}
-          </button>
+    <div className="mx-4 my-2">
+      {/* — Banner (always visible) — */}
+      <section className="bg-white rounded-xl shadow flex items-center justify-between px-4 py-3">
+        {/* Icon */}
+        <div className="flex-shrink-0">
+          <UserPlusIcon className="h-8 w-8 text-brand-green-500" />
         </div>
+
+        {/* Text */}
+        <div className="flex-1 px-4">
+          <h2 className="text-lg font-semibold text-brand-black">
+            Yeni Hasta Ekle
+          </h2>
+        </div>
+
+        {/* Toggle Button */}
+        <button
+          className="
+            bg-brand-green-400 hover:bg-brand-green-500
+            text-white font-medium
+            px-3 py-1 rounded-lg
+            focus:outline-none focus:ring-2 focus:ring-brand-green-300
+          "
+          onClick={() => setShowForm((prev) => !prev)}
+        >
+          {!showForm ? "Formu Aç" : "Formu Kapat"}
+        </button>
       </section>
 
+      {/* — AddPatient Form (inline, collapsible) — */}
       {showForm && (
-        <div className="add‐patient‐form‐overlay">
-          <div className="add‐patient‐form‐container">
-            <AddPatient clinicId={clinicId} idToken={idToken} />
-            <button
-              className="close‐form‐btn"
-              onClick={() => setShowForm(false)}
-            >
-              ✕ Kapat
-            </button>
-          </div>
+        <div className="mt-4 bg-white rounded-xl shadow p-6">
+          <AddPatient clinicId={clinicId} idToken={idToken} />
         </div>
       )}
-    </>
+    </div>
   );
 };
 

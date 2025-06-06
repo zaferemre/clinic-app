@@ -1,0 +1,141 @@
+// src/components/CalendarEmployeeSelector.tsx
+import React, { useState, useRef, useEffect } from "react";
+
+export interface CalendarEmployee {
+  email: string;
+  name: string;
+  pictureUrl?: string;
+}
+
+interface Props {
+  /** The list of all workers (must have email, name, optional pictureUrl) */
+  workers: CalendarEmployee[];
+  /** Currently selected worker’s email (or empty string = “all”) */
+  selectedWorker: string;
+  /** Called when user picks a worker (pass back the worker.email) */
+  onChange: (newEmail: string) => void;
+}
+
+export const CalendarEmployeeSelector: React.FC<Props> = ({
+  workers,
+  selectedWorker,
+  onChange,
+}) => {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown if clicked outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [wrapperRef]);
+
+  // Determine label to show when no worker or “all”
+  const selectedLabel =
+    selectedWorker === ""
+      ? "Hepsi"
+      : workers.find((w) => w.email === selectedWorker)?.name || "Hepsi";
+
+  // Get avatar URL for selected (fallback to placeholder)
+  const selectedAvatar =
+    workers.find((w) => w.email === selectedWorker)?.pictureUrl || "";
+
+  return (
+    <div className="relative inline-block text-left" ref={wrapperRef}>
+      {/* Button to open/close */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="
+          inline-flex justify-between items-center
+          w-48 px-3 py-2 bg-white border border-brand-gray-300 rounded-lg
+          text-sm font-medium text-brand-black
+          hover:border-brand-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-green-300
+        "
+      >
+        <div className="flex items-center space-x-2">
+          {selectedWorker && selectedAvatar ? (
+            <img
+              src={selectedAvatar}
+              alt={`${selectedLabel} avatar`}
+              className="w-6 h-6 rounded-full object-cover"
+            />
+          ) : null}
+          <span>{selectedLabel}</span>
+        </div>
+        <svg
+          className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </button>
+
+      {open && (
+        <ul
+          className="
+            absolute z-10 mt-1 w-48 bg-white border border-brand-gray-300
+            rounded-lg shadow-lg max-h-60 overflow-y-auto
+          "
+        >
+          {/* “All” option */}
+          <li
+            onClick={() => {
+              onChange("");
+              setOpen(false);
+            }}
+            className="
+              flex items-center px-3 py-2 hover:bg-brand-gray-100
+              cursor-pointer
+            "
+          >
+            {/* No avatar for “All” */}
+            <span className="ml-1 text-sm text-brand-black">Hepsi</span>
+          </li>
+
+          {workers.map((w) => (
+            <li
+              key={w.email}
+              onClick={() => {
+                onChange(w.email);
+                setOpen(false);
+              }}
+              className="
+                flex items-center px-3 py-2 hover:bg-brand-gray-100
+                cursor-pointer
+              "
+            >
+              {w.pictureUrl ? (
+                <img
+                  src={w.pictureUrl}
+                  alt={`${w.name} avatar`}
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-brand-gray-200" />
+              )}
+              <span className="ml-2 text-sm text-brand-black">{w.name}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};

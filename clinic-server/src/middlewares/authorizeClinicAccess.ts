@@ -21,17 +21,18 @@ export const authorizeClinicAccess = async (
       return;
     }
 
-    // Sahip ise ya da workers içinde listelenmişse geçmesine izin ver
-    if (clinic.ownerEmail === userEmail || clinic.workers.includes(userEmail)) {
+    // Owner can always access; otherwise check in workers array
+    if (
+      clinic.ownerEmail === userEmail ||
+      clinic.workers.find((w: { email: string }) => w.email === userEmail)
+    ) {
       (req as any).clinic = clinic;
       next();
     } else {
       res.status(403).json({ error: "Unauthorized access" });
-      return;
     }
   } catch (err) {
     console.error("Error in authorizeClinicAccess:", err);
     res.status(500).json({ error: "Server error" });
-    return;
   }
 };

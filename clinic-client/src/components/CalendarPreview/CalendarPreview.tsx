@@ -1,64 +1,82 @@
-// src/components/CalendarPreview.tsx
+// src/components/CalendarPreview/CalendarPreview.tsx
+
 import React, { useState, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { EventClickArg } from "@fullcalendar/core"; // Import correct type for event click
+import { EventClickArg } from "@fullcalendar/core";
 
-interface CalendarPreviewProps {
-  idToken: string;
-  clinicId: string;
-  onEventClick?: (info: EventClickArg) => void; // optional callback when user clicks a slot/event
-}
+import { getAppointments, CalendarEvent } from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
 
-export const CalendarPreview: React.FC<CalendarPreviewProps> = ({
-  idToken,
-  clinicId,
-  onEventClick,
-}) => {
-  interface CalendarEvent {
-    title: string;
-    start: string;
-    end?: string;
-    color?: string;
-    [key: string]: unknown;
-  }
-
+export const CalendarPreview: React.FC<{
+  onEventClick?: (info: EventClickArg) => void;
+}> = ({ onEventClick }) => {
+  const { idToken, clinicId } = useAuth();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
 
   useEffect(() => {
-    // Option A: Fetch “appointments” from your backend for “today” only.
-    // For demonstration, let’s fetch all and filter in UI—but ideally your API accepts a “date” param.
+    const fetchToday = async () => {
+      if (!idToken || !clinicId) return;
+      try {
+        const data: CalendarEvent[] = await getAppointments(idToken, clinicId);
+        // Filter down to events whose start is “today” (local date)
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const day = String(today.getDate()).padStart(2, "0");
+        const todayStr = `${year}-${month}-${day}`;
 
-    const apiUrl = import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001";
-    fetch(`${apiUrl}/clinic/${clinicId}/appointments`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data: CalendarEvent[]) => {
-        // Assume data is an array of { title, start, end, color }
-        // Filter down to events where start is “today”
-        const todayStr = new Date().toISOString().split("T")[0]; // “YYYY-MM-DD”
-        const todaysEvents = data.filter((ev) =>
-          ev.start?.startsWith(todayStr)
-        );
-        setEvents(todaysEvents);
-      })
-      .catch((err) => console.error("Failed to fetch appointments:", err));
+        const todaysEvents = data.filter((ev) => ev.start.startsWith(todayStr));
+
+        const fcEvents = todaysEvents.map((ev) => ({
+          id: ev.id, // Include the id property
+          title: ev.title,
+          start: ev.start,
+          end: ev.end,
+          color: "#34D399", // brand-green-400
+        }));
+        setEvents(fcEvents);
+      } catch (err) {
+        console.error("Failed to fetch appointments:", err);
+      }
+    };
+
+    fetchToday();
   }, [clinicId, idToken]);
 
-  // Today’s date in YYYY-MM-DD format for initialDate:
+  // Derive an ISO “YYYY-MM-DD” for initialDate
   const today = new Date();
-  const isoToday = today.toISOString().split("T")[0];
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  const isoToday = `${year}-${month}-${day}`;
 
   return (
-    <div className="bg-white shadow rounded-md p-2 overflow-hidden">
+    <div className="bg-white rounded-xl shadow p-2 overflow-hidden mx-4 mb-4">
+      {/* Force a fixed height so it doesn’t overflow the card */}
       <div className="h-60">
-        {/* fixed height so it doesn’t overflow */}
+        <style>
+          {`
+            /* Hide default FullCalendar toolbar for preview */
+            .fc .fc-toolbar { display: none; }
+
+            /* For the day view in the preview: apply brand styling */
+            .fc .fc-timegrid-slot-lane .fc-timegrid-slot-text {
+              color: #4B5563; /* brand-gray-700 */
+              font-size: 0.75rem;
+            }
+            .fc .fc-timegrid-event {
+              background-color: #34D399 !important; /* brand-green-400 */
+              border: none !important;
+              color: #FFFFFF !important;
+              font-size: 0.75rem;
+              border-radius: 0.375rem;
+            }
+          `}
+        </style>
+
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="timeGridDay"

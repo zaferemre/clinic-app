@@ -1,73 +1,66 @@
-// src/components/CalendarView.tsx
+// src/components/CalendarView/CalendarView.tsx
+
 import React, { useState, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
-import { DateSelectArg, EventClickArg, EventInput } from "@fullcalendar/core";
+import {
+  DateSelectArg,
+  EventClickArg,
+  EventInput,
+  ViewApi,
+} from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import bootstrap5Plugin from "@fullcalendar/bootstrap5";
 
-const apiUrl = import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001";
+import {
+  getAppointments,
+  getPatients,
+  createAppointment,
+  deleteAppointment,
+} from "../../api/client";
+import { useAuth } from "../../context/AuthContext";
+import AddPatient from "../AddPatient/AddPatient";
+import { AppointmentModal } from "../AppointmentModal";
+import {
+  CalendarEmployee,
+  CalendarEmployeeSelector,
+} from "../CalendarEmployeeSelector/CalendarEmployeeSelector";
 
-interface PatientOption {
-  _id: string;
-  name: string;
-  credit: number;
-}
+const API_BASE = "http://localhost:3001";
 
-interface CalendarViewProps {
-  idToken: string;
-  clinicId: string;
-}
+export const CalendarView: React.FC = () => {
+  const { idToken, clinicId } = useAuth();
 
-export const CalendarView: React.FC<CalendarViewProps> = ({
-  idToken,
-  clinicId,
-}) => {
+  // FullCalendar events array
   const [events, setEvents] = useState<EventInput[]>([]);
-  const [view, setView] = useState<"timeGridWeek" | "timeGridDay">(
-    "timeGridWeek"
-  );
-  const [patients, setPatients] = useState<PatientOption[]>([]);
+
+  // Patients and workers data
+  const [patients, setPatients] = useState<
+    { _id: string; name: string; credit: number }[]
+  >([]);
+  const [workers, setWorkers] = useState<CalendarEmployee[]>([]);
+
+  // For filtering / creating appointments
+  const [selectedWorker, setSelectedWorker] = useState<string>("");
   const [selectedSpan, setSelectedSpan] = useState<DateSelectArg | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<string>("");
 
-  // 1) Fetch appointments
-  const fetchAppointments = async () => {
-    if (!idToken || !clinicId) return;
-    try {
-      const res = await fetch(`${apiUrl}/clinic/${clinicId}/appointments`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-      if (!res.ok) throw new Error("Randevular alınamadı");
-      const data: EventInput[] = await res.json();
-      setEvents(data);
-    } catch (err) {
-      console.error("Fetch appointments error:", err);
-      setEvents([]);
-    }
-  };
+  // Show/hide overlays
+  const [showAddPatient, setShowAddPatient] = useState(false);
+  const [modalEvent, setModalEvent] = useState<EventInput | null>(null);
 
-  // 2) Fetch patients
+  // ─── 1) Fetch Patients ─────────────────────────────────────────────
   const fetchPatients = async () => {
     if (!idToken || !clinicId) {
       setPatients([]);
       return;
     }
     try {
-      const res = await fetch(`${apiUrl}/clinic/${clinicId}/patients`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-      if (!res.ok) throw new Error("Hastalar alınamadı");
-      const data: PatientOption[] = await res.json();
-      setPatients(data);
+      const data = await getPatients(idToken, clinicId);
+      setPatients(
+        data.map((p) => ({ _id: p._id, name: p.name, credit: p.credit }))
+      );
     } catch (err) {
       console.error("Fetch patients error:", err);
       setPatients([]);
@@ -75,166 +68,375 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   useEffect(() => {
-    if (idToken && clinicId) {
-      fetchAppointments();
-      fetchPatients();
-    }
+    if (idToken && clinicId) fetchPatients();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idToken, clinicId]);
 
-  // 3) Responsive view (week vs day)
   useEffect(() => {
-    const handleResize = () => {
-      setView(window.innerWidth < 640 ? "timeGridDay" : "timeGridWeek");
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    if (!showAddPatient) {
+      fetchPatients();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAddPatient]);
 
-  // 4) User selects a time slot
-  const handleDateSelect = (selectInfo: DateSelectArg) => {
-    setSelectedSpan(selectInfo);
-  };
-
-  // 5) Create appointment
-  const handleCreateAppointment = async () => {
-    if (!selectedSpan || !selectedPatient) {
-      alert("Lütfen bir hasta seçin.");
+  // ─── 2) Fetch Workers via GET /clinic/:clinicId/workers ─────────────────
+  const fetchWorkers = async () => {
+    if (!idToken || !clinicId) {
+      setWorkers([]);
       return;
     }
     try {
-      const { startStr, endStr } = selectedSpan;
-      const res = await fetch(`${apiUrl}/clinic/${clinicId}/appointments`, {
-        method: "POST",
+      const res = await fetch(`${API_BASE}/clinic/${clinicId}/workers`, {
+        method: "GET",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({
-          patientId: selectedPatient,
-          start: startStr,
-          end: endStr,
-        }),
       });
-      const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Randevu oluşturulamadı.");
-      } else {
-        fetchAppointments();
-        setSelectedSpan(null);
-        setSelectedPatient("");
+        throw new Error(`Sunucu hatası (status ${res.status})`);
       }
+      const data = await res.json();
+      // data: Array<{ email, name, pictureUrl, role }>
+      type WorkerApiResponse = {
+        email: string;
+        name?: string;
+        pictureUrl?: string;
+        role?: string;
+      };
+      const mapped: CalendarEmployee[] = (Array.isArray(data) ? data : []).map(
+        (w: WorkerApiResponse) => ({
+          email: w.email,
+          name: w.name ?? w.email,
+          pictureUrl: w.pictureUrl ?? "",
+        })
+      );
+      setWorkers(mapped);
     } catch (err) {
-      console.error("Create appointment error:", err);
-      alert("Sunucu hatası.");
+      console.error("Fetch workers error:", err);
+      setWorkers([]);
     }
   };
 
-  // 6) Mark appointment as done
-  const handleEventClick = async (clickInfo: EventClickArg) => {
-    if (
-      window.confirm(
-        `Bu randevuyu tamamlandı olarak işaretlemek istiyor musunuz?\n(${clickInfo.event.title})`
-      )
-    ) {
-      try {
-        const apptId = clickInfo.event.id;
-        const res = await fetch(
-          `${apiUrl}/clinic/${clinicId}/appointments/${apptId}/complete`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${idToken}`,
-            },
-          }
-        );
-        if (!res.ok) {
-          const data = await res.json();
-          alert(data.error || "İşaretlenemedi.");
-        } else {
-          fetchAppointments();
-        }
-      } catch (err) {
-        console.error("Complete appointment error:", err);
-        alert("Sunucu hatası.");
-      }
+  useEffect(() => {
+    if (idToken && clinicId) fetchWorkers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idToken, clinicId]);
+
+  // ─── 3) Fetch Appointments & assign colors ────────────────────────────
+  const fetchAppointments = async () => {
+    if (!idToken || !clinicId) return;
+    try {
+      type Appointment = {
+        id: string;
+        title: string;
+        start: string;
+        end: string;
+        workerEmail?: string;
+      };
+      const data: Appointment[] = await getAppointments(idToken, clinicId);
+
+      // Filter by selectedWorker if set
+      const filtered = data.filter((ev) => {
+        if (!selectedWorker) return true;
+        return ev.workerEmail === selectedWorker;
+      });
+
+      // Group by date “YYYY-MM-DD”
+      const groupedByDate: Record<string, typeof data> = {};
+      filtered.forEach((ev) => {
+        const dateKey = ev.start.split("T")[0];
+        if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
+        groupedByDate[dateKey].push(ev);
+      });
+
+      // Pastel palette
+      const palette = ["#34D399", "#93C5FD", "#FDBA74", "#F9A8D4", "#FCA5A5"];
+
+      const now = new Date().getTime();
+      const fcEvents: EventInput[] = [];
+      Object.values(groupedByDate).forEach((evListOnDate) => {
+        evListOnDate.forEach((ev, idx) => {
+          const isPast = ev.end && new Date(ev.end).getTime() < now;
+          const color = isPast ? "#9CA3AF" : palette[idx % palette.length];
+          fcEvents.push({
+            id: ev.id,
+            title: ev.title,
+            start: ev.start,
+            end: ev.end,
+            color,
+          });
+        });
+      });
+
+      setEvents(fcEvents);
+    } catch (err) {
+      console.error("Fetch appointments error:", err);
+      setEvents([]);
     }
+  };
+
+  useEffect(() => {
+    if (idToken && clinicId) fetchAppointments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idToken, clinicId, selectedWorker]);
+
+  // ─── 4) When user drags a time‐range (“select”) ─────────────────────────
+  const handleDateSelect = (selectInfo: DateSelectArg) => {
+    setSelectedSpan(selectInfo);
+  };
+
+  // ─── 5) When user single‐clicks a slot (“dateClick”) ────────────────────
+  const handleDateClick = (clickInfo: { date: Date; view: ViewApi }) => {
+    const startDate = clickInfo.date;
+    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+    const pseudoSelect: DateSelectArg = {
+      start: startDate,
+      end: endDate,
+      startStr: startDate.toISOString(),
+      endStr: endDate.toISOString(),
+      allDay: false,
+      view: clickInfo.view,
+      jsEvent: null,
+    };
+    setSelectedSpan(pseudoSelect);
+  };
+
+  // ─── 6) Create appointment when “Oluştur” clicked ───────────────────────
+  const handleCreateAppointment = async () => {
+    if (!selectedSpan || !selectedPatient || !selectedWorker) {
+      alert("Lütfen bir hasta ve bir çalışan seçin.");
+      return;
+    }
+    try {
+      const { startStr, endStr } = selectedSpan;
+      await createAppointment(
+        idToken!,
+        clinicId!,
+        selectedPatient,
+        selectedWorker,
+        startStr,
+        endStr
+      );
+      await fetchAppointments();
+      setSelectedSpan(null);
+      setSelectedPatient("");
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Randevu oluşturulamadı.";
+      alert(msg);
+    }
+  };
+
+  // ─── 7) Event click → open modal ───────────────────────────────────────
+  const handleEventClick = (clickInfo: EventClickArg) => {
+    setModalEvent({
+      id: clickInfo.event.id,
+      title: clickInfo.event.title,
+      start: clickInfo.event.startStr,
+      end: clickInfo.event.endStr,
+      color: clickInfo.event.backgroundColor,
+    });
+  };
+
+  // ─── 8) Cancel appointment (called by modal) ───────────────────────────
+  const handleCancelAppointment = async (appointmentId: string) => {
+    await deleteAppointment(idToken!, clinicId!, appointmentId);
+    await fetchAppointments();
+  };
+
+  // ─── 9) Close “Yeni Hasta Ekle” overlay ────────────────────────────────
+  const handleCloseAddPatient = () => {
+    setShowAddPatient(false);
   };
 
   return (
-    <>
-      {/*  — Thumb‐sized CSS override to shrink FullCalendar’s toolbar — */}
-      <style>
-        {`
-        /* Make the header (toolbar) text/icons smaller */
-        .fc .fc-toolbar-title {
-          font-size: 1rem !important;
-          line-height: 1.2 !important;
-        }
-        .fc .fc-button {
-          font-size: 0.75rem !important;
-          padding: 0.25rem 0.5rem !important;
-        }
-        .fc .fc-col-header-cell-cushion {
-          font-size: 0.75rem !important;
-        }
-        .fc .fc-timegrid-slot-lane .fc-timegrid-slot-text {
-          font-size: 0.75rem !important;
-        }
-        `}
-      </style>
-
-      <div className="flex flex-col flex-1 bg-brand-gray-100">
-        {/* Inline form (only when a slot is selected) */}
-        {selectedSpan && (
-          <div className="mb-2 p-2 bg-white rounded-lg shadow">
-            <h3 className="text-sm font-semibold text-brand-black mb-1">
-              Randevu Oluştur
-            </h3>
-
-            <div className="flex items-center mb-2 space-x-2 text-sm">
-              <label className="font-medium text-brand-black">Hasta:</label>
-              <select
-                value={selectedPatient}
-                onChange={(e) => setSelectedPatient(e.target.value)}
-                className="flex-1 px-2 py-1 border border-brand-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-brand-green-300"
-              >
-                <option value="">Seçiniz</option>
-                {patients.map((p) => (
-                  <option key={p._id} value={p._id}>
-                    {p.name} (Kredi: {p.credit})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex space-x-2">
-              <button
-                onClick={handleCreateAppointment}
-                className="flex-1 bg-brand-green-400 hover:bg-brand-green-500 text-white rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-green-300"
-              >
-                Oluştur
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedSpan(null);
-                  setSelectedPatient("");
-                }}
-                className="flex-1 bg-brand-gray-300 hover:bg-brand-gray-400 text-brand-black rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gray-200"
-              >
-                İptal
-              </button>
-            </div>
+    <div className="flex flex-col flex-1 bg-brand-gray-100">
+      {/* ── Add Patient Overlay ── */}
+      {showAddPatient && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/50">
+          <div className="w-full max-w-md mx-4 mt-10 mb-10">
+            <AddPatient clinicId={clinicId!} idToken={idToken!} />
+            <button
+              className="
+                absolute top-2 right-2
+                bg-white text-brand-gray-700
+                hover:text-brand-black
+                rounded-full p-1 shadow
+              "
+              onClick={handleCloseAddPatient}
+            >
+              ×
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* FullCalendar Container */}
-        <div className="flex-1 overflow-auto bg-white rounded-lg shadow">
+      {/* ── Appointment Modal ── */}
+      {modalEvent && (
+        <AppointmentModal
+          event={modalEvent}
+          onClose={() => setModalEvent(null)}
+          onCancel={handleCancelAppointment}
+        />
+      )}
+
+      {/* ── Worker Filter Bar ── */}
+      <div className="mx-4 mt-4 mb-2 p-2 bg-white rounded-xl shadow flex items-center space-x-2">
+        <label
+          htmlFor="worker-select"
+          className="font-medium text-sm text-brand-black"
+        >
+          Çalışan:
+        </label>
+        <CalendarEmployeeSelector
+          workers={workers}
+          selectedWorker={selectedWorker}
+          onChange={(email) => setSelectedWorker(email)}
+        />
+      </div>
+
+      {/* ── Appointment Creation Bar ── */}
+      {selectedSpan && (
+        <div className="mx-4 mb-2 p-4 bg-white rounded-xl shadow flex flex-col space-y-3">
+          <h3 className="text-sm font-semibold text-brand-black">
+            Randevu Oluştur
+          </h3>
+
+          {/* “Yeni Hasta Ekle” Button */}
+          <button
+            className="
+              self-start mb-2
+              bg-brand-blue-100 hover:bg-brand-blue-200
+              text-brand-blue-500 px-3 py-1 rounded-lg text-sm
+              focus:outline-none focus:ring-2 focus:ring-brand-blue-300
+            "
+            onClick={() => setShowAddPatient(true)}
+          >
+            Yeni Hasta Ekle
+          </button>
+
+          {/* Patient Dropdown */}
+          <div className="flex items-center space-x-2 text-sm">
+            <label
+              htmlFor="patient-select"
+              className="font-medium text-brand-black"
+            >
+              Hasta:
+            </label>
+            <select
+              id="patient-select"
+              value={selectedPatient}
+              onChange={(e) => setSelectedPatient(e.target.value)}
+              className="
+                flex-1 px-2 py-1
+                border border-brand-gray-300
+                rounded-lg text-sm
+                focus:outline-none focus:ring-2 focus:ring-brand-green-300
+              "
+            >
+              <option value="">Seçiniz</option>
+              {patients.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name} (Kredi: {p.credit})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-2 text-sm">
+            <label
+              htmlFor="worker-select"
+              className="font-medium text-brand-black"
+            >
+              Çalışan:
+            </label>
+            <CalendarEmployeeSelector
+              workers={workers}
+              selectedWorker={selectedWorker}
+              onChange={(email) => setSelectedWorker(email)}
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex space-x-2">
+            <button
+              onClick={handleCreateAppointment}
+              className="
+                flex-1
+                bg-brand-green-400 hover:bg-brand-green-500
+                text-white rounded-lg
+                px-3 py-2 text-sm
+                focus:outline-none focus:ring-2 focus:ring-brand-green-300
+              "
+            >
+              Oluştur
+            </button>
+            <button
+              onClick={() => {
+                setSelectedSpan(null);
+                setSelectedPatient("");
+              }}
+              className="
+                flex-1
+                bg-brand-gray-300 hover:bg-brand-gray-400
+                text-brand-black rounded-lg
+                px-3 py-2 text-sm
+                focus:outline-none focus:ring-2 focus:ring-brand-gray-200
+              "
+            >
+              İptal
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── FullCalendar Container ── */}
+      <div className="flex-1 mb-4 bg-white rounded-xl shadow overflow-hidden w-full">
+        <div className="w-full overflow-x-auto">
+          <style>
+            {`
+            /* Shrink FullCalendar text sizes */
+            .fc .fc-toolbar-title {
+              font-size: 0.75rem;
+            }
+            .fc .fc-button {
+              font-size: 0.75rem;
+            }
+            .fc .fc-col-header-cell-cushion {
+              font-size: 0.75rem;
+            }
+            .fc .fc-timegrid-slot-lane .fc-timegrid-slot-text {
+              font-size: 0.625rem;
+            }
+            .fc .fc-daygrid-day-number {
+              font-size: 0.75rem;
+            }
+            .fc .fc-event-title {
+              font-size: 0.75rem;
+            }
+            /* Enable vertical scrolling inside FullCalendar on mobile */
+            .fc .fc-scroller {
+              overflow-y: auto !important;
+              -webkit-overflow-scrolling: touch !important;
+            }
+            .fc .fc-daygrid-body,
+            .fc .fc-timegrid-body {
+              user-select: none;
+            }
+            `}
+          </style>
+
           <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView={view}
+            plugins={[
+              dayGridPlugin,
+              timeGridPlugin,
+              interactionPlugin,
+              bootstrap5Plugin,
+            ]}
+            themeSystem="bootstrap5"
+            initialView="timeGridWeek"
             views={{
               dayGridMonth: {
                 titleFormat: { year: "numeric", month: "long" },
@@ -251,12 +453,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               },
             }}
             allDaySlot={false}
-            editable={false}
+            editable={true}
+            eventResizableFromStart={true}
+            eventDurationEditable={true}
             selectable={true}
+            selectMirror={true}
             select={handleDateSelect}
+            dateClick={handleDateClick}
             eventClick={handleEventClick}
             events={events}
-            eventDisplay="auto"
+            eventDisplay="block"
             headerToolbar={{
               start: "prev,next today",
               center: "title",
@@ -274,6 +480,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           />
         </div>
       </div>
-    </>
+    </div>
   );
 };

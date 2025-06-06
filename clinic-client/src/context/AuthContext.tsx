@@ -28,8 +28,7 @@ interface AuthContextProps {
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
-
-const apiUrl = import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001";
+const API_BASE = "http://localhost:3001";
 
 export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
   children,
@@ -43,6 +42,7 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (!fbUser) {
+        // Logged out
         setIdToken(null);
         setUser(null);
         setClinicId(null);
@@ -52,8 +52,11 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
       }
 
       try {
+        // 1) get the fresh token
         const token = await fbUser.getIdToken();
         setIdToken(token);
+
+        // 2) set user info
         setUser({
           uid: fbUser.uid,
           email: fbUser.email || "",
@@ -61,8 +64,9 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
           imageUrl: fbUser.photoURL || "",
         });
 
+        // 3) now fetch the clinic
         setCheckingClinic(true);
-        const res = await fetch(`${apiUrl}/clinic/by-email`, {
+        const res = await fetch(`${API_BASE}/clinic/by-email`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
