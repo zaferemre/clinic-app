@@ -1,12 +1,12 @@
 import { useState, ChangeEvent, FormEvent } from "react";
-import { createPatient } from "../../api/client";
+import { createPatient } from "../../api/patientApi";
 
 interface AddPatientProps {
   idToken: string;
-  clinicId: string;
+  companyId: string;
 }
 
-export default function AddPatient({ idToken, clinicId }: AddPatientProps) {
+export default function AddPatient({ idToken, companyId }: AddPatientProps) {
   const [name, setName] = useState("");
   const [gender, setGender] = useState<"Male" | "Female" | "Other">("Male");
   const [age, setAge] = useState("");
@@ -63,7 +63,7 @@ export default function AddPatient({ idToken, clinicId }: AddPatientProps) {
     }
 
     try {
-      const newPatient = await createPatient(idToken, clinicId, payload);
+      const newPatient = await createPatient(idToken, companyId, payload);
       setMessage(`Hasta başarıyla eklendi: ${newPatient._id}`);
 
       // Clear fields

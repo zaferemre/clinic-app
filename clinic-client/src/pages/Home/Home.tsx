@@ -4,12 +4,13 @@ import React, { useState, useEffect } from "react";
 import { CalendarPreview } from "../../components/CalendarPreview/CalendarPreview";
 import { HomeNavGrid } from "../../components/HomeNavGrid/HomeNavGrid";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { format } from "date-fns";
-import { getNotifications, NotificationInfo } from "../../api/client";
+import { getNotifications } from "../../api/notificationApi";
+import { NotificationInfo } from "../../types/sharedTypes";
 
 const Home: React.FC = () => {
-  const { idToken, clinicId, clinicName, user } = useAuth();
+  const { idToken, companyId, companyName, user } = useAuth();
   const [todayStr, setTodayStr] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -23,14 +24,14 @@ const Home: React.FC = () => {
   // 2) Fetch unread notifications count
   useEffect(() => {
     const fetchUnread = async () => {
-      if (!idToken || !clinicId) {
+      if (!idToken || !companyId) {
         setUnreadCount(0);
         return;
       }
       try {
         const allNotifs: NotificationInfo[] = await getNotifications(
           idToken,
-          clinicId
+          companyId
         );
         const cnt = allNotifs.filter((n) => !n.isCalled).length;
         setUnreadCount(cnt);
@@ -42,9 +43,9 @@ const Home: React.FC = () => {
 
     fetchUnread();
     // If you want live updates, you could poll or subscribe—this runs once on mount.
-  }, [idToken, clinicId]);
+  }, [idToken, companyId]);
 
-  if (!idToken || !clinicId || !clinicName || !user) {
+  if (!idToken || !companyId || !companyName || !user) {
     return null;
   }
 

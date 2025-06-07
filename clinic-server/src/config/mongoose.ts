@@ -8,7 +8,7 @@ export const connectDB = async () => {
     throw new Error("MONGO_URI not found in environment");
   }
   await mongoose.connect(process.env.MONGO_URI, {
-    dbName: "clinic",
+    dbName: "company",
   });
   console.log("✅ MongoDB connected");
 };

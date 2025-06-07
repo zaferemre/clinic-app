@@ -5,12 +5,12 @@ import AddPatient from "../../AddPatient/AddPatient";
 import { UserPlusIcon } from "@heroicons/react/24/outline";
 
 interface AddPatientBannerProps {
-  clinicId: string;
+  companyId: string;
   idToken: string;
 }
 
 const AddPatientBanner: React.FC<AddPatientBannerProps> = ({
-  clinicId,
+  companyId,
   idToken,
 }) => {
   const [showForm, setShowForm] = useState(false);
@@ -46,7 +46,7 @@ const AddPatientBanner: React.FC<AddPatientBannerProps> = ({
       {/* — AddPatient Form (inline, collapsible) — */}
       {showForm && (
         <div className="mt-4 mb-10 bg-white rounded-xl shadow p-6">
-          <AddPatient clinicId={clinicId} idToken={idToken} />
+          <AddPatient companyId={companyId} idToken={idToken} />
         </div>
       )}
     </div>

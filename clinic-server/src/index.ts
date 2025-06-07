@@ -9,11 +9,12 @@ import { connectDB } from "./config/mongoose";
 import { verifyFirebaseToken } from "./middlewares/verifyFirebaseToken";
 
 // Import routers
-import clinicRoutes from "./routes/clinicRoutes";
+import employeeRoutes from "./routes/employeeRoutes";
+import companyRoutes from "./routes/companyRoutes";
 import patientRoutes from "./routes/patientRoutes";
 import appointmentRoutes from "./routes/appointmentRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
-import workerRoutes from "./routes/workerRoutes";
+
 import messageRoutes from "./routes/messageRoutes";
 
 const app = express();
@@ -32,23 +33,23 @@ app.use(
 app.use(express.json());
 
 // ───────────────────────────────────────────────────────────────────────────
-// 1) Mount /clinic/by-email (no JWT check)
-//    This ensures that React’s fetch(`${API_BASE}/clinic/by-email`)
-//    sees your getClinicByEmail controller instead of being stopped by verifyFirebaseToken.
+// 1) Mount /company/by-email (no JWT check)
+//    This ensures that React’s fetch(`${API_BASE}/company/by-email`)
+//    sees your getcompanyByEmail controller instead of being stopped by verifyFirebaseToken.
 // ───────────────────────────────────────────────────────────────────────────
-// 1) Mount clinicRoutes (which includes /by-email, /new, /:clinicId, /:clinicId/join, and /:clinicId/workers):
-app.use("/clinic", clinicRoutes);
+// 1) Mount companyRoutes (which includes /by-email, /new, /:companyId, /:companyId/join, and /:companyId/workers):
+app.use("/company", companyRoutes);
 
-// 2) Only after that, mount the global verifyFirebaseToken for any other /clinic sub‐routers:
+// 2) Only after that, mount the global verifyFirebaseToken for any other /company sub‐routers:
 //    (patients, appointments, notifications, etc.)
-app.use("/clinic", verifyFirebaseToken);
+app.use("/company", verifyFirebaseToken);
 
-// 3) Mount the rest of your protected /clinic sub‐routers:
-app.use("/clinic", patientRoutes);
-app.use("/clinic", appointmentRoutes);
-app.use("/clinic", notificationRoutes);
-app.use("/clinic", workerRoutes);
-app.use("/clinic", messageRoutes);
+// 3) Mount the rest of your protected /company sub‐routers:
+app.use("/company", patientRoutes);
+app.use("/company", appointmentRoutes);
+app.use("/company", notificationRoutes);
+app.use("/company", employeeRoutes);
+app.use("/company", messageRoutes);
 // ───────────────────────────────────────────────────────────────────────────
 // 4) Fallback 404
 // ───────────────────────────────────────────────────────────────────────────

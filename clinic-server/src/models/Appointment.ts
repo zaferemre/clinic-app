@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 export interface AppointmentDocument extends mongoose.Document {
-  clinicId: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   patientId: mongoose.Types.ObjectId;
   workerEmail: string;
   start: Date;
@@ -11,10 +11,10 @@ export interface AppointmentDocument extends mongoose.Document {
 
 const appointmentSchema = new mongoose.Schema<AppointmentDocument>(
   {
-    clinicId: {
+    companyId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      ref: "Clinic",
+      ref: "Company",
     },
     patientId: {
       type: mongoose.Schema.Types.ObjectId,

@@ -2,13 +2,11 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import {
-  getPatients,
-  getAppointments,
-  getNotifications,
-} from "../../api/client";
-import { CalendarEvent, NotificationInfo } from "../../api/client";
+import { useAuth } from "../../contexts/AuthContext";
+import { getPatients } from "../../api/patientApi";
+import { getAppointments } from "../../api/appointmentApi";
+import { getNotifications } from "../../api/notificationApi";
+import { CalendarEvent, NotificationInfo } from "../../types/sharedTypes";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 
 // Heroicons
@@ -21,7 +19,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 export const Dashboard: React.FC = () => {
-  const { idToken, clinicId } = useAuth();
+  const { idToken, companyId } = useAuth();
   const [patientCount, setPatientCount] = useState(0);
   const [todayAppointments, setTodayAppointments] = useState<CalendarEvent[]>(
     []
@@ -34,15 +32,15 @@ export const Dashboard: React.FC = () => {
 
   // Fetch everything needed for the dashboard at once:
   const fetchAllDashboardData = async () => {
-    if (!idToken || !clinicId) return;
+    if (!idToken || !companyId) return;
 
     // 1) Patients count
-    getPatients(idToken, clinicId)
+    getPatients(idToken, companyId)
       .then((data) => setPatientCount(data.length))
       .catch(() => setPatientCount(0));
 
     // 2) Today's appointments
-    getAppointments(idToken, clinicId)
+    getAppointments(idToken, companyId)
       .then((events) => {
         const todayStr = new Date().toISOString().split("T")[0];
         const todays = events.filter((ev) => ev.start.startsWith(todayStr));
@@ -51,17 +49,17 @@ export const Dashboard: React.FC = () => {
       .catch(() => setTodayAppointments([]));
 
     // 3) Unread alerts
-    getNotifications(idToken, clinicId)
+    getNotifications(idToken, companyId)
       .then((list) => {
         setUnreadAlerts(list);
       })
       .catch(() => setUnreadAlerts([]));
   };
 
-  // On mount (and whenever idToken or clinicId changes), do an initial fetch
+  // On mount (and whenever idToken or companyId changes), do an initial fetch
   // and then start polling every 30 seconds.
   useEffect(() => {
-    if (!idToken || !clinicId) return;
+    if (!idToken || !companyId) return;
 
     // Initial load:
     fetchAllDashboardData();
@@ -70,12 +68,12 @@ export const Dashboard: React.FC = () => {
     pollInterval.current = window.setInterval(fetchAllDashboardData, 30_000);
 
     return () => {
-      // Clear the interval on unmount or when clinicId/idToken changes:
+      // Clear the interval on unmount or when companyId/idToken changes:
       if (pollInterval.current !== null) {
         clearInterval(pollInterval.current);
       }
     };
-  }, [idToken, clinicId]);
+  }, [idToken, companyId]);
 
   // Show a little red dot if there are any unread alerts:
   const showAlertDot = unreadAlerts.length > 0;

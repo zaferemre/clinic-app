@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
-import {
-  getPatientAppointments,
-  flagPatientCall,
-  deletePatient,
-} from "../../api/client";
-import { useAuth } from "../../context/AuthContext";
+import { deletePatient } from "../../api/patientApi";
+import { getPatientAppointments } from "../../api/appointmentApi";
+import { flagPatientCall } from "../../api/notificationApi";
+
+import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export interface ServiceEntry {
@@ -48,7 +47,7 @@ export const PatientCard: React.FC<PatientCardProps> = ({
   onRecordPayment,
   onDeletePatient,
 }) => {
-  const { idToken, clinicId } = useAuth();
+  const { idToken, companyId } = useAuth();
   const navigate = useNavigate();
 
   const { _id, name, age, phone, credit, services, paymentHistory, note } =
@@ -73,10 +72,10 @@ export const PatientCard: React.FC<PatientCardProps> = ({
 
   // Load appointment history when expanded:
   const loadHistory = async () => {
-    if (!idToken || !clinicId) return;
+    if (!idToken || !companyId) return;
     setLoadingHistory(true);
     try {
-      const data = await getPatientAppointments(idToken, clinicId, _id);
+      const data = await getPatientAppointments(idToken, companyId, _id);
       setPastAppointments(data);
     } catch (err) {
       console.error("Failed to fetch history:", err);
@@ -89,9 +88,9 @@ export const PatientCard: React.FC<PatientCardProps> = ({
   // Handle “flag patient call”:
   const handleFlagCall = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!idToken || !clinicId) return;
+    if (!idToken || !companyId) return;
     try {
-      await flagPatientCall(idToken, clinicId, _id);
+      await flagPatientCall(idToken, companyId, _id);
       alert("Hasta çağrı listesine eklendi.");
     } catch (err: unknown) {
       if (err instanceof Error) {
@@ -105,11 +104,11 @@ export const PatientCard: React.FC<PatientCardProps> = ({
   // Handle “delete patient”:
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!idToken || !clinicId) return;
+    if (!idToken || !companyId) return;
     if (!window.confirm("Bu hastayı silmek istediğinize emin misiniz?")) return;
 
     try {
-      await deletePatient(idToken, clinicId, _id);
+      await deletePatient(idToken, companyId, _id);
       alert("Hasta başarıyla silindi.");
       onDeletePatient(_id);
     } catch (err: unknown) {

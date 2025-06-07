@@ -9,18 +9,19 @@ import Home from "./pages/Home/Home";
 import PatientsPage from "./pages/Patients/Patients";
 import CalendarPage from "./pages/Calendar/Calendar";
 import LoginPage from "./pages/LoginPage/LoginPage";
-import Workers from "./pages/Workers/Workers";
+
 import NotificationsPage from "./pages/Notifications/Notifications";
-import { AuthContextProvider, useAuth } from "./context/AuthContext";
+import { AuthContextProvider, useAuth } from "./contexts/AuthContext";
 import { Dashboard } from "./pages/Dashboard/Dashboard";
 import { MessagingPage } from "./pages/Messaging/MessagingPage";
 import EditPatientPage from "./pages/EditPatientPage/EditPatientPage";
-import NewUserPage from "./pages/NewUserPage/NewUserPage";
+import NewUserPage from "./pages/CompanyOnboardingPage/CompanyOnboardingPage";
+import EmployeesPage from "./components/EmployeesPage/EmployeesPage";
 
 function AppRoutes() {
-  const { idToken, clinicId, checkingClinic } = useAuth();
+  const { idToken, companyId, checkingCompany } = useAuth();
 
-  if (checkingClinic) {
+  if (checkingCompany) {
     return (
       <div className="flex items-center justify-center h-screen">
         <p className="text-brand-gray-500">Yükleniyor...</p>
@@ -37,7 +38,7 @@ function AppRoutes() {
     );
   }
 
-  if (!clinicId) {
+  if (!companyId) {
     return (
       <Routes>
         <Route path="/" element={<NewUserPage />} />
@@ -51,7 +52,7 @@ function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/patients" element={<PatientsPage />} />
       <Route path="/calendar" element={<CalendarPage />} />
-      <Route path="/workers" element={<Workers />} />
+      <Route path="/employees" element={<EmployeesPage />} />
       <Route path="/notifications" element={<NotificationsPage />} />
       <Route path="/patients/:id/edit" element={<EditPatientPage />} />
       <Route path="/dashboard" element={<Dashboard />} />

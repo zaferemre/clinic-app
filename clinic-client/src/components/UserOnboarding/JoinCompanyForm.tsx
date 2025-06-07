@@ -1,15 +1,15 @@
-// src/components/UserOnboarding/JoinClinicForm.tsx
-
+// src/components/UserOnboarding/JoinCompanyForm.tsx
 import React, { useState } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../contexts/AuthContext.tsx";
+import { API_BASE } from "../../config/apiConfig.ts";
 
-interface JoinClinicFormProps {
-  onJoined: (clinicId: string, clinicName: string) => void;
+interface JoinCompanyFormProps {
+  onJoined: (companyId: string, companyName: string) => void;
 }
 
-const API_BASE = import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001"; // Use VITE_API_BASE from .env or fallback to localhost
-
-export const JoinClinicForm: React.FC<JoinClinicFormProps> = ({ onJoined }) => {
+export const JoinCompanyForm: React.FC<JoinCompanyFormProps> = ({
+  onJoined,
+}) => {
   const { idToken } = useAuth();
   const [joinCode, setJoinCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -21,7 +21,7 @@ export const JoinClinicForm: React.FC<JoinClinicFormProps> = ({ onJoined }) => {
 
     const code = joinCode.trim();
     if (!code) {
-      setMessage("Lütfen geçerli bir klinik kodu girin.");
+      setMessage("Lütfen geçerli bir şirket kodu girin.");
       return;
     }
     if (!idToken) {
@@ -31,7 +31,7 @@ export const JoinClinicForm: React.FC<JoinClinicFormProps> = ({ onJoined }) => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/clinic/${code}/join`, {
+      const response = await fetch(`${API_BASE}/company/${code}/join`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -42,14 +42,13 @@ export const JoinClinicForm: React.FC<JoinClinicFormProps> = ({ onJoined }) => {
 
       if (response.ok) {
         const data = await response.json();
-        // Invoke the parent callback:
-        onJoined(data.clinicId, data.clinicName);
+        onJoined(data.companyId, data.companyName);
       } else {
         const errData = await response.json().catch(() => ({}));
         setMessage(errData.error ?? "Bilinmeyen bir hata oluştu.");
       }
     } catch (err: unknown) {
-      console.error("Join clinic failed:", err);
+      console.error("Join company failed:", err);
       setMessage(
         err instanceof Error
           ? err.message ?? "Ağ hatası oluştu."
@@ -65,11 +64,11 @@ export const JoinClinicForm: React.FC<JoinClinicFormProps> = ({ onJoined }) => {
       onSubmit={handleJoin}
       className="space-y-4 p-4 bg-white rounded-lg shadow"
     >
-      <h2 className="text-lg font-semibold">Klinik Kodu ile Katıl</h2>
+      <h2 className="text-lg font-semibold">Şirket Kodu ile Katıl</h2>
 
       <div>
         <label htmlFor="join-code" className="block text-sm font-medium">
-          Klinik Kodu
+          Şirket Kodu
         </label>
         <input
           id="join-code"
@@ -77,10 +76,7 @@ export const JoinClinicForm: React.FC<JoinClinicFormProps> = ({ onJoined }) => {
           value={joinCode}
           onChange={(e) => setJoinCode(e.target.value)}
           placeholder="Örn: 683f50b012d1c1aff4d9a610"
-          className="
-            mt-1 block w-full border border-gray-300 rounded-lg
-            px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-300
-          "
+          className="mt-1 block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-300"
           required
         />
       </div>
@@ -88,7 +84,7 @@ export const JoinClinicForm: React.FC<JoinClinicFormProps> = ({ onJoined }) => {
       {message && (
         <p
           className={`text-sm p-2 rounded-md ${
-            message === "Klinik başarıyla katıldınız!"
+            message.includes("başarı")
               ? "bg-green-100 text-green-700"
               : "bg-red-100 text-red-700"
           }`}
@@ -100,13 +96,7 @@ export const JoinClinicForm: React.FC<JoinClinicFormProps> = ({ onJoined }) => {
       <button
         type="submit"
         disabled={loading}
-        className="
-          w-full bg-brand-green-300 hover:bg-brand-green-400
-          text-white font-medium
-          px-4 py-2 rounded-full
-          focus:outline-none focus:ring-2 focus:ring-brand-green-300
-          disabled:opacity-50
-        "
+        className="w-full bg-brand-green-300 hover:bg-brand-green-400 text-white font-medium px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-brand-green-300 disabled:opacity-50"
       >
         {loading ? "Katılıyor..." : "Katıl"}
       </button>

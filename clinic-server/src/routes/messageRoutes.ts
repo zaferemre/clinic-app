@@ -2,23 +2,23 @@
 
 import express from "express";
 import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
-import { authorizeClinicAccess } from "../middlewares/authorizeClinicAccess";
+import { authorizeCompanyAccess } from "../middlewares/authorizeCompanyAccess";
 import Message from "../models/Message";
 
 const router = express.Router();
 
 /**
- * GET /clinic/:clinicId/messages
- * List all pending or sent messages for this clinic.
+ * GET /Company/:companyId/messages
+ * List all pending or sent messages for this Company.
  */
 router.get(
-  "/:clinicId/messages",
+  "/:companyId/messages",
   verifyFirebaseToken,
-  authorizeClinicAccess,
+  authorizeCompanyAccess,
   async (req, res): Promise<void> => {
-    const clinicId = req.params.clinicId;
+    const companyId = req.params.companyId;
     try {
-      const msgs = await Message.find({ clinicId }).sort({ scheduledFor: -1 });
+      const msgs = await Message.find({ companyId }).sort({ scheduledFor: -1 });
       res.json(msgs);
     } catch (err) {
       console.error("Failed to fetch messages:", err);
@@ -28,19 +28,19 @@ router.get(
 );
 
 /**
- * POST /clinic/:clinicId/messages/patient/:patientId
+ * POST /Company/:companyId/messages/patient/:patientId
  * Schedule a single‐patient message.
  */
 router.post(
-  "/:clinicId/messages/patient/:patientId",
+  "/:companyId/messages/patient/:patientId",
   verifyFirebaseToken,
-  authorizeClinicAccess,
+  authorizeCompanyAccess,
   async (req, res): Promise<void> => {
-    const { clinicId, patientId } = req.params;
+    const { companyId, patientId } = req.params;
     const { text, scheduledFor } = req.body;
     try {
       const msg = new Message({
-        clinicId,
+        companyId,
         patientId,
         text,
         scheduledFor: new Date(scheduledFor),
@@ -55,19 +55,19 @@ router.post(
 );
 
 /**
- * POST /clinic/:clinicId/messages/bulk
+ * POST /Company/:companyId/messages/bulk
  * Schedule a bulk message to all patients.
  */
 router.post(
-  "/:clinicId/messages/bulk",
+  "/:companyId/messages/bulk",
   verifyFirebaseToken,
-  authorizeClinicAccess,
+  authorizeCompanyAccess,
   async (req, res): Promise<void> => {
-    const clinicId = req.params.clinicId;
+    const companyId = req.params.companyId;
     const { text, scheduledFor } = req.body;
     try {
       const msg = new Message({
-        clinicId,
+        companyId,
         text,
         scheduledFor: new Date(scheduledFor),
       });
@@ -81,17 +81,17 @@ router.post(
 );
 
 /**
- * POST /clinic/:clinicId/messages/auto-remind
- * Record an auto‐reminder offset (in hours) for the clinic.
+ * POST /Company/:companyId/messages/auto-remind
+ * Record an auto‐reminder offset (in hours) for the Company.
  * The backend should save offsetHours so that a background worker
  * can send WhatsApp reminders offsetHours before each appointment.
  */
 router.post(
-  "/:clinicId/messages/auto-remind",
+  "/:companyId/messages/auto-remind",
   verifyFirebaseToken,
-  authorizeClinicAccess,
+  authorizeCompanyAccess,
   async (req, res): Promise<void> => {
-    const { clinicId } = req.params;
+    const { companyId } = req.params;
     const { offsetHours } = req.body as { offsetHours?: number };
 
     // Validate
@@ -101,8 +101,8 @@ router.post(
     }
 
     try {
-      // Here you would update your Clinic model, e.g.:
-      // await Clinic.findByIdAndUpdate(clinicId, { autoRemindOffsetHours: offsetHours });
+      // Here you would update your Company model, e.g.:
+      // await Company.findByIdAndUpdate(companyId, { autoRemindOffsetHours: offsetHours });
       // For now, just return success:
       res
         .status(200)

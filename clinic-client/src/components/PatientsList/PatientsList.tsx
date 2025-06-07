@@ -7,12 +7,12 @@ import {
   getPatients,
   updatePatientField,
   recordPayment,
-  Patient as ApiPatient,
-} from "../../api/client";
-import { useAuth } from "../../context/AuthContext";
+} from "../../api/patientApi";
+import { Patient } from "../../types/sharedTypes";
+import { useAuth } from "../../contexts/AuthContext";
 
 export const PatientsList: React.FC = () => {
-  const { idToken, clinicId } = useAuth();
+  const { idToken, companyId } = useAuth();
   const [patients, setPatients] = useState<CardPatient[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -23,16 +23,16 @@ export const PatientsList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Fetch all patients when idToken or clinicId changes
+  // Fetch all patients when idToken or companyId changes
   // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!idToken || !clinicId) {
+    if (!idToken || !companyId) {
       setPatients([]);
       return;
     }
 
-    getPatients(idToken, clinicId)
-      .then((apiData: ApiPatient[]) => {
+    getPatients(idToken, companyId)
+      .then((apiData: Patient[]) => {
         // Map from API → CardPatient (no more balanceDue)
         const cardPatients: CardPatient[] = apiData.map((p) => ({
           _id: p._id,
@@ -47,7 +47,7 @@ export const PatientsList: React.FC = () => {
         setPatients(cardPatients);
       })
       .catch((err) => console.error("Failed to fetch patients:", err));
-  }, [clinicId, idToken]);
+  }, [companyId, idToken]);
 
   // Toggle expand/collapse
   const handleToggleExpand = (id: string) => {
@@ -59,8 +59,8 @@ export const PatientsList: React.FC = () => {
     setPatients((prev) =>
       prev.map((p) => (p._id === id ? { ...p, credit: newCredit } : p))
     );
-    if (idToken && clinicId) {
-      updatePatientField(idToken, clinicId, id, { credit: newCredit }).catch(
+    if (idToken && companyId) {
+      updatePatientField(idToken, companyId, id, { credit: newCredit }).catch(
         (err) => console.error("Credit update failed:", err)
       );
     }
@@ -71,8 +71,8 @@ export const PatientsList: React.FC = () => {
     id: string,
     method: "Havale" | "Card" | "Cash"
   ) => {
-    if (idToken && clinicId) {
-      recordPayment(idToken, clinicId, id, method).catch((err) =>
+    if (idToken && companyId) {
+      recordPayment(idToken, companyId, id, method).catch((err) =>
         console.error("Record payment failed:", err)
       );
     }

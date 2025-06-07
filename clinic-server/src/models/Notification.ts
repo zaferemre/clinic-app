@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 export interface NotificationDocument extends mongoose.Document {
-  clinicId: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   patientId: mongoose.Types.ObjectId;
   type: "call"; // currently only “call”
   status: "pending" | "done";
@@ -12,7 +12,7 @@ export interface NotificationDocument extends mongoose.Document {
 
 const notificationSchema = new mongoose.Schema<NotificationDocument>(
   {
-    clinicId: {
+    companyId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "Clinic",

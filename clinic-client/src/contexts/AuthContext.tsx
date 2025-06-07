@@ -1,4 +1,3 @@
-// src/contexts/AuthContext.tsx
 import React, {
   createContext,
   useState,
@@ -8,6 +7,7 @@ import React, {
 } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { getCompanyByEmail } from "../api/companyApi"; // new import
 
 interface User {
   uid: string;
@@ -19,25 +19,24 @@ interface User {
 interface AuthContextProps {
   idToken: string | null;
   user: User | null;
-  clinicId: string | null;
-  clinicName: string | null;
-  checkingClinic: boolean;
-  setClinicId: (id: string) => void;
-  setClinicName: (name: string) => void;
+  companyId: string | null;
+  companyName: string | null;
+  checkingCompany: boolean;
+  setCompanyId: (id: string) => void;
+  setCompanyName: (name: string) => void;
   signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
-const API_BASE = import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001"; // Use VITE_API_BASE from .env or fallback to localhost
 
 export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [idToken, setIdToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [clinicId, setClinicId] = useState<string | null>(null);
-  const [clinicName, setClinicName] = useState<string | null>(null);
-  const [checkingClinic, setCheckingClinic] = useState<boolean>(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [checkingCompany, setCheckingCompany] = useState<boolean>(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
@@ -45,18 +44,16 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
         // Logged out
         setIdToken(null);
         setUser(null);
-        setClinicId(null);
-        setClinicName(null);
-        setCheckingClinic(false);
+        setCompanyId(null);
+        setCompanyName(null);
+        setCheckingCompany(false);
         return;
       }
 
       try {
-        // 1) get the fresh token
         const token = await fbUser.getIdToken();
         setIdToken(token);
 
-        // 2) set user info
         setUser({
           uid: fbUser.uid,
           email: fbUser.email || "",
@@ -64,34 +61,29 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
           imageUrl: fbUser.photoURL || "",
         });
 
-        // 3) now fetch the clinic
-        setCheckingClinic(true);
-        const res = await fetch(`${API_BASE}/clinic/by-email`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          setClinicId(data._id);
-          setClinicName(data.name);
-        } else if (res.status === 404) {
-          setClinicId(null);
-          setClinicName(null);
-        } else {
-          console.error("Unexpected error fetching clinic:", await res.text());
-          setClinicId(null);
-          setClinicName(null);
+        setCheckingCompany(true);
+        try {
+          const company = await getCompanyByEmail(token);
+          setCompanyId(company._id);
+          setCompanyName(company.name);
+        } catch (e: unknown) {
+          if (e && typeof e === "object" && "message" in e) {
+            console.warn(
+              "No company found for this user:",
+              (e as { message?: string }).message
+            );
+          } else {
+            console.warn("No company found for this user:", e);
+          }
+          setCompanyId(null);
+          setCompanyName(null);
         }
       } catch (err) {
-        console.error("Network or token error:", err);
-        setClinicId(null);
-        setClinicName(null);
+        console.error("Auth context error:", err);
+        setCompanyId(null);
+        setCompanyName(null);
       } finally {
-        setCheckingClinic(false);
+        setCheckingCompany(false);
       }
     });
 
@@ -102,9 +94,9 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
     auth.signOut();
     setIdToken(null);
     setUser(null);
-    setClinicId(null);
-    setClinicName(null);
-    setCheckingClinic(false);
+    setCompanyId(null);
+    setCompanyName(null);
+    setCheckingCompany(false);
   };
 
   return (
@@ -112,11 +104,11 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
       value={{
         idToken,
         user,
-        clinicId,
-        clinicName,
-        checkingClinic,
-        setClinicId,
-        setClinicName,
+        companyId,
+        companyName,
+        checkingCompany,
+        setCompanyId,
+        setCompanyName,
         signOut: signOutUser,
       }}
     >

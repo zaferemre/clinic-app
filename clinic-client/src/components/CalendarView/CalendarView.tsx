@@ -15,11 +15,11 @@ import bootstrap5Plugin from "@fullcalendar/bootstrap5";
 
 import {
   getAppointments,
-  getPatients,
   createAppointment,
   deleteAppointment,
-} from "../../api/client";
-import { useAuth } from "../../context/AuthContext";
+} from "../../api/appointmentApi.ts";
+import { getPatients } from "../../api/patientApi.ts";
+import { useAuth } from "../../contexts/AuthContext";
 import AddPatient from "../AddPatient/AddPatient";
 import { AppointmentModal } from "../AppointmentModal";
 import {
@@ -27,10 +27,10 @@ import {
   CalendarEmployeeSelector,
 } from "../CalendarEmployeeSelector/CalendarEmployeeSelector";
 
-const API_BASE = import.meta.env.VITE_RAILWAY_LINK || "http://localhost:3001"; // Use VITE_API_BASE from .env or fallback to localhost
+import { API_BASE } from "../../config/apiConfig.ts";
 
 export const CalendarView: React.FC = () => {
-  const { idToken, clinicId } = useAuth();
+  const { idToken, companyId } = useAuth();
 
   // FullCalendar events array
   const [events, setEvents] = useState<EventInput[]>([]);
@@ -52,12 +52,12 @@ export const CalendarView: React.FC = () => {
 
   // ─── 1) Fetch Patients ─────────────────────────────────────────────
   const fetchPatients = async () => {
-    if (!idToken || !clinicId) {
+    if (!idToken || !companyId) {
       setPatients([]);
       return;
     }
     try {
-      const data = await getPatients(idToken, clinicId);
+      const data = await getPatients(idToken, companyId);
       setPatients(
         data.map((p) => ({ _id: p._id, name: p.name, credit: p.credit }))
       );
@@ -68,9 +68,9 @@ export const CalendarView: React.FC = () => {
   };
 
   useEffect(() => {
-    if (idToken && clinicId) fetchPatients();
+    if (idToken && companyId) fetchPatients();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idToken, clinicId]);
+  }, [idToken, companyId]);
 
   useEffect(() => {
     if (!showAddPatient) {
@@ -79,14 +79,14 @@ export const CalendarView: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showAddPatient]);
 
-  // ─── 2) Fetch Workers via GET /clinic/:clinicId/workers ─────────────────
+  // ─── 2) Fetch Workers via GET /company/:companyId/workers ─────────────────
   const fetchWorkers = async () => {
-    if (!idToken || !clinicId) {
+    if (!idToken || !companyId) {
       setWorkers([]);
       return;
     }
     try {
-      const res = await fetch(`${API_BASE}/clinic/${clinicId}/workers`, {
+      const res = await fetch(`${API_BASE}/company/${companyId}/workers`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -119,13 +119,13 @@ export const CalendarView: React.FC = () => {
   };
 
   useEffect(() => {
-    if (idToken && clinicId) fetchWorkers();
+    if (idToken && companyId) fetchWorkers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idToken, clinicId]);
+  }, [idToken, companyId]);
 
   // ─── 3) Fetch Appointments & assign colors ────────────────────────────
   const fetchAppointments = async () => {
-    if (!idToken || !clinicId) return;
+    if (!idToken || !companyId) return;
     try {
       type Appointment = {
         id: string;
@@ -134,7 +134,7 @@ export const CalendarView: React.FC = () => {
         end: string;
         workerEmail?: string;
       };
-      const data: Appointment[] = await getAppointments(idToken, clinicId);
+      const data: Appointment[] = await getAppointments(idToken, companyId);
 
       // Filter by selectedWorker if set
       const filtered = data.filter((ev) => {
@@ -177,9 +177,9 @@ export const CalendarView: React.FC = () => {
   };
 
   useEffect(() => {
-    if (idToken && clinicId) fetchAppointments();
+    if (idToken && companyId) fetchAppointments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idToken, clinicId, selectedWorker]);
+  }, [idToken, companyId, selectedWorker]);
 
   // ─── 4) When user drags a time‐range (“select”) ─────────────────────────
   const handleDateSelect = (selectInfo: DateSelectArg) => {
@@ -213,7 +213,7 @@ export const CalendarView: React.FC = () => {
       const { startStr, endStr } = selectedSpan;
       await createAppointment(
         idToken!,
-        clinicId!,
+        companyId!,
         selectedPatient,
         selectedWorker,
         startStr,
@@ -242,7 +242,7 @@ export const CalendarView: React.FC = () => {
 
   // ─── 8) Cancel appointment (called by modal) ───────────────────────────
   const handleCancelAppointment = async (appointmentId: string) => {
-    await deleteAppointment(idToken!, clinicId!, appointmentId);
+    await deleteAppointment(idToken!, companyId!, appointmentId);
     await fetchAppointments();
   };
 
@@ -257,7 +257,7 @@ export const CalendarView: React.FC = () => {
       {showAddPatient && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/50">
           <div className="w-full max-w-md mx-4 mt-10 mb-10">
-            <AddPatient clinicId={clinicId!} idToken={idToken!} />
+            <AddPatient companyId={companyId!} idToken={idToken!} />
             <button
               className="
                 absolute top-2 right-2

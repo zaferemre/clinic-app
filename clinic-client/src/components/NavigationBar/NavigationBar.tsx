@@ -11,8 +11,8 @@ import {
   BuildingOffice2Icon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { useAuth } from "../../context/AuthContext";
-import { getNotifications } from "../../api/client";
+import { useAuth } from "../../contexts/AuthContext";
+import { getNotifications } from "../../api/notificationApi";
 
 // Define a local type matching the shape returned by getNotifications
 interface NotificationInfo {
@@ -21,7 +21,7 @@ interface NotificationInfo {
 }
 
 export const NavigationBar: React.FC = () => {
-  const { signOut, clinicName, idToken, clinicId } = useAuth();
+  const { signOut, companyName, idToken, companyId } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -31,14 +31,14 @@ export const NavigationBar: React.FC = () => {
   useEffect(() => {
     const fetchUnread = async () => {
       try {
-        if (!idToken || !clinicId) {
+        if (!idToken || !companyId) {
           setUnreadCount(0);
           return;
         }
         // getNotifications returns an array of objects that include at least `isCalled`.
         const allNotifs = (await getNotifications(
           idToken,
-          clinicId
+          companyId
         )) as NotificationInfo[];
         const count = allNotifs.filter((n) => !n.isCalled).length;
         setUnreadCount(count);
@@ -49,7 +49,7 @@ export const NavigationBar: React.FC = () => {
     };
 
     fetchUnread();
-  }, [idToken, clinicId]);
+  }, [idToken, companyId]);
   return (
     <>
       {/* — Pill-shaped bottom “mini-nav” container — */}
@@ -81,7 +81,7 @@ export const NavigationBar: React.FC = () => {
           )}
         </NavLink>
 
-        {/* Clinic Home (uses clinicName) */}
+        {/* Clinic Home (uses companyName) */}
         <NavLink
           to="/dashboard"
           className="relative flex flex-col items-center text-brand-gray-400 hover:text-brand-gray-600"
@@ -92,7 +92,7 @@ export const NavigationBar: React.FC = () => {
                 className={`h-6 w-6 ${isActive ? "text-brand-green-500" : ""}`}
               />
               <span className="text-xs mt-1 truncate max-w-[4rem]">
-                {clinicName ?? "Clinic"}
+                {companyName ?? "Clinic"}
               </span>
               {isActive && (
                 <span className="absolute bottom-[-6px] h-1 w-4 rounded-full bg-brand-green-500" />
@@ -205,7 +205,7 @@ export const NavigationBar: React.FC = () => {
                 className="flex items-center space-x-3 w-full py-2 rounded-md text-brand-gray-700 hover:bg-brand-gray-50 hover:text-brand-black"
               >
                 <UsersIcon className="h-5 w-5" />
-                <span>{clinicName ?? "Clinic Home"}</span>
+                <span>{companyName ?? "Clinic Home"}</span>
               </NavLink>
 
               <NavLink

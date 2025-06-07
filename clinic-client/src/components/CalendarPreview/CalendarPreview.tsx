@@ -7,20 +7,21 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { EventClickArg } from "@fullcalendar/core";
 
-import { getAppointments, CalendarEvent } from "../../api/client";
-import { useAuth } from "../../context/AuthContext";
+import { getAppointments } from "../../api/appointmentApi";
+import { CalendarEvent } from "../../types/sharedTypes";
+import { useAuth } from "../../contexts/AuthContext";
 
 export const CalendarPreview: React.FC<{
   onEventClick?: (info: EventClickArg) => void;
 }> = ({ onEventClick }) => {
-  const { idToken, clinicId } = useAuth();
+  const { idToken, companyId } = useAuth();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
 
   useEffect(() => {
     const fetchToday = async () => {
-      if (!idToken || !clinicId) return;
+      if (!idToken || !companyId) return;
       try {
-        const data: CalendarEvent[] = await getAppointments(idToken, clinicId);
+        const data: CalendarEvent[] = await getAppointments(idToken, companyId);
         // Filter down to events whose start is “today” (local date)
         const today = new Date();
         const year = today.getFullYear();
@@ -44,7 +45,7 @@ export const CalendarPreview: React.FC<{
     };
 
     fetchToday();
-  }, [clinicId, idToken]);
+  }, [companyId, idToken]);
 
   // Derive an ISO “YYYY-MM-DD” for initialDate
   const today = new Date();

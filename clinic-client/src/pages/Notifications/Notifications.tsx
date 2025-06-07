@@ -2,17 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
-import {
-  getNotifications,
-  markPatientCalled,
-  getPatientById,
-  NotificationInfo,
-} from "../../api/client";
-import { useAuth } from "../../context/AuthContext";
+import { getNotifications, markPatientCalled } from "../../api/notificationApi";
+import { getPatientById } from "../../api/patientApi";
+import { NotificationInfo } from "../../types/sharedTypes";
+
+import { useAuth } from "../../contexts/AuthContext";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 
 const NotificationsPage: React.FC = () => {
-  const { idToken, clinicId, clinicName } = useAuth();
+  const { idToken, companyId, companyName } = useAuth();
   const [notifications, setNotifications] = useState<NotificationInfo[]>([]);
   const [todayStr, setTodayStr] = useState("");
 
@@ -24,9 +22,9 @@ const NotificationsPage: React.FC = () => {
 
   // Fetch all pending notifications from the server
   const fetchAll = async () => {
-    if (!idToken || !clinicId) return;
+    if (!idToken || !companyId) return;
     try {
-      const list = await getNotifications(idToken, clinicId);
+      const list = await getNotifications(idToken, companyId);
       setNotifications(list);
     } catch (err) {
       console.error("Error fetching notifications:", err);
@@ -34,24 +32,24 @@ const NotificationsPage: React.FC = () => {
     }
   };
 
-  // On mount (or whenever idToken/clinicId changes), load notifications
+  // On mount (or whenever idToken/companyId changes), load notifications
   useEffect(() => {
-    if (idToken && clinicId) {
+    if (idToken && companyId) {
       fetchAll();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idToken, clinicId]);
+  }, [idToken, companyId]);
 
   /**
    * “Ara” (Call) button behavior:
    *   - Determine the correct patient ID string. If `n.patientId` is already a string,
    *     use it directly. If it’s an object (populated document), grab its `._id` field.
    *   - Then call getPatientById(...) with that ID, so the URL is e.g.
-   *     GET /clinic/:clinicId/patients/abc123… rather than /patients/[object Object].
+   *     GET /clinic/:companyId/patients/abc123… rather than /patients/[object Object].
    *   - If a phone number exists, open the dialer. Otherwise show an alert.
    */
   const handleDial = async (rawPatientId: string | { _id: string }) => {
-    if (!idToken || !clinicId) return;
+    if (!idToken || !companyId) return;
 
     // If `rawPatientId` is an object, extract its `_id`; otherwise assume it’s already a string
     const patientIdStr =
@@ -60,7 +58,7 @@ const NotificationsPage: React.FC = () => {
     console.log("⚙️ handleDial using patientId:", patientIdStr);
 
     try {
-      const patient = await getPatientById(idToken, clinicId, patientIdStr);
+      const patient = await getPatientById(idToken, companyId, patientIdStr);
       console.log("✅ Fetched patient:", patient);
 
       if (patient.phone) {
@@ -82,9 +80,9 @@ const NotificationsPage: React.FC = () => {
    *   - Then re‐fetches the notifications list to remove it
    */
   const handleMarkCalled = async (notifId: string) => {
-    if (!idToken || !clinicId) return;
+    if (!idToken || !companyId) return;
     try {
-      await markPatientCalled(idToken, clinicId, notifId);
+      await markPatientCalled(idToken, companyId, notifId);
       await fetchAll();
     } catch (err: any) {
       console.error("❌ Error marking called:", err);
@@ -99,7 +97,7 @@ const NotificationsPage: React.FC = () => {
       <header className="pt-4 px-4">
         <p className="text-xs text-brand-green-500 tracking-wide">{todayStr}</p>
         <h1 className="mt-1 text-2xl font-bold text-brand-black">
-          {clinicName} › Çağrı Listesi
+          {companyName} › Çağrı Listesi
         </h1>
       </header>
 

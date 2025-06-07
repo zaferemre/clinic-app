@@ -1,21 +1,18 @@
 // src/pages/EditPatient/EditPatientPage.tsx
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import {
-  getPatients,
-  updatePatientField,
-  type Patient as PatientType,
-} from "../../api/client";
+import { useAuth } from "../../contexts/AuthContext";
+import { getPatients, updatePatientField } from "../../api/patientApi";
+import { Patient } from "../../types/sharedTypes";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 
 const EditPatientPage: React.FC = () => {
-  const { idToken, clinicId } = useAuth();
+  const { idToken, companyId } = useAuth();
   const { id: patientId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
-  const [patient, setPatient] = useState<PatientType | null>(null);
+  const [patient, setPatient] = useState<Patient | null>(null);
   const [name, setName] = useState("");
   const [age, setAge] = useState<string>("");
   const [phone, setPhone] = useState("");
@@ -24,9 +21,9 @@ const EditPatientPage: React.FC = () => {
 
   useEffect(() => {
     const fetchPatient = async () => {
-      if (!idToken || !clinicId || !patientId) return;
+      if (!idToken || !companyId || !patientId) return;
       try {
-        const all = await getPatients(idToken, clinicId);
+        const all = await getPatients(idToken, companyId);
         const found = all.find((p) => p._id === patientId);
         if (!found) {
           setMessage("Hasta bulunamadı.");
@@ -45,16 +42,16 @@ const EditPatientPage: React.FC = () => {
       }
     };
     fetchPatient();
-  }, [idToken, clinicId, patientId]);
+  }, [idToken, companyId, patientId]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setMessage("");
 
-    if (!idToken || !clinicId || !patientId) return;
+    if (!idToken || !companyId || !patientId) return;
 
     try {
-      await updatePatientField(idToken, clinicId, patientId, {
+      await updatePatientField(idToken, companyId, patientId, {
         name: name.trim(),
         age: age ? Number(age) : undefined,
         phone: phone.trim(),

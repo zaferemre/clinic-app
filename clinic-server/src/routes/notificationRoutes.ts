@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
-import { authorizeClinicAccess } from "../middlewares/authorizeClinicAccess";
+import { authorizeCompanyAccess } from "../middlewares/authorizeCompanyAccess";
 import {
   getNotifications,
   markPatientCalled,
@@ -8,19 +8,19 @@ import {
 
 const router = express.Router();
 
-// GET /clinic/:clinicId/notifications
+// GET /Company/:companyId/notifications
 router.get(
-  "/:clinicId/notifications",
+  "/:companyId/notifications",
   verifyFirebaseToken,
-  authorizeClinicAccess,
+  authorizeCompanyAccess,
   getNotifications
 );
 
-// PATCH /clinic/:clinicId/notifications/:notificationId/mark-called
+// PATCH /Company/:companyId/notifications/:notificationId/mark-called
 router.patch(
-  "/:clinicId/notifications/:notificationId/mark-called",
+  "/:companyId/notifications/:notificationId/mark-called",
   verifyFirebaseToken,
-  authorizeClinicAccess,
+  authorizeCompanyAccess,
   markPatientCalled
 );
 

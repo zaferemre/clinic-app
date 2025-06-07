@@ -39,7 +39,7 @@ export const HomeNavGrid: React.FC<HomeNavGridProps> = ({ unreadCount }) => {
     {
       label: "Employees",
       icon: <BuildingOffice2Icon className="h-8 w-8" />,
-      route: "/workers",
+      route: "/employees",
       bgColor: "bg-brand-pink-100",
       textColor: "text-brand-pink-500",
     },

@@ -14,7 +14,7 @@ export interface PaymentHistoryEntry {
 }
 
 export interface PatientDocument extends mongoose.Document {
-  clinicId: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
   name: string;
   gender: "Male" | "Female" | "Other";
   age?: number;
@@ -27,10 +27,10 @@ export interface PatientDocument extends mongoose.Document {
 
 const patientSchema = new mongoose.Schema<PatientDocument>(
   {
-    clinicId: {
+    companyId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      ref: "Clinic",
+      ref: "Company",
     },
     name: { type: String, required: true },
     gender: { type: String, enum: ["Male", "Female", "Other"], required: true },

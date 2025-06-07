@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
-import { authorizeClinicAccess } from "../middlewares/authorizeClinicAccess";
+import { authorizeCompanyAccess } from "../middlewares/authorizeCompanyAccess";
 import {
   getAppointments,
   createAppointment,
@@ -9,27 +9,27 @@ import {
 
 const router = express.Router();
 
-// GET /clinic/:clinicId/appointments
+// GET /Company/:companyId/appointments
 router.get(
-  "/:clinicId/appointments",
+  "/:companyId/appointments",
   verifyFirebaseToken,
-  authorizeClinicAccess,
+  authorizeCompanyAccess,
   getAppointments
 );
 
-// POST /clinic/:clinicId/appointments
+// POST /Company/:companyId/appointments
 router.post(
-  "/:clinicId/appointments",
+  "/:companyId/appointments",
   verifyFirebaseToken,
-  authorizeClinicAccess,
+  authorizeCompanyAccess,
   createAppointment
 );
 
-// PATCH /clinic/:clinicId/appointments/:appointmentId/complete
+// PATCH /Company/:companyId/appointments/:appointmentId/complete
 router.patch(
-  "/:clinicId/appointments/:appointmentId/complete",
+  "/:companyId/appointments/:appointmentId/complete",
   verifyFirebaseToken,
-  authorizeClinicAccess,
+  authorizeCompanyAccess,
   completeAppointment
 );
 

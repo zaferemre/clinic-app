@@ -1,19 +1,19 @@
 // src/pages/Messaging/MessagingPage.tsx
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   getMessages,
   schedulePatientMessage,
   scheduleBulkMessage,
-  scheduleAutoRemind, // <-- new API function you’ll implement
-  getPatients, // to populate patient dropdown
-  type IMessage,
-} from "../../api/client";
+  scheduleAutoRemind,
+} from "../../api/messageApi";
+import { getPatients } from "../../api/patientApi";
+import { IMessage } from "../../types/sharedTypes";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 
 export const MessagingPage: React.FC = () => {
-  const { idToken, clinicId } = useAuth();
+  const { idToken, companyId } = useAuth();
 
   // All scheduled messages (past + future)
   const [messages, setMessages] = useState<IMessage[]>([]);
@@ -35,11 +35,11 @@ export const MessagingPage: React.FC = () => {
 
   // Fetch existing scheduled messages and patients
   const fetchInitialData = async () => {
-    if (!idToken || !clinicId) return;
+    if (!idToken || !companyId) return;
     try {
       const [msgs, pats] = await Promise.all([
-        getMessages(idToken, clinicId),
-        getPatients(idToken, clinicId),
+        getMessages(idToken, companyId),
+        getPatients(idToken, companyId),
       ]);
       setMessages(msgs);
       setPatients(pats.map((p) => ({ _id: p._id, name: p.name })));
@@ -52,17 +52,17 @@ export const MessagingPage: React.FC = () => {
 
   useEffect(() => {
     fetchInitialData();
-  }, [idToken, clinicId]);
+  }, [idToken, companyId]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!idToken || !clinicId) return;
+    if (!idToken || !companyId) return;
 
     // If autoRemind is toggled on, schedule auto‐reminders and exit
     if (autoRemind) {
-      // We assume scheduleAutoRemind accepts: (token, clinicId, offsetHours)
+      // We assume scheduleAutoRemind accepts: (token, companyId, offsetHours)
       try {
-        await scheduleAutoRemind(idToken, clinicId, {
+        await scheduleAutoRemind(idToken, companyId, {
           offsetHours: remindOffsetHours,
         });
         alert(
@@ -80,14 +80,14 @@ export const MessagingPage: React.FC = () => {
     // Otherwise, schedule a one‐time direct message
     try {
       if (sendToAll) {
-        await scheduleBulkMessage(idToken, clinicId, { text, scheduledFor });
+        await scheduleBulkMessage(idToken, companyId, { text, scheduledFor });
       } else {
         if (!targetPatientId) {
           return alert(
             "Lütfen bir hasta seçin veya “Tüm Hastalar” işaretleyin."
           );
         }
-        await schedulePatientMessage(idToken, clinicId, targetPatientId, {
+        await schedulePatientMessage(idToken, companyId, targetPatientId, {
           text,
           scheduledFor,
         });

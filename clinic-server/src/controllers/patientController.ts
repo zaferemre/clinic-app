@@ -7,12 +7,12 @@ import Appointment from "../models/Appointment";
 // 1) createPatient
 export const createPatient: RequestHandler = async (req, res) => {
   try {
-    const { clinicId } = req.params;
+    const { companyId } = req.params;
     const { name, gender, age, phone, services, paymentHistory, note } =
       req.body;
 
     const patient = new Patient({
-      clinicId,
+      companyId,
       name,
       gender,
       age,
@@ -36,8 +36,8 @@ export const createPatient: RequestHandler = async (req, res) => {
 // 2) getPatients
 export const getPatients: RequestHandler = async (req, res) => {
   try {
-    const { clinicId } = req.params;
-    const patients = await Patient.find({ clinicId }).exec();
+    const { companyId } = req.params;
+    const patients = await Patient.find({ companyId }).exec();
     res.status(200).json(patients);
   } catch (err: any) {
     console.error("Error in getPatients:", err);
@@ -50,7 +50,7 @@ export const getPatients: RequestHandler = async (req, res) => {
 // 3) updatePatient
 export const updatePatient: RequestHandler = async (req, res) => {
   try {
-    const { clinicId, patientId } = req.params;
+    const { companyId, patientId } = req.params;
     if (!mongoose.isValidObjectId(patientId)) {
       res.status(400).json({ error: "Invalid patient ID" });
       return;
@@ -60,8 +60,10 @@ export const updatePatient: RequestHandler = async (req, res) => {
       res.status(404).json({ error: "Patient not found" });
       return;
     }
-    if (patient.clinicId.toString() !== clinicId) {
-      res.status(403).json({ error: "Patient does not belong to this clinic" });
+    if (patient.companyId.toString() !== companyId) {
+      res
+        .status(403)
+        .json({ error: "Patient does not belong to this company" });
       return;
     }
 
@@ -92,7 +94,7 @@ export const updatePatient: RequestHandler = async (req, res) => {
 // 4) recordPayment (no balanceDue)
 export const recordPayment: RequestHandler = async (req, res) => {
   try {
-    const { clinicId, patientId } = req.params;
+    const { companyId, patientId } = req.params;
     if (!mongoose.isValidObjectId(patientId)) {
       res.status(400).json({ error: "Invalid patient ID" });
       return;
@@ -102,8 +104,10 @@ export const recordPayment: RequestHandler = async (req, res) => {
       res.status(404).json({ error: "Patient not found" });
       return;
     }
-    if (patient.clinicId.toString() !== clinicId) {
-      res.status(403).json({ error: "Patient does not belong to this clinic" });
+    if (patient.companyId.toString() !== companyId) {
+      res
+        .status(403)
+        .json({ error: "Patient does not belong to this company" });
       return;
     }
 
@@ -132,7 +136,7 @@ export const recordPayment: RequestHandler = async (req, res) => {
 // 5) getPatientAppointments
 export const getPatientAppointments: RequestHandler = async (req, res) => {
   try {
-    const { clinicId, patientId } = req.params;
+    const { companyId, patientId } = req.params;
     if (!mongoose.isValidObjectId(patientId)) {
       res.status(400).json({ error: "Invalid patient ID" });
       return;
@@ -142,13 +146,15 @@ export const getPatientAppointments: RequestHandler = async (req, res) => {
       res.status(404).json({ error: "Patient not found" });
       return;
     }
-    if (patient.clinicId.toString() !== clinicId) {
-      res.status(403).json({ error: "Patient does not belong to this clinic" });
+    if (patient.companyId.toString() !== companyId) {
+      res
+        .status(403)
+        .json({ error: "Patient does not belong to this company" });
       return;
     }
 
     const appointments = await Appointment.find({
-      clinicId,
+      companyId,
       patientId,
     })
       .sort({ start: -1 })
@@ -171,7 +177,7 @@ export const getPatientAppointments: RequestHandler = async (req, res) => {
 };
 export const flagPatientCall: RequestHandler = async (req, res) => {
   try {
-    const { clinicId, patientId } = req.params;
+    const { companyId, patientId } = req.params;
     if (!mongoose.isValidObjectId(patientId)) {
       res.status(400).json({ error: "Invalid patient ID" });
       return;
@@ -181,14 +187,16 @@ export const flagPatientCall: RequestHandler = async (req, res) => {
       res.status(404).json({ error: "Patient not found" });
       return;
     }
-    if (patient.clinicId.toString() !== clinicId) {
-      res.status(403).json({ error: "Patient does not belong to this clinic" });
+    if (patient.companyId.toString() !== companyId) {
+      res
+        .status(403)
+        .json({ error: "Patient does not belong to this company" });
       return;
     }
 
     // Prevent duplicate “pending” notifications for the same patient
     const existing = await Notification.findOne({
-      clinicId,
+      companyId,
       patientId,
       type: "call",
       status: "pending",
@@ -200,7 +208,7 @@ export const flagPatientCall: RequestHandler = async (req, res) => {
 
     const workerEmail = (req as any).user?.email as string;
     const notif = new Notification({
-      clinicId,
+      companyId,
       patientId,
       type: "call",
       status: "pending",
@@ -232,10 +240,10 @@ export const flagPatientCall: RequestHandler = async (req, res) => {
  */
 export const getNotifications: RequestHandler = async (req, res) => {
   try {
-    const { clinicId } = req.params;
+    const { companyId } = req.params;
     // Find only “call” notifications that are still pending
     const notifications = await Notification.find({
-      clinicId,
+      companyId,
       type: "call",
       status: "pending",
     })
@@ -266,7 +274,7 @@ export const getNotifications: RequestHandler = async (req, res) => {
  */
 export const markPatientCalled: RequestHandler = async (req, res) => {
   try {
-    const { clinicId, notificationId } = req.params;
+    const { companyId, notificationId } = req.params;
     if (!mongoose.isValidObjectId(notificationId)) {
       res.status(400).json({ error: "Invalid notification ID" });
       return;
@@ -276,10 +284,10 @@ export const markPatientCalled: RequestHandler = async (req, res) => {
       res.status(404).json({ error: "Notification not found" });
       return;
     }
-    if (notif.clinicId.toString() !== clinicId) {
+    if (notif.companyId.toString() !== companyId) {
       res
         .status(403)
-        .json({ error: "Notification does not belong to this clinic" });
+        .json({ error: "Notification does not belong to this company" });
       return;
     }
 

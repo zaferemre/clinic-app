@@ -11,7 +11,7 @@ export interface IWorker extends Document {
     start: string; // "HH:mm"
     end: string; // "HH:mm"
   }[];
-  clinicId: mongoose.Types.ObjectId;
+  companyId: mongoose.Types.ObjectId;
 }
 
 const workerSchema = new Schema<IWorker>({
@@ -36,14 +36,14 @@ const workerSchema = new Schema<IWorker>({
     },
   ],
 
-  clinicId: {
+  companyId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Clinic",
+    ref: "Company",
     required: true,
   },
 });
 
 // If you want a compound index to ensure no two workers with the same email exist in the same clinic:
-// workerSchema.index({ email: 1, clinicId: 1 }, { unique: true });
+// workerSchema.index({ email: 1, companyId: 1 }, { unique: true });
 
 export default mongoose.model<IWorker>("Worker", workerSchema);

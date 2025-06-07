@@ -1,11 +1,11 @@
 import React from "react";
 import { CalendarView } from "../../components/CalendarView/CalendarView";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 const CalendarPage: React.FC = () => {
-  const { idToken, clinicId, clinicName, user } = useAuth();
-  if (!idToken || !clinicId || !clinicName || !user) {
+  const { idToken, companyId, companyName, user } = useAuth();
+  if (!idToken || !companyId || !companyName || !user) {
     return null;
   }
 

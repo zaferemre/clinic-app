@@ -1,8 +1,8 @@
 // src/pages/Workers.tsx
 
 import React from "react";
-import WorkersPage from "../../components/WorkersPage/WorkersPage";
+import EmployeesPage from "../../components/EmployeesPage/EmployeesPage";
 
-const Workers: React.FC = () => <WorkersPage />;
+const Employees: React.FC = () => <EmployeesPage />;
 
-export default Workers;
+export default Employees;
