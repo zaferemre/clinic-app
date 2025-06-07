@@ -1,2 +1,4 @@
 firebase-service-account.json
 firebase.json
+/clinic-client/.env
+/clinic-server/.env
