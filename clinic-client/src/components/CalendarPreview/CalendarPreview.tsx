@@ -3,8 +3,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { EventClickArg } from "@fullcalendar/core";
-
+import { EventClickArg, EventInput } from "@fullcalendar/core";
 import { getAppointments } from "../../api/appointmentApi";
 import { CalendarEvent } from "../../types/sharedTypes";
 import { useAuth } from "../../contexts/AuthContext";
@@ -13,9 +12,8 @@ export const CalendarPreview: React.FC<{
   onEventClick?: (info: EventClickArg) => void;
 }> = ({ onEventClick }) => {
   const { idToken, companyId } = useAuth();
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [events, setEvents] = useState<EventInput[]>([]);
 
-  // Fetch today's events
   useEffect(() => {
     const fetchToday = async () => {
       if (!idToken || !companyId) return;
@@ -31,10 +29,12 @@ export const CalendarPreview: React.FC<{
         setEvents(
           todaysEvents.map((ev) => ({
             ...ev,
-            // FullCalendar expects a 'title' property for display
-            title: ev.patientName
-              ? `${ev.patientName}${ev.serviceId ? " • " + ev.serviceId : ""}`
-              : "Randevu",
+            title:
+              ev.patientName && ev.serviceName
+                ? `${ev.patientName} • ${ev.serviceName}`
+                : ev.patientName
+                ? ev.patientName
+                : "Randevu",
             color: "#34D399",
           }))
         );
@@ -45,16 +45,15 @@ export const CalendarPreview: React.FC<{
     fetchToday();
   }, [idToken, companyId]);
 
-  // Compute initialDate and scrollTime for centering "now"
+  // Date/time helpers
   const pad = (n: number) => n.toString().padStart(2, "0");
   const now = new Date();
   const isoToday = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
     now.getDate()
   )}`;
-
-  const spanStart = 8;
-  const spanEnd = 22;
-  const halfSpan = (spanEnd - spanStart) / 2; // 7h
+  const spanStart = 8,
+    spanEnd = 22,
+    halfSpan = (spanEnd - spanStart) / 2;
   const scrollHour = Math.max(spanStart, now.getHours() - halfSpan);
   const scrollTime = `${pad(Math.floor(scrollHour))}:${pad(
     now.getMinutes()
@@ -95,7 +94,7 @@ export const CalendarPreview: React.FC<{
             slotMinTime="08:00:00"
             slotMaxTime="22:00:00"
             events={events}
-            eventClick={(info) => onEventClick?.(info)}
+            eventClick={onEventClick}
             nowIndicator
             scrollTime={scrollTime}
             timeZone="local"

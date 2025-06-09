@@ -3,14 +3,21 @@
 import { CalendarEvent } from "../types/sharedTypes";
 import { API_BASE } from "../config/apiConfig";
 
-// Fetch appointments for a company (optionally filtered by employee)
+// Fetch appointments for a company (optionally filtered by employee and service)
 export async function getAppointments(
   idToken: string,
   companyId: string,
-  employeeId?: string
+  employeeId?: string,
+  serviceId?: string,
+  serviceName?: string
 ): Promise<CalendarEvent[]> {
   let url = `${API_BASE}/company/${companyId}/appointments`;
-  if (employeeId) url += `?employeeId=${employeeId}`;
+  const params: string[] = [];
+  if (employeeId) params.push(`employeeId=${encodeURIComponent(employeeId)}`);
+  if (serviceId) params.push(`serviceId=${encodeURIComponent(serviceId)}`);
+  if (serviceName)
+    params.push(`serviceName=${encodeURIComponent(serviceName)}`);
+  if (params.length > 0) url += `?${params.join("&")}`;
   const res = await fetch(url, {
     headers: {
       "Content-Type": "application/json",
