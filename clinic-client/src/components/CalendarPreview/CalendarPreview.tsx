@@ -5,14 +5,30 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { EventClickArg, EventInput } from "@fullcalendar/core";
 import { getAppointments } from "../../api/appointmentApi";
+import { getServices } from "../../api/servicesApi"; // You must implement this
 import { CalendarEvent } from "../../types/sharedTypes";
 import { useAuth } from "../../contexts/AuthContext";
+
+interface Service {
+  _id: string;
+  serviceName: string;
+  serviceDuration: number;
+}
 
 export const CalendarPreview: React.FC<{
   onEventClick?: (info: EventClickArg) => void;
 }> = ({ onEventClick }) => {
   const { idToken, companyId } = useAuth();
   const [events, setEvents] = useState<EventInput[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+
+  // Fetch services once
+  useEffect(() => {
+    if (!idToken || !companyId) return;
+    getServices(idToken, companyId)
+      .then(setServices)
+      .catch(() => setServices([]));
+  }, [idToken, companyId]);
 
   useEffect(() => {
     const fetchToday = async () => {
@@ -27,23 +43,25 @@ export const CalendarPreview: React.FC<{
 
         const todaysEvents = data.filter((ev) => ev.start.startsWith(todayStr));
         setEvents(
-          todaysEvents.map((ev) => ({
-            ...ev,
-            title:
-              ev.patientName && ev.serviceName
-                ? `${ev.patientName} • ${ev.serviceName}`
-                : ev.patientName
-                ? ev.patientName
+          todaysEvents.map((ev) => {
+            const service = services.find((s) => s._id === ev.serviceId);
+            return {
+              ...ev,
+              title: ev.patientName
+                ? service
+                  ? `${ev.patientName} • ${service.serviceName}`
+                  : ev.patientName
                 : "Randevu",
-            color: "#34D399",
-          }))
+              color: "#34D399",
+            };
+          })
         );
       } catch (err) {
         console.error("Failed to fetch appointments:", err);
       }
     };
     fetchToday();
-  }, [idToken, companyId]);
+  }, [idToken, companyId, services]);
 
   // Date/time helpers
   const pad = (n: number) => n.toString().padStart(2, "0");
