@@ -70,15 +70,15 @@ const LoginPage: React.FC = () => {
 
       {/* Logo stays near the top */}
       <div className="relative mt-6 z-10 flex items-end justify-center h-1/2 pb-6">
-        <span className="text-xl font-semibold text-white drop-shadow-md">
-          clinica
+        <span className="text-2xl font-semibold text-white drop-shadow-md">
+          randevy
         </span>
       </div>
 
       {/* Everything else: pushed to bottom */}
       <div className="relative z-10 mt-auto px-6 pb-6">
         <h1 className="text-3xl font-extrabold text-center text-gray-900">
-          Welcome Back!
+          Hoş geldiniz!
         </h1>
 
         {errorMsg && (
