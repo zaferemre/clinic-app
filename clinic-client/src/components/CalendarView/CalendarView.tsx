@@ -1,6 +1,7 @@
 // src/components/CalendarView/CalendarView.tsx
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import FullCalendar, {
+import FullCalendar from "@fullcalendar/react";
+import {
   DateSelectArg,
   EventClickArg,
   EventInput,
