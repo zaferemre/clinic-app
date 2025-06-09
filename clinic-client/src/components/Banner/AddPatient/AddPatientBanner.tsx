@@ -48,7 +48,12 @@ const AddPatientBanner: React.FC<AddPatientBannerProps> = ({
       {/* — AddPatient Form (inline, collapsible) — */}
       {showForm && (
         <div className="mt-4 mb-10 bg-white rounded-xl shadow p-6">
-          <AddPatient companyId={companyId} idToken={idToken} />
+          <AddPatient
+            companyId={companyId}
+            idToken={idToken}
+            show={showForm}
+            onClose={() => setShowForm(false)}
+          />
         </div>
       )}
     </div>

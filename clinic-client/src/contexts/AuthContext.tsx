@@ -14,6 +14,7 @@ interface User {
   email: string;
   name: string;
   imageUrl: string;
+  role?: string;
 }
 
 interface AuthContextProps {

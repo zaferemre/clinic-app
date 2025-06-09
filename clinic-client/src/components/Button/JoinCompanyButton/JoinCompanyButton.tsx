@@ -57,7 +57,6 @@ const JoinCompanyForm: React.FC<JoinCompanyFormProps> = ({ onJoined }) => {
         setLoading(false);
         return;
       }
-      const data = await response.json();
 
       // 2. Fetch company info (for prefill UI)
       const infoRes = await fetch(`${API_BASE}/company/${joinCode}`, {

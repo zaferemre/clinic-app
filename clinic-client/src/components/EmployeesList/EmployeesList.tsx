@@ -116,7 +116,7 @@ export const EmployeesList: React.FC = () => {
   // Update employee (role & workingHours)
   const handleUpdateEmployee = async (
     email: string,
-    updates: { role: IEmployee["role"]; workingHours: WorkingHour[] }
+    updates: { role: IEmployee["role"]; workingHours?: WorkingHour[] }
   ) => {
     if (!idToken || !companyId) return;
     setUpdatingEmail(email);

@@ -72,11 +72,11 @@ export interface Patient {
 
 export interface CalendarEvent {
   id: string;
-  title: string;
+  patientName: string;
+  employeeId: string;
+  serviceId: string;
   start: string;
   end: string;
-  color?: string;
-  employeeId?: string;
 }
 
 export interface NotificationInfo {
@@ -95,6 +95,8 @@ export interface IEmployee {
   role?: string;
   pictureUrl?: string; // İleride avatar URL’si de eklemek isterseniz
   // Diğer alanlar (availability, companyId vs.) burada tanımlanabilir
+  workingHours?: WorkingHour[];
+  companyId?: string; // Company ID if needed
 }
 
 export interface IMessage {

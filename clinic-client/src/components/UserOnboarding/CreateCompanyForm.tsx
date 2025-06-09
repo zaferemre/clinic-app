@@ -79,7 +79,6 @@ export default function CreateCompanyForm({
     try {
       const newCompany = await createCompany(idToken, {
         name: name.trim(),
-        ownerName: ownerName.trim(),
         companyType: companyType.trim(),
         address: address.trim(),
         phoneNumber: phoneNumber.trim(),
@@ -109,7 +108,7 @@ export default function CreateCompanyForm({
       <div>
         <label className="block text-sm mb-1">Şirket Kurucu Adı*</label>
         <input
-          value={name}
+          value={ownerName}
           onChange={(e) => setOwnerName(e.target.value)}
           className="w-full p-2 border rounded"
           required

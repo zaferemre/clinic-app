@@ -9,8 +9,10 @@ const Company_1 = __importDefault(require("../models/Company"));
 const getServices = async (req, res) => {
     try {
         const company = await Company_1.default.findById(req.params.companyId).exec();
-        if (!company)
-            return res.status(404).json({ error: "Company not found" });
+        if (!company) {
+            res.status(404).json({ error: "Company not found" });
+            return;
+        }
         res.json(company.services);
     }
     catch (err) {
@@ -22,9 +24,15 @@ exports.getServices = getServices;
 const createService = async (req, res) => {
     try {
         const { serviceName, servicePrice, serviceKapora, serviceDuration } = req.body;
+        if (!serviceName || servicePrice == null || serviceDuration == null) {
+            res.status(400).json({ error: "Eksik alanlar var." });
+            return;
+        }
         const company = await Company_1.default.findById(req.params.companyId).exec();
-        if (!company)
-            return res.status(404).json({ error: "Company not found" });
+        if (!company) {
+            res.status(404).json({ error: "Company not found" });
+            return;
+        }
         const newSvc = {
             serviceName,
             servicePrice,
@@ -33,7 +41,6 @@ const createService = async (req, res) => {
         };
         company.services.push(newSvc);
         await company.save();
-        // return the last-added subdoc (with its generated _id)
         res.status(201).json(company.services[company.services.length - 1]);
     }
     catch (err) {
@@ -44,14 +51,23 @@ exports.createService = createService;
 // PUT  /company/:companyId/services/:serviceId
 const updateService = async (req, res) => {
     try {
-        const { serviceId } = req.params;
+        const { serviceId, companyId } = req.params;
         const updates = req.body;
-        const company = await Company_1.default.findOneAndUpdate({ _id: req.params.companyId, "services._id": serviceId }, {
-            $set: Object.entries(updates).reduce((acc, [k, v]) => ({ ...acc, [`services.$.${k}`]: v }), {}),
-        }, { new: true }).exec();
-        if (!company)
-            return res.status(404).json({ error: "Service not found" });
+        const company = await Company_1.default.findById(companyId).exec();
+        if (!company) {
+            res.status(404).json({ error: "Company not found" });
+            return;
+        }
         const svc = company.services.id(serviceId);
+        if (!svc) {
+            res.status(404).json({ error: "Service not found" });
+            return;
+        }
+        Object.entries(updates).forEach(([k, v]) => {
+            // @ts-ignore
+            svc[k] = v;
+        });
+        await company.save();
         res.json(svc);
     }
     catch (err) {
@@ -62,10 +78,18 @@ exports.updateService = updateService;
 // DELETE /company/:companyId/services/:serviceId
 const deleteService = async (req, res) => {
     try {
-        const company = await Company_1.default.findById(req.params.companyId).exec();
-        if (!company)
-            return res.status(404).json({ error: "Company not found" });
-        company.services.id(req.params.serviceId)?.remove();
+        const { companyId, serviceId } = req.params;
+        const company = await Company_1.default.findById(companyId).exec();
+        if (!company) {
+            res.status(404).json({ error: "Company not found" });
+            return;
+        }
+        const svc = company.services.id(serviceId);
+        if (!svc) {
+            res.status(404).json({ error: "Service not found" });
+            return;
+        }
+        svc.remove();
         await company.save();
         res.status(204).send();
     }

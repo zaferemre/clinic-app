@@ -248,10 +248,9 @@ export const getEmployeeSchedule: RequestHandler = async (req, res, next) => {
     const company = req.company!;
     const { employeeId } = req.params;
 
-    // If not owner, ensure employeeId matches logged-in user
+    // If not owner, ensure employeeId matches logged-in user (use email as identifier)
     const employee = company.employees.find(
-      (e: (typeof company.employees)[number]) =>
-        e._id?.toString() === employeeId
+      (e: (typeof company.employees)[number]) => e.email === employeeId
     );
     if (userEmail !== company.ownerEmail && employee?.email !== userEmail) {
       res.status(403).json({ error: "Forbidden" });

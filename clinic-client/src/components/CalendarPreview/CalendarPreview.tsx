@@ -1,5 +1,3 @@
-// src/components/CalendarPreview/CalendarPreview.tsx
-
 import React, { useState, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
@@ -17,12 +15,12 @@ export const CalendarPreview: React.FC<{
   const { idToken, companyId } = useAuth();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
 
+  // Fetch today's events
   useEffect(() => {
     const fetchToday = async () => {
       if (!idToken || !companyId) return;
       try {
         const data: CalendarEvent[] = await getAppointments(idToken, companyId);
-        // Filter down to events whose start is “today” (local date)
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, "0");
@@ -30,68 +28,79 @@ export const CalendarPreview: React.FC<{
         const todayStr = `${year}-${month}-${day}`;
 
         const todaysEvents = data.filter((ev) => ev.start.startsWith(todayStr));
-
-        const fcEvents = todaysEvents.map((ev) => ({
-          id: ev.id, // Include the id property
-          title: ev.title,
-          start: ev.start,
-          end: ev.end,
-          color: "#34D399", // brand-green-400
-        }));
-        setEvents(fcEvents);
+        setEvents(
+          todaysEvents.map((ev) => ({
+            ...ev,
+            // FullCalendar expects a 'title' property for display
+            title: ev.patientName
+              ? `${ev.patientName}${ev.serviceId ? " • " + ev.serviceId : ""}`
+              : "Randevu",
+            color: "#34D399",
+          }))
+        );
       } catch (err) {
         console.error("Failed to fetch appointments:", err);
       }
     };
-
     fetchToday();
-  }, [companyId, idToken]);
+  }, [idToken, companyId]);
 
-  // Derive an ISO “YYYY-MM-DD” for initialDate
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  const isoToday = `${year}-${month}-${day}`;
+  // Compute initialDate and scrollTime for centering "now"
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  const now = new Date();
+  const isoToday = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+    now.getDate()
+  )}`;
+
+  const spanStart = 8;
+  const spanEnd = 22;
+  const halfSpan = (spanEnd - spanStart) / 2; // 7h
+  const scrollHour = Math.max(spanStart, now.getHours() - halfSpan);
+  const scrollTime = `${pad(Math.floor(scrollHour))}:${pad(
+    now.getMinutes()
+  )}:00`;
 
   return (
-    <div className="bg-white rounded-xl shadow p-2 overflow-hidden mx-4 mb-4">
-      {/* Force a fixed height so it doesn’t overflow the card */}
-      <div className="h-60">
-        <style>
-          {`
-            /* Hide default FullCalendar toolbar for preview */
+    <div className="bg-white rounded-xl shadow-md p-4  mb-4 flex justify-center">
+      <div className="w-full max-w-lg">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-lg font-semibold text-gray-800">
+            Bugünün Randevuları
+          </h3>
+          <span className="text-sm text-gray-500">{events.length} adet</span>
+        </div>
+        <div className="h-64 overflow-hidden">
+          <style>{`
             .fc .fc-toolbar { display: none; }
-
-            /* For the day view in the preview: apply brand styling */
+            .fc .fc-now-indicator { background-color: red !important; }
             .fc .fc-timegrid-slot-lane .fc-timegrid-slot-text {
-              color: #4B5563; /* brand-gray-700 */
+              color: #4B5563;
               font-size: 0.75rem;
             }
             .fc .fc-timegrid-event {
-              background-color: #34D399 !important; /* brand-green-400 */
+              background-color: #34D399 !important;
               border: none !important;
               color: #FFFFFF !important;
               font-size: 0.75rem;
               border-radius: 0.375rem;
             }
-          `}
-        </style>
-
-        <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="timeGridDay"
-          slotMinTime="08:00:00"
-          slotMaxTime="22:00:00"
-          allDaySlot={false}
-          headerToolbar={false}
-          height="100%"
-          initialDate={isoToday}
-          events={events}
-          eventClick={(info) => {
-            if (onEventClick) onEventClick(info);
-          }}
-        />
+          `}</style>
+          <FullCalendar
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView="timeGridDay"
+            initialDate={isoToday}
+            allDaySlot={false}
+            headerToolbar={false}
+            height="100%"
+            slotMinTime="08:00:00"
+            slotMaxTime="22:00:00"
+            events={events}
+            eventClick={(info) => onEventClick?.(info)}
+            nowIndicator
+            scrollTime={scrollTime}
+            timeZone="local"
+          />
+        </div>
       </div>
     </div>
   );

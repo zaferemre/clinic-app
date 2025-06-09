@@ -34,7 +34,7 @@ const NotificationsPage: React.FC = () => {
 
   useEffect(() => {
     if (idToken && companyId) fetchAll();
-  }, [idToken, companyId]);
+  }, [idToken, companyId, fetchAll]);
 
   const handleDial = async (patientId: string) => {
     if (!idToken || !companyId) return;
@@ -45,7 +45,7 @@ const NotificationsPage: React.FC = () => {
       } else {
         alert("Müşteri telefon numarası bulunamadı.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("❌ Error fetching single patient:", err);
       const msg = err instanceof Error ? err.message : JSON.stringify(err);
       alert(`Müşteri bilgisi alınırken hata oluştu:\n${msg}`);
@@ -57,7 +57,7 @@ const NotificationsPage: React.FC = () => {
     try {
       await markPatientCalled(idToken, companyId, notifId);
       await fetchAll();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("❌ Error marking called:", err);
       const msg = err instanceof Error ? err.message : "Bilinmeyen hata";
       alert(msg);
@@ -102,7 +102,13 @@ const NotificationsPage: React.FC = () => {
 
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => handleDial(n.patientId)}
+                      onClick={() =>
+                        handleDial(
+                          typeof n.patientId === "string"
+                            ? n.patientId
+                            : n.patientId?._id
+                        )
+                      }
                       className="p-2 bg-blue-100 rounded-lg hover:bg-blue-200"
                       aria-label="Ara"
                     >

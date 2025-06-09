@@ -25,7 +25,7 @@ export const EmployeeCard: React.FC<Props> = ({
   employee,
   ownerEmail,
   ownerImageUrl,
-  updatingEmail,
+
   removingEmail,
   onRemove,
   onUpdateEmployee,

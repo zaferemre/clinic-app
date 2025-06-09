@@ -1,17 +1,20 @@
-// src/components/CalendarView/CalendarView.tsx
 import React, { useState, useEffect, useRef } from "react";
-import FullCalendar, {
+import FullCalendar from "@fullcalendar/react";
+import {
   DateSelectArg,
   EventClickArg,
-  EventInput,
   ViewApi,
   EventDropArg,
-} from "@fullcalendar/react";
+} from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import bootstrap5Plugin from "@fullcalendar/bootstrap5";
-import { FunnelIcon } from "@heroicons/react/24/outline";
+import {
+  FunnelIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "@heroicons/react/24/outline";
 import trLocale from "@fullcalendar/core/locales/tr";
 import {
   getAppointments,
@@ -23,12 +26,8 @@ import { getPatients } from "../../api/patientApi";
 import { useAuth } from "../../contexts/AuthContext";
 import AddPatient from "../AddPatient/AddPatient";
 import { AppointmentModal } from "../AppointmentModal";
-import { CalendarEmployee } from "../CalendarEmployeeSelector/CalendarEmployeeSelector";
 import { NewAppointmentModal } from "./NewAppointmentModal";
 import { ServiceAndEmployeeFilter } from "./ServiceAndEmployeeFilter";
-
-import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
-import type { CalendarApi } from "@fullcalendar/core";
 import { API_BASE } from "../../config/apiConfig";
 
 interface Service {
@@ -36,66 +35,53 @@ interface Service {
   serviceName: string;
   serviceDuration: number;
 }
+interface Employee {
+  _id?: string; // or whatever your employee identifier is
+  email: string;
+  name: string;
+}
+
+interface CalendarEvent {
+  id: string;
+  patientName: string;
+  employeeId: string;
+  serviceId: string;
+  start: string;
+  end: string;
+  // ...other fields
+}
 
 export const CalendarView: React.FC = () => {
   const { idToken, companyId, user } = useAuth();
   const currentEmail = user!.email;
 
   const [ownerEmail, setOwnerEmail] = useState<string>("");
-  const [events, setEvents] = useState<EventInput[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [patients, setPatients] = useState<
     { _id: string; name: string; credit: number }[]
   >([]);
-  const [employees, setEmployees] = useState<CalendarEmployee[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   const [selectedService, setSelectedService] = useState<string>("");
   const [selectedPatient, setSelectedPatient] = useState<string>("");
-
   const [selectedSpan, setSelectedSpan] = useState<DateSelectArg | null>(null);
   const [showAddPatient, setShowAddPatient] = useState(false);
-  const [modalEvent, setModalEvent] = useState<EventInput | null>(null);
+  const [modalEvent, setModalEvent] = useState<any | null>(null);
 
   const calendarRef = useRef<FullCalendar | null>(null);
-  const [calendarDate, setCalendarDate] = useState<string>(""); // for display
-  const [calendarView, setCalendarView] = useState<string>("threeDay");
+  const [calendarDate] = useState<string>("");
+  const [calendarView] = useState<string>("threeDay");
 
   const isOwner = currentEmail === ownerEmail;
 
-  // format Date → "YYYY-MM-DDTHH:mm"
-  const toDateTimeLocal = (date: Date) => {
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
-      date.getDate()
-    )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-  };
-  // Update label when calendar changes
-  const handleDatesSet = (arg: any) => {
-    const viewTitle = arg.view.title;
-    setCalendarDate(viewTitle);
-    setCalendarView(arg.view.type);
-  };
+  // Lookup helpers
+  const getServiceName = (id: string) =>
+    services.find((s) => s._id === id)?.serviceName ?? "";
+  const getEmployeeName = (id: string) =>
+    employees.find((e) => e.email === id || e._id === id)?.name ?? "";
 
-  // Helper: Switch view
-  const handleViewChange = (view: string) => {
-    const api = calendarRef.current?.getApi();
-    if (api) {
-      api.changeView(view);
-    }
-  };
-
-  // Helper: Prev/Next
-  const handleNav = (action: "prev" | "next" | "today") => {
-    const api = calendarRef.current?.getApi();
-    if (api) {
-      if (action === "prev") api.prev();
-      else if (action === "next") api.next();
-      else if (action === "today") api.today();
-    }
-  };
-
-  // ―― Load company owner
+  // Owner load
   useEffect(() => {
     if (!idToken || !companyId) return;
     (async () => {
@@ -111,7 +97,7 @@ export const CalendarView: React.FC = () => {
     })();
   }, [idToken, companyId]);
 
-  // ―― Load patients
+  // Patients
   useEffect(() => {
     if (!idToken || !companyId) return;
     (async () => {
@@ -126,7 +112,7 @@ export const CalendarView: React.FC = () => {
     })();
   }, [idToken, companyId, showAddPatient]);
 
-  // ―― Load employees
+  // Employees
   useEffect(() => {
     if (!idToken || !companyId) return;
     (async () => {
@@ -141,7 +127,7 @@ export const CalendarView: React.FC = () => {
     })();
   }, [idToken, companyId]);
 
-  // ―― Load services
+  // Services
   useEffect(() => {
     if (!idToken || !companyId) return;
     (async () => {
@@ -157,34 +143,40 @@ export const CalendarView: React.FC = () => {
     })();
   }, [idToken, companyId]);
 
-  // ―― Fetch and filter events
+  // Appointments load/mapping
   const fetchAppointments = async () => {
     if (!idToken || !companyId) return;
     try {
-      const data = await getAppointments(idToken, companyId);
+      const data: CalendarEvent[] = await getAppointments(idToken, companyId);
+      // filter by selected employee/service
       const filtered = data.filter((ev) => {
         const matchEmp = selectedEmployee
-          ? ev.extendedProps.employeeEmail === selectedEmployee
+          ? ev.employeeId === selectedEmployee
           : true;
         const matchSvc = selectedService
-          ? ev.extendedProps.serviceId === selectedService
+          ? ev.serviceId === selectedService
           : true;
         return matchEmp && matchSvc;
       });
-
       const palette = ["#34D399", "#93C5FD", "#FDBA74", "#F9A8D4", "#FCA5A5"];
       const now = Date.now();
       setEvents(
         filtered.map((ev, idx) => ({
           id: ev.id,
-          title: ev.title,
+          title: `${ev.patientName} • ${getServiceName(ev.serviceId)}`,
           start: ev.start,
           end: ev.end,
           color:
             now > new Date(ev.end).getTime()
               ? "#9CA3AF"
               : palette[idx % palette.length],
-          extendedProps: ev.extendedProps,
+          extendedProps: {
+            employeeId: ev.employeeId,
+            employeeName: getEmployeeName(ev.employeeId),
+            serviceId: ev.serviceId,
+            serviceName: getServiceName(ev.serviceId),
+            // pass any other props you want to modal
+          },
         }))
       );
     } catch {
@@ -194,165 +186,132 @@ export const CalendarView: React.FC = () => {
 
   useEffect(() => {
     fetchAppointments();
-  }, [idToken, companyId, selectedEmployee, selectedService]);
+  }, [
+    idToken,
+    companyId,
+    selectedEmployee,
+    selectedService,
+    services,
+    employees,
+  ]);
 
-  // ―― Creation handlers
-  const handleDateSelect = (info: DateSelectArg) => {
-    if (!isOwner && selectedEmployee !== currentEmail) {
-      alert("Sadece kendi programınızı düzenleyebilirsiniz.");
-      return;
-    }
-    const startStr = toDateTimeLocal(info.start);
-    const endStr = toDateTimeLocal(info.end);
-    setSelectedSpan({ ...info, startStr, endStr });
+  // handlers
+  const toDateTimeLocal = (d: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
+      d.getDate()
+    )}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
-
-  const handleDateClick = (ci: { date: Date; view: ViewApi }) =>
+  const handleDateSelect = (info: DateSelectArg) => {
+    if (!isOwner && selectedEmployee !== currentEmail)
+      return alert("Yetki yok");
+    setSelectedSpan({
+      ...info,
+      startStr: toDateTimeLocal(info.start),
+      endStr: toDateTimeLocal(info.end),
+    });
+  };
+  const handleDateClick = ({ date, view }: { date: Date; view: ViewApi }) =>
     handleDateSelect({
-      start: ci.date,
-      end: new Date(ci.date.getTime() + 3600_000),
+      start: date,
+      end: new Date(date.getTime() + 3600000),
       allDay: false,
-      view: ci.view,
+      view,
       jsEvent: undefined as any,
       startStr: "",
       endStr: "",
-    } as DateSelectArg);
-
-  const handleCreate = async () => {
+    });
+  const handleCreate = () => {
     if (
       !selectedSpan ||
       !selectedPatient ||
       !selectedEmployee ||
       !selectedService
-    ) {
-      alert("Lütfen müşteri, çalışan ve hizmet seçin.");
-      return;
-    }
-    if (!isOwner && selectedEmployee !== currentEmail) {
-      alert("Yetkiniz yok.");
-      return;
-    }
-    try {
-      await createAppointment(
-        idToken!,
-        companyId!,
-        selectedPatient,
-        selectedEmployee,
-        selectedService,
-        selectedSpan.startStr,
-        selectedSpan.endStr
-      );
-      setSelectedSpan(null);
-      setSelectedPatient("");
-      setSelectedEmployee("");
-      setSelectedService("");
-      window.dispatchEvent(new Event("refresh"));
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Oluşturulamadı.");
-    }
+    )
+      return alert("Eksik seçim");
+    createAppointment(
+      idToken!,
+      companyId!,
+      selectedPatient,
+      selectedEmployee,
+      selectedService,
+      selectedSpan.startStr!,
+      selectedSpan.endStr!
+    )
+      .then(() => {
+        alert("Oluşturuldu");
+        setSelectedSpan(null);
+        fetchAppointments();
+      })
+      .catch((e) => alert(e.message));
   };
-
-  // ―― Event click / cancel
-  const handleEventClick = (ci: EventClickArg) => {
-    // pull the props your API attached
-    const ext = ci.event.extendedProps as {
-      employeeEmail?: string;
-      serviceId?: string;
-    };
-    const evEmail = ext.employeeEmail || "";
-    const svcId = ext.serviceId || "";
-
-    if (!isOwner && evEmail !== currentEmail) {
-      alert("Sadece kendi randevularınızı düzenleyebilirsiniz.");
-      return;
-    }
-
-    // look up the service name from your loaded services
-    const svcName = services.find((s) => s._id === svcId)?.serviceName || "";
-
+  const handleEventClick = (ci: EventClickArg) =>
     setModalEvent({
       id: ci.event.id,
       title: ci.event.title,
       start: ci.event.startStr,
       end: ci.event.endStr,
-      color: ci.event.backgroundColor,
-      extendedProps: {
-        employeeEmail: evEmail,
-        serviceId: svcId,
-        serviceName: svcName,
-      },
+      extendedProps: ci.event.extendedProps,
     });
-  };
-
-  const handleCancel = async (id: string) => {
-    await deleteAppointment(idToken!, companyId!, id);
-    setModalEvent(null);
-    window.dispatchEvent(new Event("refresh"));
-  };
-
-  // ―― Drag & drop update
-  const handleEventDrop = async (changeInfo: EventDropArg) => {
-    const id = changeInfo.event.id;
-    const newStart = changeInfo.event.startStr;
-    const newEnd = changeInfo.event.endStr;
-    const evEmail = changeInfo.event.extendedProps.employeeEmail as string;
-
-    if (!isOwner && evEmail !== currentEmail) {
-      alert("Sadece kendi randevularınızı taşıyabilirsiniz.");
-      changeInfo.revert();
-      return;
-    }
-
-    try {
-      await updateAppointment(idToken!, companyId!, id, newStart, newEnd);
-      fetchAppointments();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleUpdate = async (
-    id: string,
-    changes: { start: string; end: string; serviceId?: string }
-  ) => {
-    try {
-      // note: updateAppointment currently only takes start/end;
-      // if you want to persist serviceId you’ll need to extend your API
-      await updateAppointment(
-        idToken!,
-        companyId!,
-        id,
-        changes.start,
-        changes.end
-      );
+  const handleCancel = (id: string) =>
+    deleteAppointment(idToken!, companyId!, id).then(() => {
       setModalEvent(null);
       fetchAppointments();
-    } catch (err) {
-      console.error(err);
-      throw err;
-    }
-  };
+    });
+  const handleEventDrop = (info: EventDropArg) =>
+    updateAppointment(
+      idToken!,
+      companyId!,
+      info.event.id,
+      info.event.startStr,
+      info.event.endStr
+    )
+      .then(fetchAppointments)
+      .catch(() => info.revert());
+  const handleUpdate = (id: string, changes: { start: string; end: string }) =>
+    updateAppointment(
+      idToken!,
+      companyId!,
+      id,
+      changes.start,
+      changes.end
+    ).then(() => {
+      setModalEvent(null);
+      fetchAppointments();
+    });
 
+  const nav = (a: "prev" | "next" | "today") => {
+    const api = calendarRef.current?.getApi();
+    if (api)
+      a === "prev" ? api.prev() : a === "next" ? api.next() : api.today();
+  };
+  const startHour = 8,
+    endHour = 22,
+    half = (endHour - startHour) / 2;
+  const now = new Date(),
+    scHour = Math.max(startHour, now.getHours() - half);
+  const scrollTime = `${String(Math.floor(scHour)).padStart(2, "0")}:${String(
+    now.getMinutes()
+  ).padStart(2, "0")}:00`;
+
+  const handleViewChange = (view: string) => {
+    const api = calendarRef.current?.getApi();
+    if (api) api.changeView(view);
+  };
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
-      {/* HEADER */}
-      <header className="sticky top-0 left-0 z-30 bg-white shadow-sm flex items-center px-4 h-16 sm:h-20">
+      <header className="sticky top-0 bg-white shadow px-4 h-16 flex items-center">
         <button
-          className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition"
-          onClick={() => {
-            const openFilter = document.getElementById("calendar-filter-btn");
-            if (openFilter) (openFilter as HTMLButtonElement).click();
-          }}
-          aria-label="Filtreleri Aç"
+          onClick={() =>
+            document.getElementById("calendar-filter-btn")?.click()
+          }
         >
           <FunnelIcon className="w-6 h-6 text-yellow-600" />
         </button>
-        <h1 className="ml-4 text-xl sm:text-2xl font-bold text-yellow-900 flex-1">
+        <h1 className="ml-4 text-xl font-bold text-yellow-900 flex-1">
           Randevu Takvimi
         </h1>
       </header>
-
-      {/* Filter Sidebar */}
       <ServiceAndEmployeeFilter
         employees={employees}
         selectedEmployee={selectedEmployee}
@@ -363,23 +322,17 @@ export const CalendarView: React.FC = () => {
         currentUserEmail={currentEmail}
         ownerEmail={ownerEmail}
       />
-
-      {/* MODALS: Add Patient, Appointment Modal, New Appointment */}
       {showAddPatient && (
-        <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center">
-          <AddPatient companyId={companyId!} idToken={idToken!} />
-          <button
-            className="absolute top-4 right-4 text-white text-3xl"
-            onClick={() => setShowAddPatient(false)}
-          >
-            ×
-          </button>
-        </div>
+        <AddPatient
+          show
+          onClose={() => setShowAddPatient(false)}
+          idToken={idToken!}
+          companyId={companyId!}
+        />
       )}
-
       {modalEvent && (
         <AppointmentModal
-          event={modalEvent}
+          event={modalEvent!}
           services={services}
           employees={employees}
           onClose={() => setModalEvent(null)}
@@ -387,15 +340,9 @@ export const CalendarView: React.FC = () => {
           onUpdate={handleUpdate}
         />
       )}
-
       <NewAppointmentModal
         show={!!selectedSpan}
-        onClose={() => {
-          setSelectedSpan(null);
-          setSelectedPatient("");
-          setSelectedEmployee("");
-          setSelectedService("");
-        }}
+        onClose={() => setSelectedSpan(null)}
         patients={patients}
         employees={employees}
         services={services}
@@ -408,128 +355,106 @@ export const CalendarView: React.FC = () => {
         selectedService={selectedService}
         setSelectedService={setSelectedService}
         startStr={selectedSpan?.startStr || ""}
-        setStartStr={(val) => {
-          if (selectedSpan) setSelectedSpan({ ...selectedSpan, startStr: val });
-        }}
+        setStartStr={(v) =>
+          setSelectedSpan((s) => (s ? { ...s, startStr: v } : s))
+        }
         endStr={selectedSpan?.endStr || ""}
-        setEndStr={(val) => {
-          if (selectedSpan) setSelectedSpan({ ...selectedSpan, endStr: val });
-        }}
+        setEndStr={(v) => setSelectedSpan((s) => (s ? { ...s, endStr: v } : s))}
         onSubmit={handleCreate}
         onAddPatient={() => setShowAddPatient(true)}
       />
-      {/* NAVIGATION BAR */}
-      <nav className="w-full max-w-3xl mx-auto px-2 pt-3 pb-2 flex items-center justify-between gap-2 bg-transparent">
-        <div className="flex items-center gap-1">
+      <nav className="flex justify-between items-center px-2 py-3 max-w-3xl mx-auto">
+        <div className="flex gap-2">
           <button
-            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
-            onClick={() => handleNav("prev")}
-            aria-label="Önceki"
+            onClick={() => nav("prev")}
+            className="p-2 bg-gray-100 rounded"
           >
             <ChevronLeftIcon className="w-5 h-5 text-yellow-700" />
           </button>
           <button
-            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
-            onClick={() => handleNav("today")}
+            onClick={() => nav("today")}
+            className="p-2 bg-gray-100 rounded"
           >
             Bugün
           </button>
           <button
-            className="p-2 rounded-full bg-gray-100 hover:bg-gray-200"
-            onClick={() => handleNav("next")}
-            aria-label="Sonraki"
+            onClick={() => nav("next")}
+            className="p-2 bg-gray-100 rounded"
           >
             <ChevronRightIcon className="w-5 h-5 text-yellow-700" />
           </button>
         </div>
-        <div className="font-semibold text-yellow-900 truncate text-base sm:text-lg flex-1 text-center">
+        <div className="text-center flex-1 font-semibold text-yellow-900 truncate">
           {calendarDate}
         </div>
-        <div className="flex gap-1">
-          <button
-            className={`px-2 py-1 rounded-md text-sm font-medium ${
-              calendarView === "threeDay"
-                ? "bg-yellow-700 text-white"
-                : "bg-gray-100 text-gray-700"
-            }`}
-            onClick={() => handleViewChange("threeDay")}
-          >
-            3 Gün
-          </button>
-          <button
-            className={`px-2 py-1 rounded-md text-sm font-medium ${
-              calendarView === "timeGridWeek"
-                ? "bg-yellow-700 text-white"
-                : "bg-gray-100 text-gray-700"
-            }`}
-            onClick={() => handleViewChange("timeGridWeek")}
-          >
-            Hafta
-          </button>
-          <button
-            className={`px-2 py-1 rounded-md text-sm font-medium ${
-              calendarView === "dayGridMonth"
-                ? "bg-yellow-700 text-white"
-                : "bg-gray-100 text-gray-700"
-            }`}
-            onClick={() => handleViewChange("dayGridMonth")}
-          >
-            Ay
-          </button>
+        <div className="flex gap-2">
+          {["threeDay", "timeGridWeek", "dayGridMonth"].map((view) => (
+            <button
+              key={view}
+              onClick={() => handleViewChange(view)}
+              className={`px-2 py-1 rounded ${
+                calendarView === view
+                  ? "bg-yellow-700 text-white"
+                  : "bg-gray-100 text-gray-700"
+              }`}
+            >
+              {view === "threeDay"
+                ? "3 Gün"
+                : view === "timeGridWeek"
+                ? "Hafta"
+                : "Ay"}
+            </button>
+          ))}
         </div>
       </nav>
-
-      {/* CALENDAR */}
-      <main className="flex-1 flex flex-col items-center px-0 py-2 sm:px-4 sm:py-4">
-        <div className="w-full max-w-3xl bg-white rounded-t-3xl sm:rounded-2xl shadow-md sm:mt-2 flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-auto">
-            <FullCalendar
-              ref={calendarRef}
-              plugins={[
-                dayGridPlugin,
-                timeGridPlugin,
-                interactionPlugin,
-                bootstrap5Plugin,
-              ]}
-              themeSystem="bootstrap5"
-              initialView="threeDay"
-              locale={trLocale}
-              views={{
-                timeGridDay: { buttonText: "Gün" },
-                threeDay: {
-                  type: "timeGrid",
-                  duration: { days: 3 },
-                  buttonText: "3 Gün",
-                },
-                timeGridWeek: { buttonText: "Hafta" },
-                dayGridMonth: { buttonText: "Ay" },
-              }}
-              headerToolbar={false} // Custom header instead!
-              allDaySlot={false}
-              selectable
-              selectMirror
-              select={handleDateSelect}
-              dateClick={handleDateClick}
-              editable
-              eventDrop={handleEventDrop}
-              eventClick={handleEventClick}
-              events={events}
-              eventDisplay="block"
-              slotMinTime="08:00:00"
-              slotMaxTime="22:00:00"
-              slotLabelFormat={{
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              }}
-              nowIndicator
-              height="auto"
-              contentHeight="auto"
-              datesSet={handleDatesSet}
-            />
-          </div>
+      <main className="flex-1 flex flex-col items-center p-2 sm:p-4">
+        <div className="w-full max-w-3xl bg-white rounded-t-3xl shadow flex-1 overflow-hidden">
+          <FullCalendar
+            ref={calendarRef}
+            plugins={[
+              dayGridPlugin,
+              timeGridPlugin,
+              interactionPlugin,
+              bootstrap5Plugin,
+            ]}
+            themeSystem="bootstrap5"
+            initialView="threeDay"
+            locale={trLocale}
+            headerToolbar={false}
+            allDaySlot={false}
+            selectable
+            selectMirror
+            select={handleDateSelect}
+            dateClick={handleDateClick}
+            editable
+            eventDrop={handleEventDrop}
+            eventClick={handleEventClick}
+            events={events}
+            eventDisplay="block"
+            slotMinTime="08:00:00"
+            slotMaxTime="22:00:00"
+            slotLabelFormat={{
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            }}
+            nowIndicator
+            scrollTime={scrollTime}
+            eventContent={(arg) => (
+              <div className="flex flex-col p-1 text-white">
+                {arg.event.extendedProps.serviceName && (
+                  <span className="text-xs font-semibold bg-yellow-700 px-1 rounded">
+                    {arg.event.extendedProps.serviceName}
+                  </span>
+                )}
+                <span className="text-sm truncate">{arg.event.title}</span>
+              </div>
+            )}
+          />
         </div>
       </main>
     </div>
   );
 };
+
+export default CalendarView;

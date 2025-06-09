@@ -83,12 +83,14 @@ export const Scheduler: React.FC = () => {
         await createAppointment(
           idToken!,
           companyId!,
-          appointment.Subject, // or patientId mapping
+          appointment.patientId || "", // TODO: Replace with actual patientId
           appointment.ResourceId,
+          appointment.serviceId || "", // TODO: Replace with actual serviceId
           appointment.StartTime.toISOString(),
           appointment.EndTime.toISOString()
         );
       } catch (e) {
+        console.error("Failed to create appointment:", e);
         args.cancel = true;
         alert("Slot already taken or error.");
       }
@@ -116,7 +118,7 @@ export const Scheduler: React.FC = () => {
       </ResourcesDirective>
       <ViewsDirective>
         <ViewDirective option="Day" />
-        <ViewDirective option="workWeek" isSelected={false} />
+        <ViewDirective option="WorkWeek" isSelected={false} />
         <ViewDirective option="Week" />
         {/* Custom 3-day view */}
         <ViewDirective option="TimelineDay" displayName="3 Days" interval={3} />

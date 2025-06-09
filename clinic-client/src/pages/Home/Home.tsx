@@ -1,5 +1,4 @@
 // src/pages/Home/Home.tsx
-
 import React, { useState, useEffect } from "react";
 import { CalendarPreview } from "../../components/CalendarPreview/CalendarPreview";
 import { HomeNavGrid } from "../../components/HomeNavGrid/HomeNavGrid";
@@ -8,78 +7,59 @@ import { useAuth } from "../../contexts/AuthContext";
 import { format } from "date-fns";
 import { getNotifications } from "../../api/notificationApi";
 import { NotificationInfo } from "../../types/sharedTypes";
+import { tr } from "date-fns/locale";
 
 const Home: React.FC = () => {
   const { idToken, companyId, companyName, user } = useAuth();
   const [todayStr, setTodayStr] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // 1) Format today's date once
   useEffect(() => {
     const now = new Date();
-    const formatted = format(now, "EEEE d MMMM").toUpperCase();
-    setTodayStr(formatted);
+    const formatted = format(now, "EEEE, d MMMM", { locale: tr });
+    setTodayStr(formatted.charAt(0).toUpperCase() + formatted.slice(1));
   }, []);
 
-  // 2) Fetch unread notifications count
   useEffect(() => {
     const fetchUnread = async () => {
-      if (!idToken || !companyId) {
-        setUnreadCount(0);
-        return;
-      }
+      if (!idToken || !companyId) return setUnreadCount(0);
       try {
         const allNotifs: NotificationInfo[] = await getNotifications(
           idToken,
           companyId
         );
-        const cnt = allNotifs.filter((n) => !n.isCalled).length;
-        setUnreadCount(cnt);
-      } catch (err) {
-        console.error("Error fetching notifications:", err);
+        setUnreadCount(allNotifs.filter((n) => !n.isCalled).length);
+      } catch {
         setUnreadCount(0);
       }
     };
-
     fetchUnread();
-    // If you want live updates, you could poll or subscribe—this runs once on mount.
   }, [idToken, companyId]);
 
-  if (!idToken || !companyId || !companyName || !user) {
-    return null;
-  }
+  if (!idToken || !companyId || !companyName || !user) return null;
 
   return (
-    <div className="flex flex-col h-screen bg-brand-gray-100 pb-16">
+    <div className="flex flex-col h-screen bg-gray-100 pb-16">
       <div className="flex-1 overflow-auto px-4 py-4 space-y-6">
-        {/* 1) Welcome Header */}
         <div>
-          <p className="text-xs text-brand-green-500 tracking-wide">
-            {todayStr}
-          </p>
-          <h2 className="mt-1 text-2xl font-bold text-brand-black">
+          <p className="text-xs text-green-600 tracking-wide">{todayStr}</p>
+          <h2 className="mt-1 text-2xl font-bold text-gray-800">
             Hoş geldin, {user.name}!
           </h2>
-          <p className="text-sm text-brand-gray-700 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             Bugünün planını hemen aşağıdan görebilirsin.
           </p>
         </div>
 
-        {/* 2) Navigation Grid (pass unreadCount) */}
         <HomeNavGrid unreadCount={unreadCount} />
 
-        {/* 3) Calendar Preview Card */}
-        <div className="bg-white rounded-xl shadow p-4">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-semibold text-brand-black">
-              Bugünün Randevuları
-            </h3>
-            {/* Optionally show count of today’s events if desired */}
-          </div>
-        </div>
+        <CalendarPreview
+          onEventClick={() => {
+            /* navigate to calendar */
+          }}
+        />
       </div>
 
-      {/* 4) Bottom Navigation */}
       <NavigationBar />
     </div>
   );
