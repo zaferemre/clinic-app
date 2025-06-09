@@ -1,7 +1,7 @@
 import React from "react";
-import { CalendarView } from "../../components/CalendarView/CalendarView";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 import { useAuth } from "../../contexts/AuthContext";
+import { CalendarView } from "../../components/CalendarView/CalendarView";
 
 const CalendarPage: React.FC = () => {
   const { idToken, companyId, companyName, user } = useAuth();

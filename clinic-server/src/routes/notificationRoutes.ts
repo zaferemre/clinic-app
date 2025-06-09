@@ -7,20 +7,19 @@ import {
 } from "../controllers/patientController";
 
 const router = express.Router();
+router.use("/:companyId", verifyFirebaseToken, authorizeCompanyAccess);
 
 // GET /Company/:companyId/notifications
 router.get(
   "/:companyId/notifications",
-  verifyFirebaseToken,
-  authorizeCompanyAccess,
+
   getNotifications
 );
 
 // PATCH /Company/:companyId/notifications/:notificationId/mark-called
 router.patch(
   "/:companyId/notifications/:notificationId/mark-called",
-  verifyFirebaseToken,
-  authorizeCompanyAccess,
+
   markPatientCalled
 );
 

@@ -1,7 +1,6 @@
 // src/api/appointmentApi.ts
 
 import { CalendarEvent } from "../types/sharedTypes";
-
 import { API_BASE } from "../config/apiConfig";
 
 // Fetch appointments for a company (optionally filtered by employee)
@@ -22,24 +21,23 @@ export async function getAppointments(
   return res.json();
 }
 
-// Create new appointment
+// Create a new appointment
 export async function createAppointment(
   idToken: string,
   companyId: string,
-  payload: {
-    patientId: string;
-    employeeId: string;
-    start: string;
-    end: string;
-  }
-): Promise<CalendarEvent> {
+  patientId: string,
+  employeeEmail: string,
+  serviceId: string,
+  start: string,
+  end: string
+) {
   const res = await fetch(`${API_BASE}/company/${companyId}/appointments`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${idToken}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ patientId, employeeEmail, serviceId, start, end }),
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
@@ -64,6 +62,34 @@ export async function deleteAppointment(
   if (!res.ok) throw new Error(await res.text());
 }
 
+// Update appointment (e.g. start/end/service/employee)
+export async function updateAppointment(
+  idToken: string,
+  companyId: string,
+  appointmentId: string,
+  updates: {
+    start?: string;
+    end?: string;
+    serviceId?: string;
+    employeeEmail?: string;
+  }
+) {
+  const res = await fetch(
+    `${API_BASE}/company/${companyId}/appointments/${appointmentId}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify(updates),
+    }
+  );
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+// Get appointments for a specific patient
 export async function getPatientAppointments(
   idToken: string,
   companyId: string,

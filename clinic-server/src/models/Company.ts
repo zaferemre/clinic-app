@@ -104,6 +104,7 @@ export interface ICompany extends Document {
   name: string;
   ownerName: string;
   ownerEmail: string;
+  ownerImageUrl?: string;
   companyType: string;
   address?: string;
   phoneNumber?: string;
@@ -125,6 +126,10 @@ const CompanySchema = new Schema<ICompany>(
     name: { type: String, required: true },
     ownerName: { type: String, required: true },
     ownerEmail: { type: String, required: true, index: true },
+    ownerImageUrl: {
+      type: String,
+      default: "https://doodleipsum.com/700?i=533d71e7733d1ad05ecdc25051eed663",
+    },
     companyType: { type: String, required: true },
     address: { type: String },
     phoneNumber: { type: String },

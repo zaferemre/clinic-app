@@ -1,31 +1,75 @@
+// src/routes/companyRoutes.ts
+
 import express from "express";
+import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
 import {
   createCompany,
   getCompany,
   updateCompany,
   addEmployee,
+  getEmployees,
+  joinCompany,
   getEmployeeSchedule,
   updateWorkingHours,
   updateServices,
-  getEmployees,
+  ensureCompanyAccess,
+  getServices,
 } from "../controllers/companyController";
-import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
 
 const router = express.Router();
 
-// All routes below require Firebase Auth
+// All routes below require a valid Firebase token
 router.use(verifyFirebaseToken);
 
-router.post("/", createCompany); // POST /company → create new company
-router.get("/", getCompany); // GET /company → get company for current user
-router.patch("/", updateCompany); // PATCH /company → update fields
+/**
+ * Public (token-protected) endpoints:
+ */
 
-router.get("/:companyId", getCompany); // GET /company/:companyId → get company by ID
-router.post("/:companyId/employees", addEmployee); // POST /company/employees → add new employee
-router.get("/schedule/:employeeId", getEmployeeSchedule); // GET /company/schedule/:employeeId
-router.patch("/working-hours", updateWorkingHours);
-router.patch("/services", updateServices);
+// POST /company
+router.post("/", createCompany);
+
+// POST /company/:companyId/join
+router.post("/:companyId/join", joinCompany);
+
+/**
+ * Everything under /:companyId/* after this point
+ * now requires either owner OR already-joined employee.
+ */
+router.use("/:companyId", ensureCompanyAccess);
+
+/**
+ * GET /company                → current user’s company (owner or employee)
+ * GET /company/:companyId     → same, but by ID
+ */
+router.get("/", getCompany);
+router.get("/:companyId", getCompany);
+
+/**
+ * Owner-only top-level update:
+ * PATCH /company
+ */
+router.patch("/", updateCompany);
+
+/**
+ * Employee management:
+ * POST   /company/:companyId/employees
+ * GET    /company/:companyId/employees
+ */
+router.post("/:companyId/employees", addEmployee);
 router.get("/:companyId/employees", getEmployees);
+
+/**
+ * Scheduling:
+ * GET /company/:companyId/schedule/:employeeId
+ */
 router.get("/:companyId/schedule/:employeeId", getEmployeeSchedule);
 
+/**
+ * Owner-only settings:
+ * PATCH /company/:companyId/working-hours
+ * PATCH /company/:companyId/services
+ */
+router.patch("/:companyId/working-hours", updateWorkingHours);
+router.patch("/:companyId/services", updateServices);
+router.get("/:companyId/services", getServices);
 export default router;

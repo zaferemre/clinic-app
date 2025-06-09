@@ -227,7 +227,7 @@ export const NavigationBar: React.FC = () => {
               </NavLink>
 
               <NavLink
-                to="/workers"
+                to="/employees"
                 onClick={closeMenu}
                 className="flex items-center space-x-3 w-full py-2 rounded-md text-brand-gray-700 hover:bg-brand-gray-50 hover:text-brand-black"
               >

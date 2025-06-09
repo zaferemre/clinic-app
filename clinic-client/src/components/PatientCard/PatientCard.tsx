@@ -60,7 +60,7 @@ export const PatientCard: React.FC<PatientCardProps> = ({
       start: string;
       end: string;
       status: string;
-      workerEmail: string;
+      employeeEmail: string;
     }[]
   >([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -315,8 +315,8 @@ export const PatientCard: React.FC<PatientCardProps> = ({
               <ul className="ml-4 list-disc text-sm text-brand-gray-600">
                 {pastAppointments.map((a) => (
                   <li key={a.id}>
-                    {new Date(a.start).toLocaleDateString()} — {a.workerEmail} —{" "}
-                    {a.status}
+                    {new Date(a.start).toLocaleDateString()} — {a.employeeEmail}{" "}
+                    — {a.status}
                   </li>
                 ))}
               </ul>

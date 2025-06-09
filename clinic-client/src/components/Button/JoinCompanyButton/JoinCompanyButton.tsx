@@ -60,7 +60,7 @@ const JoinCompanyForm: React.FC<JoinCompanyFormProps> = ({ onJoined }) => {
       const data = await response.json();
 
       // 2. Fetch company info (for prefill UI)
-      const infoRes = await fetch(`${API_BASE}/company/${data.companyId}`, {
+      const infoRes = await fetch(`${API_BASE}/company/${joinCode}`, {
         headers: {
           Authorization: `Bearer ${idToken}`,
         },

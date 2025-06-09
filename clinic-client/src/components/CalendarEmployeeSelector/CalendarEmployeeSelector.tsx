@@ -8,17 +8,17 @@ export interface CalendarEmployee {
 }
 
 interface Props {
-  /** The list of all workers (must have email, name, optional pictureUrl) */
-  workers: CalendarEmployee[];
-  /** Currently selected worker’s email (or empty string = “all”) */
-  selectedWorker: string;
-  /** Called when user picks a worker (pass back the worker.email) */
+  /** The list of all employees (must have email, name, optional pictureUrl) */
+  employees: CalendarEmployee[];
+  /** Currently selected Employee’s email (or empty string = “all”) */
+  selectedEmployee: string;
+  /** Called when user picks a Employee (pass back the Employee.email) */
   onChange: (newEmail: string) => void;
 }
 
 export const CalendarEmployeeSelector: React.FC<Props> = ({
-  workers,
-  selectedWorker,
+  employees,
+  selectedEmployee,
   onChange,
 }) => {
   const [open, setOpen] = useState(false);
@@ -40,15 +40,15 @@ export const CalendarEmployeeSelector: React.FC<Props> = ({
     };
   }, [wrapperRef]);
 
-  // Determine label to show when no worker or “all”
+  // Determine label to show when no Employee or “all”
   const selectedLabel =
-    selectedWorker === ""
+    selectedEmployee === ""
       ? "Hepsi"
-      : workers.find((w) => w.email === selectedWorker)?.name || "Hepsi";
+      : employees.find((w) => w.email === selectedEmployee)?.name || "Hepsi";
 
   // Get avatar URL for selected (fallback to placeholder)
   const selectedAvatar =
-    workers.find((w) => w.email === selectedWorker)?.pictureUrl || "";
+    employees.find((w) => w.email === selectedEmployee)?.pictureUrl || "";
 
   return (
     <div className="relative inline-block text-left" ref={wrapperRef}>
@@ -64,7 +64,7 @@ export const CalendarEmployeeSelector: React.FC<Props> = ({
         "
       >
         <div className="flex items-center space-x-2">
-          {selectedWorker && selectedAvatar ? (
+          {selectedEmployee && selectedAvatar ? (
             <img
               src={selectedAvatar}
               alt={`${selectedLabel} avatar`}
@@ -110,7 +110,7 @@ export const CalendarEmployeeSelector: React.FC<Props> = ({
             <span className="ml-1 text-sm text-brand-black">Hepsi</span>
           </li>
 
-          {workers.map((w) => (
+          {employees.map((w) => (
             <li
               key={w.email}
               onClick={() => {

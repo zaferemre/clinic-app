@@ -4,6 +4,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        calendar: {
+          bg: "#ffffff",
+          header: "#f3f4f6",
+          weekday: "#6b7280",
+          today: "#3b82f6",
+        },
         // Primary text/heading color
         "brand-black": "#111827",
 

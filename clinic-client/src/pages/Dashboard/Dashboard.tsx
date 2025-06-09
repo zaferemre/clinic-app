@@ -1,11 +1,11 @@
 // src/pages/Dashboard/Dashboard.tsx
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { getPatients } from "../../api/patientApi";
 import { getAppointments } from "../../api/appointmentApi";
 import { getNotifications } from "../../api/notificationApi";
+import { getServices, Service } from "../../api/servicesApi";
 import { CalendarEvent, NotificationInfo } from "../../types/sharedTypes";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 
@@ -16,6 +16,7 @@ import {
   CalendarIcon,
   BellIcon,
   ChatBubbleLeftRightIcon,
+  BuildingStorefrontIcon,
 } from "@heroicons/react/24/outline";
 
 export const Dashboard: React.FC = () => {
@@ -25,21 +26,20 @@ export const Dashboard: React.FC = () => {
     []
   );
   const [unreadAlerts, setUnreadAlerts] = useState<NotificationInfo[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
 
   const navigate = useNavigate();
-  // Keep a ref to the interval ID so we can clear it on unmount.
   const pollInterval = useRef<number | null>(null);
 
-  // Fetch everything needed for the dashboard at once:
   const fetchAllDashboardData = async () => {
     if (!idToken || !companyId) return;
 
-    // 1) Patients count
+    // Patients count
     getPatients(idToken, companyId)
       .then((data) => setPatientCount(data.length))
       .catch(() => setPatientCount(0));
 
-    // 2) Today's appointments
+    // Today's appointments
     getAppointments(idToken, companyId)
       .then((events) => {
         const todayStr = new Date().toISOString().split("T")[0];
@@ -48,52 +48,38 @@ export const Dashboard: React.FC = () => {
       })
       .catch(() => setTodayAppointments([]));
 
-    // 3) Unread alerts
+    // Unread alerts
     getNotifications(idToken, companyId)
-      .then((list) => {
-        setUnreadAlerts(list);
-      })
+      .then((list) => setUnreadAlerts(list))
       .catch(() => setUnreadAlerts([]));
+
+    // Services count
+    getServices(idToken, companyId)
+      .then((list) => setServices(list))
+      .catch(() => setServices([]));
   };
 
-  // On mount (and whenever idToken or companyId changes), do an initial fetch
-  // and then start polling every 30 seconds.
   useEffect(() => {
     if (!idToken || !companyId) return;
 
-    // Initial load:
     fetchAllDashboardData();
-
-    // Then set up a 30-second poll:
-    pollInterval.current = window.setInterval(fetchAllDashboardData, 30_000);
-
+    pollInterval.current = window.setInterval(fetchAllDashboardData, 30000);
     return () => {
-      // Clear the interval on unmount or when companyId/idToken changes:
-      if (pollInterval.current !== null) {
-        clearInterval(pollInterval.current);
-      }
+      if (pollInterval.current !== null) clearInterval(pollInterval.current);
     };
   }, [idToken, companyId]);
 
-  // Show a little red dot if there are any unread alerts:
   const showAlertDot = unreadAlerts.length > 0;
 
   return (
     <div className="flex flex-col h-screen bg-brand-gray-100">
-      {/* Scrollable area */}
       <div className="flex-1 overflow-auto p-4 space-y-6">
         <h1 className="text-2xl font-semibold text-brand-black">Panel</h1>
 
-        {/* 4‐Box Grid */}
         <div className="grid grid-cols-2 gap-4">
-          {/* Patients Box */}
+          {/* Patients */}
           <div
-            className="
-              relative
-              flex flex-col items-center justify-center
-              bg-white hover:bg-blue-100 transition
-              rounded-xl shadow p-6 cursor-pointer
-            "
+            className="relative flex flex-col items-center justify-center bg-white hover:bg-blue-100 transition rounded-xl shadow p-6 cursor-pointer"
             onClick={() => navigate("/patients")}
           >
             <UsersIcon className="h-10 w-10 text-blue-500" />
@@ -103,28 +89,32 @@ export const Dashboard: React.FC = () => {
             </span>
           </div>
 
-          {/* Employees Box */}
+          {/* Employees */}
           <div
-            className="
-              relative
-              flex flex-col items-center justify-center
-              bg-white hover:bg-pink-100 transition
-              rounded-xl shadow p-6 cursor-pointer
-            "
-            onClick={() => navigate("/workers")}
+            className="relative flex flex-col items-center justify-center bg-white hover:bg-pink-100 transition rounded-xl shadow p-6 cursor-pointer"
+            onClick={() => navigate("/employees")}
           >
             <UserGroupIcon className="h-10 w-10 text-pink-500" />
             <p className="mt-3 text-lg font-medium text-pink-600">Employees</p>
           </div>
 
-          {/* Calendar Box */}
+          {/* Services */}
           <div
-            className="
-              relative
-              flex flex-col items-center justify-center
-              bg-white hover:bg-yellow-100 transition
-              rounded-xl shadow p-6 cursor-pointer
-            "
+            className="relative flex flex-col items-center justify-center bg-white hover:bg-purple-100 transition rounded-xl shadow p-6 cursor-pointer"
+            onClick={() => navigate("/services")}
+          >
+            <BuildingStorefrontIcon className="h-10 w-10 text-purple-500" />
+            <p className="mt-3 text-lg font-medium text-purple-600">
+              Hizmetler
+            </p>
+            <span className="mt-1 text-sm text-purple-500">
+              {services.length} adet
+            </span>
+          </div>
+
+          {/* Calendar */}
+          <div
+            className="relative flex flex-col items-center justify-center bg-white hover:bg-yellow-100 transition rounded-xl shadow p-6 cursor-pointer"
             onClick={() => navigate("/calendar")}
           >
             <CalendarIcon className="h-10 w-10 text-yellow-500" />
@@ -134,21 +124,14 @@ export const Dashboard: React.FC = () => {
             </span>
           </div>
 
-          {/* Alerts Box */}
+          {/* Alerts */}
           <div
-            className="
-              relative
-              flex flex-col items-center justify-center
-              bg-white hover:bg-red-100 transition
-              rounded-xl shadow p-6 cursor-pointer
-            "
+            className="relative flex flex-col items-center justify-center bg-white hover:bg-red-100 transition rounded-xl shadow p-6 cursor-pointer"
             onClick={() => navigate("/notifications")}
           >
-            {/* Red dot in top right if there are unread alerts */}
             {showAlertDot && (
               <span className="absolute top-3 right-3 h-3 w-3 bg-red-500 rounded-full" />
             )}
-
             <BellIcon className="h-10 w-10 text-red-500" />
             <p className="mt-3 text-lg font-medium text-red-600">Alerts</p>
             <span className="mt-1 text-sm text-red-500">
@@ -156,14 +139,9 @@ export const Dashboard: React.FC = () => {
             </span>
           </div>
 
-          {/* Messaging Box */}
+          {/* Messaging */}
           <div
-            className="
-              relative
-              flex flex-col items-center justify-center
-              bg-white hover:bg-green-100 transition
-              rounded-xl shadow p-6 cursor-pointer
-            "
+            className="relative flex flex-col items-center justify-center bg-white hover:bg-green-100 transition rounded-xl shadow p-6 cursor-pointer"
             onClick={() => navigate("/messaging")}
           >
             <ChatBubbleLeftRightIcon className="h-10 w-10 text-green-500" />
@@ -172,7 +150,6 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Bottom Navigation Bar */}
       <NavigationBar />
     </div>
   );

@@ -4,11 +4,33 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom @apply rules */
+/* 1) Tailwind reset and brand base styles */
 html,
 body,
 #root {
   @apply bg-brand-gray-100 h-full w-full font-sans;
   margin: 0;
   padding: 0;
+}
+
+/* 2) Override key CSS variables for theming */
+:root {
+  --tui-calendar-background: #ffffff;
+  --tui-calendar-header-background: #f3f4f6;
+  --tui-calendar-weekday-text-color: #6b7280;
+  --tui-calendar-today-color: #3b82f6;
+}
+
+/* 3) Tailwind component overrides */
+@layer components {
+  .tui-calendar-card {
+    @apply bg-white rounded-2xl shadow p-4;
+  }
+  .tui-calendar-card .tui-full-calendar-weekday-grid-border {
+    @apply border-gray-200;
+  }
+  .tui-calendar-card .tui-event,
+  .tui-calendar-card .tui-selected-area {
+    @apply rounded-lg;
+  }
 }

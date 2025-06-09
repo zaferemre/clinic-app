@@ -76,11 +76,6 @@ const Home: React.FC = () => {
             </h3>
             {/* Optionally show count of today’s events if desired */}
           </div>
-          <CalendarPreview
-            onEventClick={(info) => {
-              alert(`Randevu: ${info.event.title}`);
-            }}
-          />
         </div>
       </div>
 

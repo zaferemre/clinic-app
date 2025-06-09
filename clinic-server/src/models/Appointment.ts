@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 export interface AppointmentDocument extends mongoose.Document {
   companyId: mongoose.Types.ObjectId;
   patientId: mongoose.Types.ObjectId;
-  workerEmail: string;
+  employeeEmail: string;
+  serviceId: mongoose.Types.ObjectId;
   start: Date;
   end: Date;
   status: "scheduled" | "done" | "cancelled";
@@ -21,9 +22,14 @@ const appointmentSchema = new mongoose.Schema<AppointmentDocument>(
       required: true,
       ref: "Patient",
     },
-    workerEmail: {
+    employeeEmail: {
       type: String,
       required: true,
+    },
+    serviceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "Service",
     },
     start: { type: Date, required: true },
     end: { type: Date, required: true },
@@ -39,4 +45,5 @@ const appointmentSchema = new mongoose.Schema<AppointmentDocument>(
 const Appointment =
   mongoose.models.Appointment ||
   mongoose.model<AppointmentDocument>("Appointment", appointmentSchema);
+
 export default Appointment;

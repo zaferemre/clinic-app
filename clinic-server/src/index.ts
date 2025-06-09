@@ -14,7 +14,7 @@ import companyRoutes from "./routes/companyRoutes";
 import patientRoutes from "./routes/patientRoutes";
 import appointmentRoutes from "./routes/appointmentRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
-
+import servicesRoutes from "./routes/servicesRoutes";
 import messageRoutes from "./routes/messageRoutes";
 
 const app = express();
@@ -50,6 +50,7 @@ app.use("/company", appointmentRoutes);
 app.use("/company", notificationRoutes);
 app.use("/company", employeeRoutes);
 app.use("/company", messageRoutes);
+app.use("/company", servicesRoutes);
 // ───────────────────────────────────────────────────────────────────────────
 // 4) Fallback 404
 // ───────────────────────────────────────────────────────────────────────────

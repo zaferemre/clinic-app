@@ -1,13 +1,11 @@
 // src/components/CalendarView/CalendarView.tsx
-
 import React, { useState, useEffect } from "react";
-import FullCalendar from "@fullcalendar/react";
-import {
+import FullCalendar, {
   DateSelectArg,
   EventClickArg,
   EventInput,
   ViewApi,
-} from "@fullcalendar/core";
+} from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -17,469 +15,336 @@ import {
   getAppointments,
   createAppointment,
   deleteAppointment,
-} from "../../api/appointmentApi.ts";
-import { getPatients } from "../../api/patientApi.ts";
+} from "../../api/appointmentApi";
+import { getPatients } from "../../api/patientApi";
 import { useAuth } from "../../contexts/AuthContext";
 import AddPatient from "../AddPatient/AddPatient";
 import { AppointmentModal } from "../AppointmentModal";
-import {
-  CalendarEmployee,
-  CalendarEmployeeSelector,
-} from "../CalendarEmployeeSelector/CalendarEmployeeSelector";
+import { CalendarEmployee } from "../CalendarEmployeeSelector/CalendarEmployeeSelector";
+import { NewAppointmentModal } from "./NewAppointmentModal";
+import { ServiceAndEmployeeFilter } from "./ServiceAndEmployeeFilter";
 
-import { API_BASE } from "../../config/apiConfig.ts";
+import { API_BASE } from "../../config/apiConfig";
+
+interface Service {
+  _id: string;
+  serviceName: string;
+  serviceDuration: number;
+}
 
 export const CalendarView: React.FC = () => {
-  const { idToken, companyId } = useAuth();
+  const { idToken, companyId, user } = useAuth();
+  const currentEmail = user!.email;
 
-  // FullCalendar events array
+  const [ownerEmail, setOwnerEmail] = useState<string>("");
   const [events, setEvents] = useState<EventInput[]>([]);
-
-  // Patients and workers data
   const [patients, setPatients] = useState<
     { _id: string; name: string; credit: number }[]
   >([]);
-  const [workers, setWorkers] = useState<CalendarEmployee[]>([]);
-
-  // For filtering / creating appointments
-  const [selectedWorker, setSelectedWorker] = useState<string>("");
-  const [selectedSpan, setSelectedSpan] = useState<DateSelectArg | null>(null);
+  const [employees, setEmployees] = useState<CalendarEmployee[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
+  const [selectedService, setSelectedService] = useState<string>("");
   const [selectedPatient, setSelectedPatient] = useState<string>("");
-
-  // Show/hide overlays
+  const [selectedSpan, setSelectedSpan] = useState<DateSelectArg | null>(null);
   const [showAddPatient, setShowAddPatient] = useState(false);
   const [modalEvent, setModalEvent] = useState<EventInput | null>(null);
 
-  // ─── 1) Fetch Patients ─────────────────────────────────────────────
-  const fetchPatients = async () => {
-    if (!idToken || !companyId) {
-      setPatients([]);
-      return;
-    }
-    try {
-      const data = await getPatients(idToken, companyId);
-      setPatients(
-        data.map((p) => ({ _id: p._id, name: p.name, credit: p.credit }))
-      );
-    } catch (err) {
-      console.error("Fetch patients error:", err);
-      setPatients([]);
-    }
+  const isOwner = currentEmail === ownerEmail;
+
+  // Helper to format a Date to the "YYYY-MM-DDTHH:mm" format for <input type="datetime-local">
+  const toDateTimeLocal = (date: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+      date.getDate()
+    )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   };
 
+  // Load company owner
   useEffect(() => {
-    if (idToken && companyId) fetchPatients();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idToken, companyId]);
-
-  useEffect(() => {
-    if (!showAddPatient) {
-      fetchPatients();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showAddPatient]);
-
-  // ─── 2) Fetch Workers via GET /company/:companyId/workers ─────────────────
-  const fetchWorkers = async () => {
-    if (!idToken || !companyId) {
-      setWorkers([]);
-      return;
-    }
-    try {
-      const res = await fetch(`${API_BASE}/company/${companyId}/workers`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-      if (!res.ok) {
-        throw new Error(`Sunucu hatası (status ${res.status})`);
+    if (!idToken || !companyId) return;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/company/${companyId}`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        const c = await res.json();
+        setOwnerEmail(c.ownerEmail);
+      } catch {
+        setOwnerEmail("");
       }
-      const data = await res.json();
-      // data: Array<{ email, name, pictureUrl, role }>
-      type WorkerApiResponse = {
-        email: string;
-        name?: string;
-        pictureUrl?: string;
-        role?: string;
-      };
-      const mapped: CalendarEmployee[] = (Array.isArray(data) ? data : []).map(
-        (w: WorkerApiResponse) => ({
-          email: w.email,
-          name: w.name ?? w.email,
-          pictureUrl: w.pictureUrl ?? "",
-        })
-      );
-      setWorkers(mapped);
-    } catch (err) {
-      console.error("Fetch workers error:", err);
-      setWorkers([]);
-    }
-  };
-
-  useEffect(() => {
-    if (idToken && companyId) fetchWorkers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    })();
   }, [idToken, companyId]);
 
-  // ─── 3) Fetch Appointments & assign colors ────────────────────────────
+  // Load patients
+  useEffect(() => {
+    if (!idToken || !companyId) return;
+    (async () => {
+      try {
+        const list = await getPatients(idToken, companyId);
+        setPatients(
+          list.map((p) => ({ _id: p._id, name: p.name, credit: p.credit }))
+        );
+      } catch {
+        setPatients([]);
+      }
+    })();
+  }, [idToken, companyId, showAddPatient]);
+
+  // Load employees
+  useEffect(() => {
+    if (!idToken || !companyId) return;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/company/${companyId}/employees`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        setEmployees(await res.json());
+      } catch {
+        setEmployees([]);
+      }
+    })();
+  }, [idToken, companyId]);
+
+  // Load services
+  useEffect(() => {
+    if (!idToken || !companyId) return;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/company/${companyId}/services`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        const data: Service[] = await res.json();
+        setServices(Array.isArray(data) ? data : []);
+      } catch {
+        setServices([]);
+      }
+    })();
+  }, [idToken, companyId]);
+
+  // Fetch and filter events
   const fetchAppointments = async () => {
     if (!idToken || !companyId) return;
     try {
-      type Appointment = {
-        id: string;
-        title: string;
-        start: string;
-        end: string;
-        workerEmail?: string;
-      };
-      const data: Appointment[] = await getAppointments(idToken, companyId);
-
-      // Filter by selectedWorker if set
+      const data = await getAppointments(idToken, companyId);
       const filtered = data.filter((ev) => {
-        if (!selectedWorker) return true;
-        return ev.workerEmail === selectedWorker;
+        const matchEmp = selectedEmployee
+          ? ev.extendedProps.employeeEmail === selectedEmployee
+          : true;
+        const matchSvc = selectedService
+          ? ev.extendedProps.serviceId === selectedService
+          : true;
+        return matchEmp && matchSvc;
       });
-
-      // Group by date “YYYY-MM-DD”
-      const groupedByDate: Record<string, typeof data> = {};
-      filtered.forEach((ev) => {
-        const dateKey = ev.start.split("T")[0];
-        if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
-        groupedByDate[dateKey].push(ev);
-      });
-
-      // Pastel palette
       const palette = ["#34D399", "#93C5FD", "#FDBA74", "#F9A8D4", "#FCA5A5"];
-
-      const now = new Date().getTime();
-      const fcEvents: EventInput[] = [];
-      Object.values(groupedByDate).forEach((evListOnDate) => {
-        evListOnDate.forEach((ev, idx) => {
-          const isPast = ev.end && new Date(ev.end).getTime() < now;
-          const color = isPast ? "#9CA3AF" : palette[idx % palette.length];
-          fcEvents.push({
-            id: ev.id,
-            title: ev.title,
-            start: ev.start,
-            end: ev.end,
-            color,
-          });
-        });
-      });
-
-      setEvents(fcEvents);
-    } catch (err) {
-      console.error("Fetch appointments error:", err);
+      const now = Date.now();
+      setEvents(
+        filtered.map((ev, idx) => ({
+          id: ev.id,
+          title: ev.title,
+          start: ev.start,
+          end: ev.end,
+          color:
+            now > new Date(ev.end).getTime()
+              ? "#9CA3AF"
+              : palette[idx % palette.length],
+          extendedProps: ev.extendedProps,
+        }))
+      );
+    } catch {
       setEvents([]);
     }
   };
 
   useEffect(() => {
-    if (idToken && companyId) fetchAppointments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idToken, companyId, selectedWorker]);
+    fetchAppointments();
+  }, [idToken, companyId, selectedEmployee, selectedService]);
 
-  // ─── 4) When user drags a time‐range (“select”) ─────────────────────────
-  const handleDateSelect = (selectInfo: DateSelectArg) => {
-    setSelectedSpan(selectInfo);
+  // Selection handlers
+  const handleDateSelect = (info: DateSelectArg) => {
+    if (!isOwner && selectedEmployee !== currentEmail) {
+      alert("Sadece kendi programınızı düzenleyebilirsiniz.");
+      return;
+    }
+    const startLocal = toDateTimeLocal(info.start);
+    const endLocal = toDateTimeLocal(info.end);
+    setSelectedSpan({ ...info, startStr: startLocal, endStr: endLocal });
   };
 
-  // ─── 5) When user single‐clicks a slot (“dateClick”) ────────────────────
-  const handleDateClick = (clickInfo: { date: Date; view: ViewApi }) => {
-    const startDate = clickInfo.date;
-    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-
-    const pseudoSelect: DateSelectArg = {
-      start: startDate,
-      end: endDate,
-      startStr: startDate.toISOString(),
-      endStr: endDate.toISOString(),
+  const handleDateClick = (ci: { date: Date; view: ViewApi }) =>
+    handleDateSelect({
+      start: ci.date,
+      end: new Date(ci.date.getTime() + 3600_000),
       allDay: false,
-      view: clickInfo.view,
-      jsEvent: null,
-    };
-    setSelectedSpan(pseudoSelect);
-  };
+      view: ci.view,
+      jsEvent: undefined as any,
+      startStr: "",
+      endStr: "",
+    } as DateSelectArg);
 
-  // ─── 6) Create appointment when “Oluştur” clicked ───────────────────────
-  const handleCreateAppointment = async () => {
-    if (!selectedSpan || !selectedPatient || !selectedWorker) {
-      alert("Lütfen bir hasta ve bir çalışan seçin.");
+  const handleCreate = async () => {
+    if (
+      !selectedSpan ||
+      !selectedPatient ||
+      !selectedEmployee ||
+      !selectedService
+    ) {
+      alert("Lütfen hasta, çalışan ve hizmet seçin.");
+      return;
+    }
+    if (!isOwner && selectedEmployee !== currentEmail) {
+      alert("Yetkiniz yok.");
       return;
     }
     try {
-      const { startStr, endStr } = selectedSpan;
       await createAppointment(
         idToken!,
         companyId!,
         selectedPatient,
-        selectedWorker,
-        startStr,
-        endStr
+        selectedEmployee,
+        selectedService,
+        selectedSpan.startStr,
+        selectedSpan.endStr
       );
-      await fetchAppointments();
       setSelectedSpan(null);
       setSelectedPatient("");
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Randevu oluşturulamadı.";
-      alert(msg);
+      setSelectedEmployee("");
+      setSelectedService("");
+      window.dispatchEvent(new Event("refresh"));
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Oluşturulamadı.");
     }
   };
 
-  // ─── 7) Event click → open modal ───────────────────────────────────────
-  const handleEventClick = (clickInfo: EventClickArg) => {
+  // Event click/cancel
+  const handleEventClick = (ci: EventClickArg) => {
+    const we = ci.event.extendedProps["employeeEmail"];
+    if (!isOwner && we !== currentEmail) {
+      alert("Sadece kendi randevularınızı düzenleyebilirsiniz.");
+      return;
+    }
     setModalEvent({
-      id: clickInfo.event.id,
-      title: clickInfo.event.title,
-      start: clickInfo.event.startStr,
-      end: clickInfo.event.endStr,
-      color: clickInfo.event.backgroundColor,
+      id: ci.event.id,
+      title: ci.event.title,
+      start: ci.event.startStr,
+      end: ci.event.endStr,
+      color: ci.event.backgroundColor,
     });
   };
 
-  // ─── 8) Cancel appointment (called by modal) ───────────────────────────
-  const handleCancelAppointment = async (appointmentId: string) => {
-    await deleteAppointment(idToken!, companyId!, appointmentId);
-    await fetchAppointments();
-  };
-
-  // ─── 9) Close “Yeni Hasta Ekle” overlay ────────────────────────────────
-  const handleCloseAddPatient = () => {
-    setShowAddPatient(false);
+  const handleCancel = async (id: string) => {
+    await deleteAppointment(idToken!, companyId!, id);
+    setModalEvent(null);
+    window.dispatchEvent(new Event("refresh"));
   };
 
   return (
     <div className="flex flex-col flex-1 bg-brand-gray-100">
-      {/* ── Add Patient Overlay ── */}
+      <ServiceAndEmployeeFilter
+        employees={employees}
+        selectedEmployee={selectedEmployee}
+        onEmployeeChange={setSelectedEmployee}
+        services={services}
+        selectedService={selectedService}
+        onServiceChange={setSelectedService}
+      />
+
       {showAddPatient && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto bg-black/50">
-          <div className="w-full max-w-md mx-4 mt-10 mb-10">
-            <AddPatient companyId={companyId!} idToken={idToken!} />
-            <button
-              className="
-                absolute top-2 right-2
-                bg-white text-brand-gray-700
-                hover:text-brand-black
-                rounded-full p-1 shadow
-              "
-              onClick={handleCloseAddPatient}
-            >
-              ×
-            </button>
-          </div>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center">
+          <AddPatient companyId={companyId!} idToken={idToken!} />
+          <button
+            className="absolute top-4 right-4 text-white text-2xl"
+            onClick={() => setShowAddPatient(false)}
+          >
+            ×
+          </button>
         </div>
       )}
 
-      {/* ── Appointment Modal ── */}
       {modalEvent && (
         <AppointmentModal
           event={modalEvent}
           onClose={() => setModalEvent(null)}
-          onCancel={handleCancelAppointment}
+          onCancel={handleCancel}
         />
       )}
 
-      {/* ── Worker Filter Bar ── */}
-      <div className="mx-4 mt-4 mb-2 p-2 bg-white rounded-xl shadow flex items-center space-x-2">
-        <label
-          htmlFor="worker-select"
-          className="font-medium text-sm text-brand-black"
-        >
-          Çalışan:
-        </label>
-        <CalendarEmployeeSelector
-          workers={workers}
-          selectedWorker={selectedWorker}
-          onChange={(email) => setSelectedWorker(email)}
+      <NewAppointmentModal
+        show={!!selectedSpan}
+        onClose={() => {
+          setSelectedSpan(null);
+          setSelectedPatient("");
+          setSelectedEmployee("");
+          setSelectedService("");
+        }}
+        patients={patients}
+        employees={employees}
+        services={services}
+        isOwner={isOwner}
+        currentEmail={currentEmail}
+        selectedPatient={selectedPatient}
+        setSelectedPatient={setSelectedPatient}
+        selectedEmployee={selectedEmployee}
+        setSelectedEmployee={setSelectedEmployee}
+        selectedService={selectedService}
+        setSelectedService={setSelectedService}
+        startStr={selectedSpan?.startStr || ""}
+        setStartStr={(val) => {
+          if (selectedSpan) setSelectedSpan({ ...selectedSpan, startStr: val });
+        }}
+        endStr={selectedSpan?.endStr || ""}
+        setEndStr={(val) => {
+          if (selectedSpan) setSelectedSpan({ ...selectedSpan, endStr: val });
+        }}
+        onSubmit={handleCreate}
+        onAddPatient={() => setShowAddPatient(true)}
+      />
+
+      <div className="flex-1 mx-4 mb-4 bg-white rounded-xl shadow overflow-auto">
+        <FullCalendar
+          plugins={[
+            dayGridPlugin,
+            timeGridPlugin,
+            interactionPlugin,
+            bootstrap5Plugin,
+          ]}
+          themeSystem="bootstrap5"
+          initialView={"threeDay"}
+          views={{
+            timeGridDay: { buttonText: "Gün" },
+            threeDay: {
+              type: "timeGrid",
+              duration: { days: 3 },
+              buttonText: "3 Gün",
+            },
+
+            timeGridWeek: { buttonText: "Hafta" },
+            dayGridMonth: { buttonText: "Ay" },
+          }}
+          headerToolbar={{
+            start: "prev,next today",
+            center: "title",
+            end: "timeGridDay,threeDay,timeGridWeek,dayGridMonth",
+          }}
+          allDaySlot={false}
+          selectable
+          selectMirror
+          select={handleDateSelect}
+          dateClick={handleDateClick}
+          editable
+          eventClick={handleEventClick}
+          events={events}
+          eventDisplay="block"
+          slotMinTime="08:00:00"
+          slotMaxTime="22:00:00"
+          slotLabelFormat={{
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }}
+          nowIndicator
+          height="auto"
         />
-      </div>
-
-      {/* ── Appointment Creation Bar ── */}
-      {selectedSpan && (
-        <div className="mx-4 mb-2 p-4 bg-white rounded-xl shadow flex flex-col space-y-3">
-          <h3 className="text-sm font-semibold text-brand-black">
-            Randevu Oluştur
-          </h3>
-
-          {/* “Yeni Hasta Ekle” Button */}
-          <button
-            className="
-              self-start mb-2
-              bg-brand-blue-100 hover:bg-brand-blue-200
-              text-brand-blue-500 px-3 py-1 rounded-lg text-sm
-              focus:outline-none focus:ring-2 focus:ring-brand-blue-300
-            "
-            onClick={() => setShowAddPatient(true)}
-          >
-            Yeni Hasta Ekle
-          </button>
-
-          {/* Patient Dropdown */}
-          <div className="flex items-center space-x-2 text-sm">
-            <label
-              htmlFor="patient-select"
-              className="font-medium text-brand-black"
-            >
-              Hasta:
-            </label>
-            <select
-              id="patient-select"
-              value={selectedPatient}
-              onChange={(e) => setSelectedPatient(e.target.value)}
-              className="
-                flex-1 px-2 py-1
-                border border-brand-gray-300
-                rounded-lg text-sm
-                focus:outline-none focus:ring-2 focus:ring-brand-green-300
-              "
-            >
-              <option value="">Seçiniz</option>
-              {patients.map((p) => (
-                <option key={p._id} value={p._id}>
-                  {p.name} (Kredi: {p.credit})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-2 text-sm">
-            <label
-              htmlFor="worker-select"
-              className="font-medium text-brand-black"
-            >
-              Çalışan:
-            </label>
-            <CalendarEmployeeSelector
-              workers={workers}
-              selectedWorker={selectedWorker}
-              onChange={(email) => setSelectedWorker(email)}
-            />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex space-x-2">
-            <button
-              onClick={handleCreateAppointment}
-              className="
-                flex-1
-                bg-brand-green-400 hover:bg-brand-green-500
-                text-white rounded-lg
-                px-3 py-2 text-sm
-                focus:outline-none focus:ring-2 focus:ring-brand-green-300
-              "
-            >
-              Oluştur
-            </button>
-            <button
-              onClick={() => {
-                setSelectedSpan(null);
-                setSelectedPatient("");
-              }}
-              className="
-                flex-1
-                bg-brand-gray-300 hover:bg-brand-gray-400
-                text-brand-black rounded-lg
-                px-3 py-2 text-sm
-                focus:outline-none focus:ring-2 focus:ring-brand-gray-200
-              "
-            >
-              İptal
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── FullCalendar Container ── */}
-      <div className="flex-1 mb-4 bg-white rounded-xl shadow overflow-hidden w-full">
-        <div className="w-full overflow-x-auto">
-          <style>
-            {`
-            /* Shrink FullCalendar text sizes */
-            .fc .fc-toolbar-title {
-              font-size: 0.75rem;
-            }
-            .fc .fc-button {
-              font-size: 0.75rem;
-            }
-            .fc .fc-col-header-cell-cushion {
-              font-size: 0.75rem;
-            }
-            .fc .fc-timegrid-slot-lane .fc-timegrid-slot-text {
-              font-size: 0.625rem;
-            }
-            .fc .fc-daygrid-day-number {
-              font-size: 0.75rem;
-            }
-            .fc .fc-event-title {
-              font-size: 0.75rem;
-            }
-            /* Enable vertical scrolling inside FullCalendar on mobile */
-            .fc .fc-scroller {
-              overflow-y: auto !important;
-              -webkit-overflow-scrolling: touch !important;
-            }
-            .fc .fc-daygrid-body,
-            .fc .fc-timegrid-body {
-              user-select: none;
-            }
-
-            `}
-          </style>
-
-          <FullCalendar
-            plugins={[
-              dayGridPlugin,
-              timeGridPlugin,
-              interactionPlugin,
-              bootstrap5Plugin,
-            ]}
-            themeSystem="bootstrap5"
-            initialView="timeGridWeek"
-            views={{
-              dayGridMonth: {
-                titleFormat: { year: "numeric", month: "long" },
-              },
-              timeGridWeek: {
-                titleFormat: { month: "short", day: "numeric" },
-              },
-              timeGridDay: {
-                titleFormat: {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                },
-              },
-            }}
-            allDaySlot={false}
-            editable={true}
-            eventResizableFromStart={true}
-            eventDurationEditable={true}
-            selectable={true}
-            selectMirror={true}
-            select={handleDateSelect}
-            dateClick={handleDateClick}
-            eventClick={handleEventClick}
-            events={events}
-            eventDisplay="block"
-            headerToolbar={{
-              start: "prev,next today",
-              center: "title",
-              end: "dayGridMonth,timeGridWeek,timeGridDay",
-            }}
-            slotMinTime="08:00:00"
-            slotMaxTime="22:00:00"
-            slotLabelFormat={{
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            }}
-            nowIndicator={true}
-            height="auto"
-          />
-        </div>
       </div>
     </div>
   );

@@ -1,8 +1,10 @@
 import { RequestHandler } from "express";
+import mongoose from "mongoose";
 import Appointment from "../models/Appointment";
 import Patient from "../models/Patient";
-import mongoose from "mongoose";
+import { ICompany } from "../models/Company";
 
+// GET /company/:companyId/appointments
 export const getAppointments: RequestHandler = async (req, res) => {
   try {
     const { companyId } = req.params;
@@ -11,17 +13,20 @@ export const getAppointments: RequestHandler = async (req, res) => {
       .exec();
 
     const events = appointments.map((appt) => ({
-      id: appt._id,
-      title: (appt.patientId as any).name,
+      id: appt._id.toString(),
+      title: (appt.patientId as any)?.name ?? "Bilinmeyen Hasta",
       start: appt.start,
       end: appt.end,
+      extendedProps: {
+        employeeEmail: appt.employeeEmail,
+        serviceId: appt.serviceId?.toString?.() ?? null,
+      },
       color:
         appt.status === "done"
           ? "#6b7280"
           : appt.status === "cancelled"
           ? "#ef4444"
           : "#3b82f6",
-      workerEmail: appt.workerEmail,
     }));
 
     res.status(200).json(events);
@@ -31,75 +36,60 @@ export const getAppointments: RequestHandler = async (req, res) => {
   }
 };
 
+// POST /company/:companyId/appointments
 export const createAppointment: RequestHandler = async (req, res) => {
   try {
     const { companyId } = req.params;
-    const { patientId, workerEmail, start, end } = req.body as {
-      patientId: string;
-      workerEmail: string;
-      start: string;
-      end: string;
-    };
+    const { patientId, employeeEmail, serviceId, start, end } = req.body;
 
-    // 1) Verify patient
-    const patient = await Patient.findById(patientId).exec();
-    if (!patient) {
-      res.status(404).json({ error: "Patient not found" });
-      return;
-    }
-    if (patient.companyId.toString() !== companyId) {
-      res
-        .status(403)
-        .json({ error: "Patient does not belong to this company" });
-      return;
-    }
-
-    // 2) Verify workerEmail belongs to company
-    const company = (req as any).company; // set by authorizecompanyAccess
-    if (
-      company.workerEmail !== workerEmail &&
-      !company.workers.find((w: any) => w.email === workerEmail)
-    ) {
-      res.status(400).json({ error: "Worker does not belong to this company" });
-      return;
-    }
-
-    // 3) Check credit
-    if (patient.credit < 1) {
-      res.status(400).json({
-        error: "Insufficient credit. Please update patient credit first.",
-      });
-      return;
-    }
-
-    // 4) Check overlapping
     const newStart = new Date(start);
     const newEnd = new Date(end);
-    const overlap = await Appointment.findOne({
-      companyId,
-      workerEmail,
-      $or: [{ start: { $lt: newEnd }, end: { $gt: newStart } }],
-    }).exec();
-    if (overlap) {
-      res
-        .status(409)
-        .json({ error: "This timeslot is already taken for that worker." });
-      return;
+    if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime())) {
+      return res.status(400).json({ error: "Invalid start or end datetime" });
     }
 
-    // 5) Deduct credit now
+    const patient = await Patient.findById(patientId).exec();
+    if (!patient) return res.status(404).json({ error: "Patient not found" });
+    if (patient.companyId.toString() !== companyId)
+      return res.status(403).json({ error: "Patient not in this company" });
+
+    const company = (req as any).company as ICompany;
+    const isOwner = company.ownerEmail === employeeEmail;
+    const isEmployee =
+      Array.isArray(company.employees) &&
+      company.employees.some((e) => e.email === employeeEmail);
+    if (!isOwner && !isEmployee)
+      return res.status(400).json({ error: "Employee not in company" });
+
+    if (patient.credit < 1)
+      return res.status(400).json({ error: "Insufficient credit" });
+
+    const overlap = await Appointment.findOne({
+      companyId,
+      employeeEmail,
+      $or: [
+        { start: { $lt: newEnd, $gte: newStart } },
+        { end: { $gt: newStart, $lte: newEnd } },
+        { start: { $lte: newStart }, end: { $gte: newEnd } },
+      ],
+    }).exec();
+
+    if (overlap)
+      return res.status(409).json({ error: "That timeslot is already taken." });
+
     patient.credit -= 1;
     await patient.save();
 
-    // 6) Create appointment
     const newAppt = new Appointment({
       companyId,
       patientId,
-      workerEmail,
+      employeeEmail,
+      serviceId,
       start: newStart,
       end: newEnd,
     });
     await newAppt.save();
+
     res.status(201).json(newAppt);
   } catch (err: any) {
     console.error("Error in createAppointment:", err);
@@ -107,36 +97,52 @@ export const createAppointment: RequestHandler = async (req, res) => {
   }
 };
 
-export const completeAppointment: RequestHandler = async (req, res) => {
+// DELETE /company/:companyId/appointments/:appointmentId
+export const deleteAppointment: RequestHandler = async (req, res) => {
   try {
     const { companyId, appointmentId } = req.params;
-    if (!mongoose.isValidObjectId(appointmentId)) {
-      res.status(400).json({ error: "Invalid appointment ID" });
-      return;
-    }
-    const appt = await Appointment.findById(appointmentId).exec();
-    if (!appt) {
-      res.status(404).json({ error: "Appointment not found" });
-      return;
-    }
-    if (appt.companyId.toString() !== companyId) {
-      res
-        .status(403)
-        .json({ error: "Appointment does not belong to this company" });
-      return;
-    }
-    if (appt.status !== "scheduled") {
-      res
-        .status(400)
-        .json({ error: "Only scheduled appts can be marked as done." });
-      return;
+
+    const appt = await Appointment.findOne({ _id: appointmentId, companyId });
+    if (!appt) return res.status(404).json({ error: "Appointment not found" });
+
+    // Refund 1 credit back to patient
+    const patient = await Patient.findById(appt.patientId);
+    if (patient) {
+      patient.credit += 1;
+      await patient.save();
     }
 
-    appt.status = "done";
-    await appt.save();
-    res.status(200).json({ message: "Appointment marked done." });
+    await appt.deleteOne();
+    res.status(204).send();
   } catch (err: any) {
-    console.error("Error in completeAppointment:", err);
+    console.error("Error in deleteAppointment:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+// PUT /company/:companyId/appointments/:appointmentId
+export const updateAppointment: RequestHandler = async (req, res) => {
+  try {
+    const { companyId, appointmentId } = req.params;
+    const { start, end, serviceId, employeeEmail } = req.body;
+
+    const appt = await Appointment.findOne({ _id: appointmentId, companyId });
+    if (!appt) return res.status(404).json({ error: "Appointment not found" });
+
+    const newStart = new Date(start);
+    const newEnd = new Date(end);
+    if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime()))
+      return res.status(400).json({ error: "Invalid date format" });
+
+    appt.start = newStart;
+    appt.end = newEnd;
+    if (serviceId) appt.serviceId = serviceId;
+    if (employeeEmail) appt.employeeEmail = employeeEmail;
+
+    await appt.save();
+    res.status(200).json(appt);
+  } catch (err: any) {
+    console.error("Error in updateAppointment:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
