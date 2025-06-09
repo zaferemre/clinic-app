@@ -1,9 +1,16 @@
-import { useState, ChangeEvent, FormEvent } from "react";
+import { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { createPatient } from "../../api/patientApi";
+import { API_BASE } from "../../config/apiConfig";
 
 interface AddPatientProps {
   idToken: string;
   companyId: string;
+}
+
+interface Service {
+  _id: string;
+  serviceName: string;
+  serviceDuration: number;
 }
 
 export default function AddPatient({ idToken, companyId }: AddPatientProps) {
@@ -12,13 +19,31 @@ export default function AddPatient({ idToken, companyId }: AddPatientProps) {
   const [age, setAge] = useState("");
   const [phone, setPhone] = useState("");
   const [credit, setCredit] = useState("0");
-  const [serviceName, setServiceName] = useState("");
+  const [serviceId, setServiceId] = useState("");
+  const [services, setServices] = useState<Service[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<
     "Unpaid" | "Havale" | "Card" | "Cash"
   >("Unpaid");
   const [paymentNote, setPaymentNote] = useState("");
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
+
+  // Fetch services on mount
+  useEffect(() => {
+    async function fetchServices() {
+      try {
+        const res = await fetch(`${API_BASE}/company/${companyId}/services`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        if (!res.ok) throw new Error("Hizmetler yüklenemedi");
+        const data = await res.json();
+        setServices(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setServices([]);
+      }
+    }
+    fetchServices();
+  }, [companyId, idToken]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -30,7 +55,7 @@ export default function AddPatient({ idToken, companyId }: AddPatientProps) {
       age?: number;
       phone: string;
       credit: number;
-      services: { name: string; pointsLeft?: number; sessionsTaken?: number }[];
+      services: { name: string }[];
       paymentHistory: {
         date: string;
         method: "Unpaid" | "Havale" | "Card" | "Cash";
@@ -49,8 +74,11 @@ export default function AddPatient({ idToken, companyId }: AddPatientProps) {
       note: note.trim() || undefined,
     };
 
-    if (serviceName.trim()) {
-      payload.services.push({ name: serviceName.trim() });
+    if (serviceId) {
+      const svc = services.find((s) => s._id === serviceId);
+      if (svc) {
+        payload.services.push({ name: svc.serviceName });
+      }
     }
 
     if (paymentMethod !== "Unpaid") {
@@ -64,7 +92,7 @@ export default function AddPatient({ idToken, companyId }: AddPatientProps) {
 
     try {
       const newPatient = await createPatient(idToken, companyId, payload);
-      setMessage(`Hasta başarıyla eklendi: ${newPatient._id}`);
+      setMessage(`Müşteri başarıyla eklendi: ${newPatient._id}`);
 
       // Clear fields
       setName("");
@@ -72,7 +100,7 @@ export default function AddPatient({ idToken, companyId }: AddPatientProps) {
       setAge("");
       setPhone("");
       setCredit("0");
-      setServiceName("");
+      setServiceId("");
       setPaymentMethod("Unpaid");
       setPaymentNote("");
       setNote("");
@@ -90,12 +118,12 @@ export default function AddPatient({ idToken, companyId }: AddPatientProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className=" bg-white rounded-lg shadow p-8 max-w-2xl mx-auto mb-12"
+      className="bg-white rounded-lg shadow p-8 max-w-2xl mx-auto mb-12"
     >
       {/* Section: Patient Details */}
       <div className="border-b border-gray-900/10 pb-6">
         <h2 className="text-base font-semibold text-gray-900">
-          Yeni Hasta Oluştur
+          Yeni Müşteri Oluştur
         </h2>
 
         <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
@@ -197,7 +225,7 @@ export default function AddPatient({ idToken, companyId }: AddPatientProps) {
               htmlFor="patient-credit"
               className="block text-sm font-medium text-gray-900"
             >
-              Kredi
+              Seans Kredisi
             </label>
             <div className="mt-2">
               <input
@@ -214,7 +242,7 @@ export default function AddPatient({ idToken, companyId }: AddPatientProps) {
             </div>
           </div>
 
-          {/* Service Name */}
+          {/* Service Name (Dropdown) */}
           <div className="col-span-full">
             <label
               htmlFor="service-name"
@@ -223,16 +251,20 @@ export default function AddPatient({ idToken, companyId }: AddPatientProps) {
               Hizmet Adı
             </label>
             <div className="mt-2">
-              <input
+              <select
                 id="service-name"
-                type="text"
-                placeholder="Örneğin: Fizik Tedavi"
-                value={serviceName}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setServiceName(e.target.value)
-                }
-                className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 placeholder:text-gray-400 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-brand-red-300 sm:text-sm"
-              />
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
+                className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-brand-red-300 sm:text-sm"
+                required
+              >
+                <option value="">Seçiniz</option>
+                {services.map((svc) => (
+                  <option key={svc._id} value={svc._id}>
+                    {svc.serviceName} ({svc.serviceDuration} dk)
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -260,7 +292,6 @@ export default function AddPatient({ idToken, companyId }: AddPatientProps) {
               </select>
             </div>
           </div>
-
           {/* Payment Note (conditional) */}
           {paymentMethod !== "Unpaid" && (
             <div className="sm:col-span-3">
@@ -337,7 +368,7 @@ export default function AddPatient({ idToken, companyId }: AddPatientProps) {
             type="submit"
             className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
-            Hasta Oluştur
+            Müşteri Oluştur
           </button>
         </div>
       </div>

@@ -186,9 +186,9 @@ export const joinCompany: RequestHandler = async (req, res, next) => {
   try {
     const { companyId } = req.params;
     const { joinCode } = req.body as { joinCode?: string };
-    const userEmail = req.user!.email!;
-    const userName = req.user!.name;
-    const userPic = req.user!.picture;
+    const userEmail = req.user?.email;
+    const userName = req.user?.name;
+    const userPic = req.user?.picture;
 
     if (!joinCode || joinCode !== companyId) {
       res.status(400).json({ error: "Invalid joinCode" });
@@ -210,7 +210,11 @@ export const joinCompany: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    if (company.employees.some((e) => e.email === userEmail)) {
+    if (
+      company.employees.some(
+        (e: (typeof company.employees)[number]) => e.email === userEmail
+      )
+    ) {
       res.status(409).json({ error: "Already an employee" });
       return;
     }
@@ -240,15 +244,16 @@ export const joinCompany: RequestHandler = async (req, res, next) => {
  */
 export const getEmployeeSchedule: RequestHandler = async (req, res, next) => {
   try {
-    const userEmail = req.user!.email!;
+    const userEmail = req.user?.email;
     const company = req.company!;
     const { employeeId } = req.params;
 
     // If not owner, ensure employeeId matches logged-in user
-    if (
-      userEmail !== company.ownerEmail &&
-      company.employees.id(employeeId)?.email !== userEmail
-    ) {
+    const employee = company.employees.find(
+      (e: (typeof company.employees)[number]) =>
+        e._id?.toString() === employeeId
+    );
+    if (userEmail !== company.ownerEmail && employee?.email !== userEmail) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
@@ -322,17 +327,15 @@ export const getAppointments: RequestHandler = async (req, res, next) => {
       .exec();
 
     const events = appointments.map((appt) => ({
-      id: appt._id.toString(),
-      title: (appt.patientId as any).name,
+      title: appt.patientId?.name,
       start: appt.start,
       end: appt.end,
       extendedProps: { employeeEmail: appt.employeeEmail },
-      color:
-        appt.status === "done"
-          ? "#6b7280"
-          : appt.status === "cancelled"
-          ? "#ef4444"
-          : "#3b82f6",
+      color: (() => {
+        if (appt.status === "done") return "#6b7280";
+        if (appt.status === "cancelled") return "#ef4444";
+        return "#3b82f6";
+      })(),
     }));
 
     res.status(200).json(events);

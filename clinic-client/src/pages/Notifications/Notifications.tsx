@@ -1,5 +1,4 @@
 // src/pages/Notifications/NotificationsPage.tsx
-
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { getNotifications, markPatientCalled } from "../../api/notificationApi";
@@ -8,6 +7,8 @@ import { NotificationInfo } from "../../types/sharedTypes";
 
 import { useAuth } from "../../contexts/AuthContext";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
+
+import { PhoneIcon, CheckIcon } from "@heroicons/react/24/outline";
 
 const NotificationsPage: React.FC = () => {
   const { idToken, companyId, companyName } = useAuth();
@@ -20,7 +21,6 @@ const NotificationsPage: React.FC = () => {
     setTodayStr(format(now, "EEEE d MMMM").toUpperCase());
   }, []);
 
-  // Fetch all pending notifications from the server
   const fetchAll = async () => {
     if (!idToken || !companyId) return;
     try {
@@ -32,53 +32,26 @@ const NotificationsPage: React.FC = () => {
     }
   };
 
-  // On mount (or whenever idToken/companyId changes), load notifications
   useEffect(() => {
-    if (idToken && companyId) {
-      fetchAll();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (idToken && companyId) fetchAll();
   }, [idToken, companyId]);
 
-  /**
-   * “Ara” (Call) button behavior:
-   *   - Determine the correct patient ID string. If `n.patientId` is already a string,
-   *     use it directly. If it’s an object (populated document), grab its `._id` field.
-   *   - Then call getPatientById(...) with that ID, so the URL is e.g.
-   *     GET /clinic/:companyId/patients/abc123… rather than /patients/[object Object].
-   *   - If a phone number exists, open the dialer. Otherwise show an alert.
-   */
-  const handleDial = async (rawPatientId: string | { _id: string }) => {
+  const handleDial = async (patientId: string) => {
     if (!idToken || !companyId) return;
-
-    // If `rawPatientId` is an object, extract its `_id`; otherwise assume it’s already a string
-    const patientIdStr =
-      typeof rawPatientId === "string" ? rawPatientId : rawPatientId._id;
-
-    console.log("⚙️ handleDial using patientId:", patientIdStr);
-
     try {
-      const patient = await getPatientById(idToken, companyId, patientIdStr);
-      console.log("✅ Fetched patient:", patient);
-
+      const patient = await getPatientById(idToken, companyId, patientId);
       if (patient.phone) {
-        // Open the device dialer (this does NOT mark the notification as “Arandı”)
         window.open(`tel:${patient.phone}`);
       } else {
-        alert("Hasta telefon numarası bulunamadı.");
+        alert("Müşteri telefon numarası bulunamadı.");
       }
     } catch (err: any) {
       console.error("❌ Error fetching single patient:", err);
       const msg = err instanceof Error ? err.message : JSON.stringify(err);
-      alert(`Hasta bilgisi alınırken hata oluştu:\n${msg}`);
+      alert(`Müşteri bilgisi alınırken hata oluştu:\n${msg}`);
     }
   };
 
-  /**
-   * “Arandı” (Called) button behavior:
-   *   - Marks that notification as called on the server
-   *   - Then re‐fetches the notifications list to remove it
-   */
   const handleMarkCalled = async (notifId: string) => {
     if (!idToken || !companyId) return;
     try {
@@ -105,48 +78,44 @@ const NotificationsPage: React.FC = () => {
       <main className="flex-1 overflow-auto px-4 pt-4">
         <div className="bg-white rounded-xl shadow p-4 space-y-4">
           {notifications.length === 0 ? (
-            <p className="text-sm text-brand-gray-500">Aranacak hasta yok.</p>
+            <p className="text-sm text-brand-gray-500">Aranacak müşteri yok.</p>
           ) : (
             <ul className="space-y-3">
               {notifications.map((n) => (
                 <li
                   key={n.id}
-                  className="bg-brand-gray-100 rounded-lg p-3 flex justify-between items-center shadow-sm"
+                  className="bg-brand-gray-100 rounded-lg p-3 flex items-start justify-between shadow-sm"
                 >
-                  <div className="flex-1 pr-2">
+                  <div className="flex-1 pr-4">
                     <p className="font-medium text-brand-black">
                       {n.patientName}
                     </p>
                     <p className="text-xs text-brand-gray-600 mt-1">
                       {new Date(n.createdAt).toLocaleString()}
                     </p>
+                    {n.note && (
+                      <p className="text-xs italic text-brand-gray-500 mt-1">
+                        “{n.note}”
+                      </p>
+                    )}
                   </div>
 
-                  {/* “Ara” button: only opens the phone dialer */}
-                  <button
-                    onClick={() => handleDial(n.patientId as any)}
-                    className="
-                      mr-2 px-3 py-1 rounded-lg text-sm
-                      border border-brand-green-300
-                      shadow-md
-                      bg-brand-blue-400 hover:bg-brand-blue-500
-                      text-black focus:ring-2 focus:ring-brand-blue-300
-                    "
-                  >
-                    Ara
-                  </button>
-
-                  {/* “Arandı” button: mark as called and refresh */}
-                  <button
-                    onClick={() => handleMarkCalled(n.id)}
-                    className="
-                      bg-brand-green-400 hover:bg-brand-green-500
-                      text-white px-3 py-1 rounded-lg text-sm
-                      focus:outline-none focus:ring-2 focus:ring-brand-green-300
-                    "
-                  >
-                    Arandı
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleDial(n.patientId)}
+                      className="p-2 bg-blue-100 rounded-lg hover:bg-blue-200"
+                      aria-label="Ara"
+                    >
+                      <PhoneIcon className="w-5 h-5 text-blue-600" />
+                    </button>
+                    <button
+                      onClick={() => handleMarkCalled(n.id)}
+                      className="p-2 bg-green-100 rounded-lg hover:bg-green-200"
+                      aria-label="Arandı"
+                    >
+                      <CheckIcon className="w-5 h-5 text-green-600" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

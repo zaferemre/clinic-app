@@ -5,19 +5,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
-const authorizeClinicAccess_1 = require("../middlewares/authorizeClinicAccess");
+const authorizeCompanyAccess_1 = require("../middlewares/authorizeCompanyAccess");
 const patientController_1 = require("../controllers/patientController");
 const Patient_1 = __importDefault(require("../models/Patient"));
 const router = express_1.default.Router();
-// POST /clinic/:clinicId/patients → create a new patient
-router.post("/:clinicId/patients", verifyFirebaseToken_1.verifyFirebaseToken, authorizeClinicAccess_1.authorizeClinicAccess, patientController_1.createPatient);
-// GET /clinic/:clinicId/patients → list all patients
-router.get("/:clinicId/patients", verifyFirebaseToken_1.verifyFirebaseToken, authorizeClinicAccess_1.authorizeClinicAccess, patientController_1.getPatients);
-// PATCH /clinic/:clinicId/patients/:patientId → update credit, name, etc.
-router.patch("/:clinicId/patients/:patientId", verifyFirebaseToken_1.verifyFirebaseToken, authorizeClinicAccess_1.authorizeClinicAccess, patientController_1.updatePatient);
-// PATCH /clinic/:clinicId/patients/:patientId/payment → record a payment
-router.patch("/:clinicId/patients/:patientId/payment", verifyFirebaseToken_1.verifyFirebaseToken, authorizeClinicAccess_1.authorizeClinicAccess, patientController_1.recordPayment);
-router.patch("/:clinicId/patients/:patientId/unpaid", verifyFirebaseToken_1.verifyFirebaseToken, async (req, res) => {
+// POST /Company/:companyId/patients → create a new patient
+router.post("/:companyId/patients", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess, patientController_1.createPatient);
+// GET /Company/:companyId/patients → list all patients
+router.get("/:companyId/patients", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess, patientController_1.getPatients);
+// PATCH /Company/:companyId/patients/:patientId → update credit, name, etc.
+router.patch("/:companyId/patients/:patientId", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess, patientController_1.updatePatient);
+// PATCH /Company/:companyId/patients/:patientId/payment → record a payment
+router.patch("/:companyId/patients/:patientId/payment", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess, patientController_1.recordPayment);
+router.patch("/:companyId/patients/:patientId/unpaid", verifyFirebaseToken_1.verifyFirebaseToken, async (req, res) => {
     const { patientId } = req.params;
     try {
         const patient = await Patient_1.default.findById(patientId).exec();
@@ -40,17 +40,17 @@ router.patch("/:clinicId/patients/:patientId/unpaid", verifyFirebaseToken_1.veri
         res.status(500).json({ error: "Server error" });
     }
 });
-// GET /clinic/:clinicId/patients/:patientId/appointments → past visits
-router.get("/:clinicId/patients/:patientId/appointments", verifyFirebaseToken_1.verifyFirebaseToken, authorizeClinicAccess_1.authorizeClinicAccess, patientController_1.getPatientAppointments);
-// PATCH /clinic/:clinicId/patients/:patientId/flag-call → flag for call
-router.patch("/:clinicId/patients/:patientId/flag-call", verifyFirebaseToken_1.verifyFirebaseToken, authorizeClinicAccess_1.authorizeClinicAccess, patientController_1.flagPatientCall);
-router.get("/:clinicId/patients/:patientId", verifyFirebaseToken_1.verifyFirebaseToken, authorizeClinicAccess_1.authorizeClinicAccess, async (req, res) => {
-    const { clinicId, patientId } = req.params;
+// GET /Company/:companyId/patients/:patientId/appointments → past visits
+router.get("/:companyId/patients/:patientId/appointments", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess, patientController_1.getPatientAppointments);
+// PATCH /Company/:companyId/patients/:patientId/flag-call → flag for call
+router.patch("/:companyId/patients/:patientId/flag-call", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess, patientController_1.flagPatientCall);
+router.get("/:companyId/patients/:patientId", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess, async (req, res) => {
+    const { companyId, patientId } = req.params;
     try {
         // Sadece ilgili klinikteki hasta
         const patient = await Patient_1.default.findOne({
             _id: patientId,
-            clinicId,
+            companyId,
         }).exec();
         if (!patient) {
             res.status(404).json({ error: "Hasta bulunamadı" });
@@ -65,4 +65,5 @@ router.get("/:clinicId/patients/:patientId", verifyFirebaseToken_1.verifyFirebas
         return;
     }
 });
+router.delete("/:companyId/patients/:patientId", patientController_1.deletePatient);
 exports.default = router;

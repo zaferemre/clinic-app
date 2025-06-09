@@ -18,6 +18,7 @@ import NewUserPage from "./pages/CompanyOnboardingPage/CompanyOnboardingPage";
 import EmployeesPage from "./components/EmployeesPage/EmployeesPage";
 import { AuthContextProvider, useAuth } from "./contexts/AuthContext";
 import { ServicesPage } from "./pages/ServicesPage/ServicesPage";
+import SettingsPage from "./pages/Settings/SettingsPage";
 
 function AppRoutes() {
   const { idToken, companyId, checkingCompany } = useAuth();
@@ -68,8 +69,7 @@ function AppRoutes() {
       <Route path="/services" element={<ServicesPage />} />
       {/* if someone goes to /login after login, send them home */}
       <Route path="/login" element={<Navigate to="/" replace />} />
-
-      {/* catch-all */}
+      <Route path="/settings" element={<SettingsPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

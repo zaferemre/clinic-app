@@ -85,6 +85,7 @@ export interface NotificationInfo {
   patientName: string;
   createdAt: string;
   isCalled: boolean;
+  note?: string;
 }
 
 export interface IEmployee {

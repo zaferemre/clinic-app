@@ -120,7 +120,7 @@ export const PatientsList: React.FC = () => {
             w-full
             border border-brand-gray-300 rounded-md
             px-3 py-2
-            focus:outline-none focus:ring-2 focus:ring-brand-green-300
+            focus:outline-none focus:ring-2 focus:ring-blue-300
           "
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -129,7 +129,7 @@ export const PatientsList: React.FC = () => {
           <button
             className={`flex-1 px-3 py-1 rounded-md text-center font-medium text-sm ${
               filterMode === 0
-                ? "bg-brand-green-400 text-white"
+                ? "bg-blue-400 text-white"
                 : "bg-brand-gray-200 text-brand-gray-700 hover:bg-brand-gray-300"
             }`}
             onClick={() => setFilterMode(0)}

@@ -8,6 +8,7 @@ export interface NotificationDocument extends mongoose.Document {
   createdAt: Date;
   updatedAt: Date;
   workerEmail?: string; // optional who flagged it
+  note?: string; // optional notes field
 }
 
 const notificationSchema = new mongoose.Schema<NotificationDocument>(
@@ -25,6 +26,7 @@ const notificationSchema = new mongoose.Schema<NotificationDocument>(
     type: { type: String, enum: ["call"], required: true },
     status: { type: String, enum: ["pending", "done"], default: "pending" },
     workerEmail: { type: String },
+    note: { type: String, default: "" },
   },
   { timestamps: true }
 );

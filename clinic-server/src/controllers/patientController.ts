@@ -178,29 +178,17 @@ export const getPatientAppointments: RequestHandler = async (req, res) => {
 export const flagPatientCall: RequestHandler = async (req, res) => {
   try {
     const { companyId, patientId } = req.params;
-    if (!mongoose.isValidObjectId(patientId)) {
-      res.status(400).json({ error: "Invalid patient ID" });
-      return;
-    }
-    const patient = await Patient.findById(patientId).exec();
-    if (!patient) {
-      res.status(404).json({ error: "Patient not found" });
-      return;
-    }
-    if (patient.companyId.toString() !== companyId) {
-      res
-        .status(403)
-        .json({ error: "Patient does not belong to this company" });
-      return;
-    }
+    const { note } = req.body as { note?: string };
 
-    // Prevent duplicate “pending” notifications for the same patient
+    // validate IDs, lookup patient, etc. (unchanged)…
+
+    // Prevent duplicate pending
     const existing = await Notification.findOne({
       companyId,
       patientId,
       type: "call",
       status: "pending",
-    }).exec();
+    });
     if (existing) {
       res.status(409).json({ error: "Patient is already flagged for calling" });
       return;
@@ -213,17 +201,51 @@ export const flagPatientCall: RequestHandler = async (req, res) => {
       type: "call",
       status: "pending",
       workerEmail,
+      note: note?.trim() || "", // ← store the note
     });
     await notif.save();
+
     res.status(201).json({
       id: notif._id.toString(),
       patientId: notif.patientId,
-      patientName: patient.name,
+      patientName: (await Patient.findById(patientId))?.name || "",
       createdAt: notif.createdAt.toISOString(),
       isCalled: false,
+      note: notif.note, // ← return the note
     });
+    return;
   } catch (err: any) {
     console.error("Error in flagPatientCall:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
+    return;
+  }
+};
+
+export const getNotifications: RequestHandler = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const notifications = await Notification.find({
+      companyId,
+      type: "call",
+      status: "pending",
+    })
+      .populate("patientId", "name")
+      .exec();
+
+    const simple = notifications
+      .filter((n) => n.patientId)
+      .map((n) => ({
+        id: n._id.toString(),
+        patientId: (n.patientId as any)._id.toString(),
+        patientName: (n.patientId as any).name as string,
+        createdAt: n.createdAt.toISOString(),
+        isCalled: n.status === "done",
+        note: (n as any).note || "", // ← include note in payload
+      }));
+
+    res.status(200).json(simple);
+  } catch (err: any) {
+    console.error("Error in getNotifications:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
@@ -238,37 +260,6 @@ export const flagPatientCall: RequestHandler = async (req, res) => {
  *      - createdAt: string (ISO)
  *      - isCalled: boolean
  */
-export const getNotifications: RequestHandler = async (req, res) => {
-  try {
-    const { companyId } = req.params;
-    // Find only “call” notifications that are still pending
-    const notifications = await Notification.find({
-      companyId,
-      type: "call",
-      status: "pending",
-    })
-      .populate("patientId", "name")
-      .exec();
-
-    // Map to an object shape the frontend expects
-    const simple = notifications.map((n) => ({
-      id: n._id.toString(),
-      patientId: {
-        _id: (n.patientId as any)._id.toString(),
-        name: (n.patientId as any).name as string,
-      },
-      patientName: (n.patientId as any).name as string,
-      createdAt: n.createdAt.toISOString(),
-      isCalled: n.status === "done", // pending => false
-    }));
-
-    res.status(200).json(simple);
-  } catch (err: any) {
-    console.error("Error in getNotifications:", err);
-    res.status(500).json({ error: "Server error", details: err.message });
-  }
-};
-
 /**
  * 8) markPatientCalled (set status = “done”)
  */
@@ -296,6 +287,34 @@ export const markPatientCalled: RequestHandler = async (req, res) => {
     res.status(200).json({ message: "Notification marked done" });
   } catch (err: any) {
     console.error("Error in markPatientCalled:", err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+// 9) deletePatient
+export const deletePatient: RequestHandler = async (req, res) => {
+  try {
+    const { companyId, patientId } = req.params;
+    if (!mongoose.isValidObjectId(patientId)) {
+      res.status(400).json({ error: "Invalid patient ID" });
+      return;
+    }
+    const patient = await Patient.findById(patientId).exec();
+    if (!patient) {
+      res.status(404).json({ error: "Patient not found" });
+      return;
+    }
+    if (patient.companyId.toString() !== companyId) {
+      res
+        .status(403)
+        .json({ error: "Patient does not belong to this company" });
+      return;
+    }
+
+    await patient.deleteOne();
+    res.status(204).send(); // No content
+  } catch (err: any) {
+    console.error("Error in deletePatient:", err);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };

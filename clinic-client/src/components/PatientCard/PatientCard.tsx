@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from "react";
+import {
+  PencilIcon,
+  PhoneIcon,
+  TrashIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+} from "@heroicons/react/24/outline";
 import { deletePatient } from "../../api/patientApi";
 import { getPatientAppointments } from "../../api/appointmentApi";
 import { flagPatientCall } from "../../api/notificationApi";
-
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -49,124 +55,106 @@ export const PatientCard: React.FC<PatientCardProps> = ({
 }) => {
   const { idToken, companyId } = useAuth();
   const navigate = useNavigate();
-
   const { _id, name, age, phone, credit, services, paymentHistory, note } =
     patient;
 
   const [localCredit, setLocalCredit] = useState<number>(credit);
   const [pastAppointments, setPastAppointments] = useState<
-    {
-      id: string;
-      start: string;
-      end: string;
-      status: string;
-      employeeEmail: string;
-    }[]
+    { id: string; start: string; status: string; employeeEmail: string }[]
   >([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // Whenever the parent’s credit changes, update local state:
+  const [showCallModal, setShowCallModal] = useState(false);
+  const [callNote, setCallNote] = useState("");
+
   useEffect(() => {
     setLocalCredit(credit);
   }, [credit]);
 
-  // Load appointment history when expanded:
   const loadHistory = async () => {
     if (!idToken || !companyId) return;
     setLoadingHistory(true);
     try {
       const data = await getPatientAppointments(idToken, companyId, _id);
       setPastAppointments(data);
-    } catch (err) {
-      console.error("Failed to fetch history:", err);
+    } catch {
       setPastAppointments([]);
     } finally {
       setLoadingHistory(false);
     }
   };
 
-  // Handle “flag patient call”:
-  const handleFlagCall = async (e: React.MouseEvent) => {
+  const openCallModal = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setCallNote("");
+    setShowCallModal(true);
+  };
+
+  const confirmCall = async () => {
+    setShowCallModal(false);
     if (!idToken || !companyId) return;
     try {
-      await flagPatientCall(idToken, companyId, _id);
-      alert("Hasta çağrı listesine eklendi.");
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert(err.message);
-      } else {
-        alert("Bilinmeyen bir hata oluştu.");
-      }
+      await flagPatientCall(idToken, companyId, _id, callNote);
+      alert("Müşteri çağrı listesine eklendi.");
+    } catch (err: any) {
+      alert(err.message || "Çağrı eklenemedi.");
     }
   };
 
-  // Handle “delete patient”:
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!idToken || !companyId) return;
-    if (!window.confirm("Bu hastayı silmek istediğinize emin misiniz?")) return;
-
+    if (!window.confirm("Bu müşteriyi silmek istediğinize emin misiniz?"))
+      return;
     try {
-      await deletePatient(idToken, companyId, _id);
-      alert("Hasta başarıyla silindi.");
+      await deletePatient(idToken!, companyId!, _id);
       onDeletePatient(_id);
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Silme işlemi başarısız.";
-      alert(msg);
+    } catch (err: any) {
+      alert(err.message || "Silme işlemi başarısız.");
     }
   };
 
-  // When the user edits the credit field:
   const handleCreditChangeLocal = (newCredit: number) => {
     setLocalCredit(newCredit);
     onCreditChange(_id, newCredit);
   };
 
-  // When the user chooses a payment method:
   const handlePaymentMethodChange = (
-    newMethod: "Havale" | "Card" | "Cash" | "Unpaid"
+    method: "Havale" | "Card" | "Cash" | "Unpaid"
   ) => {
-    if (newMethod === "Unpaid") {
-      // Don’t record “Unpaid” in the API
-      return;
-    }
-    onRecordPayment(_id, newMethod);
+    if (method !== "Unpaid") onRecordPayment(_id, method);
   };
 
-  // Compute whether they have no payment history or low credit:
   const hasNoHistory = paymentHistory.length === 0;
   const isLowCredit = credit < 2;
-
   let bgClass = "bg-white";
-  if (hasNoHistory && isLowCredit) {
-    bgClass = "bg-gradient-to-r from-blue-100 to-amber-100";
-  } else if (hasNoHistory) {
-    bgClass = "bg-blue-100";
-  } else if (isLowCredit) {
-    bgClass = "bg-warn";
-  }
+  if (hasNoHistory && isLowCredit)
+    bgClass = "bg-gradient-to-r from-blue-50 to-amber-50";
+  else if (hasNoHistory) bgClass = "bg-blue-50";
+  else if (isLowCredit) bgClass = "bg-amber-50";
 
   return (
     <div
-      className={`
-        ${bgClass} rounded-lg p-4 mb-4 shadow-md w-full cursor-pointer
-        transform active:scale-95 transition
-      `}
+      className={`${bgClass} rounded-xl p-6 mb-6 shadow hover:shadow-lg transition cursor-pointer relative`}
       onClick={() => {
         onToggleExpand(_id);
-        if (!isExpanded) {
-          loadHistory();
-        }
+        if (!isExpanded) loadHistory();
       }}
     >
-      {/* ───── Header ───── */}
-      <div className="flex justify-between items-center mb-2">
+      {/* Expand/Collapse Icon */}
+      <div className="absolute top-4 right-4 text-gray-400">
+        {isExpanded ? (
+          <ChevronUpIcon className="w-5 h-5" />
+        ) : (
+          <ChevronDownIcon className="w-5 h-5" />
+        )}
+      </div>
+
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-brand-black">{name}</h3>
-          {age !== undefined && (
-            <span className="text-sm text-brand-gray-700">({age} yaş)</span>
+          <h3 className="text-2xl font-semibold text-gray-800">{name}</h3>
+          {age != null && (
+            <span className="text-sm text-gray-500">{age} yaş</span>
           )}
         </div>
         <div className="flex items-center space-x-2">
@@ -175,77 +163,61 @@ export const PatientCard: React.FC<PatientCardProps> = ({
               e.stopPropagation();
               navigate(`/patients/${_id}/edit`);
             }}
-            className="
-              text-sm text-brand-green-400 hover:text-brand-blue-700
-              px-2 py-1 border border-brand-green-300 rounded-lg
-            "
+            className="p-2 bg-green-100 rounded hover:bg-green-200"
+            aria-label="Düzenle"
           >
-            Düzenle
+            <PencilIcon className="w-5 h-5 text-green-600" />
           </button>
           <button
-            onClick={handleFlagCall}
-            className="text-lg text-brand-gray-500 hover:text-brand-gray-700 px-2 py-1 rounded-lg"
-            aria-label="Hasta Çağrı Listesine Ekle"
+            onClick={openCallModal}
+            className="p-2 bg-blue-100 rounded hover:bg-blue-200"
+            aria-label="Çağrı Listesine Ekle"
           >
-            📞
+            <PhoneIcon className="w-5 h-5 text-blue-600" />
           </button>
           <button
             onClick={handleDelete}
-            className="text-lg text-error hover:text-red-700 px-2 py-1 rounded-lg"
-            aria-label="Hastayı Sil"
+            className="p-2 bg-red-100 rounded hover:bg-red-200"
+            aria-label="Sil"
           >
-            🗑️
+            <TrashIcon className="w-5 h-5 text-red-600" />
           </button>
         </div>
       </div>
 
-      {/* ───── Optional Note ───── */}
-      {note && (
-        <p className="mt-1 text-sm italic text-brand-gray-600">{note}</p>
-      )}
+      {/* Note */}
+      {note && <p className="mb-4 italic text-gray-600">“{note}”</p>}
 
-      {/* ───── Credit & Payment Method ───── */}
-      <div className="flex flex-wrap items-center mt-3 space-x-4 space-y-2">
-        {/* Credit Field */}
+      {/* Credit & Payment */}
+      <div className="flex flex-wrap items-center gap-6 mb-4">
         <div className="flex items-center">
-          <label className="mr-2 font-medium text-brand-black">Kredi:</label>
+          <label className="mr-2 font-medium text-gray-700">
+            Kalan Servis Kredisi
+          </label>
           <input
             type="number"
             min={0}
             value={localCredit}
-            className="
-              w-16 px-2 py-1
-              border border-brand-gray-300 rounded-md
-              focus:outline-none focus:ring-2 focus:ring-brand-green-300
-            "
             onClick={(e) => e.stopPropagation()}
             onChange={(e) =>
-              handleCreditChangeLocal(parseInt(e.currentTarget.value, 10) || 0)
+              handleCreditChangeLocal(parseInt(e.currentTarget.value) || 0)
             }
+            className="w-20 px-2 py-1 border rounded focus:ring-2 focus:ring-green-200"
           />
         </div>
-
-        {/* Payment Method Dropdown */}
         <div className="flex items-center">
-          <label className="mr-2 font-medium text-brand-black">Ödeme:</label>
+          <label className="mr-2 font-medium text-gray-700">Ödeme Durumu</label>
           <select
             value={
               paymentHistory.length > 0
                 ? paymentHistory[paymentHistory.length - 1].method
                 : "Unpaid"
             }
-            onChange={(e) =>
-              handlePaymentMethodChange(
-                e.currentTarget.value as "Havale" | "Card" | "Cash" | "Unpaid"
-              )
-            }
-            className="
-              px-2 py-1
-              border border-brand-gray-300
-              rounded-lg text-sm
-              focus:outline-none focus:ring-2 focus:ring-brand-green-300
-            "
             onClick={(e) => e.stopPropagation()}
+            onChange={(e) =>
+              handlePaymentMethodChange(e.currentTarget.value as any)
+            }
+            className="px-2 py-1 border rounded focus:ring-2 focus:ring-green-200"
           >
             <option value="Unpaid">Ödenmedi</option>
             <option value="Havale">Havale</option>
@@ -255,76 +227,99 @@ export const PatientCard: React.FC<PatientCardProps> = ({
         </div>
       </div>
 
-      {/* ───── Expanded Details ───── */}
+      {/* Expanded Details */}
       {isExpanded && (
-        <div className="mt-4 border-t border-brand-gray-200 pt-3 space-y-3">
-          {/* Phone */}
+        <div className="space-y-4">
           {phone && (
             <div>
-              <span className="font-medium text-brand-black">Telefon:</span>{" "}
-              <span className="text-brand-gray-700">{phone}</span>
+              <span className="font-medium text-gray-700">Telefon:</span>{" "}
+              <span className="text-gray-600">{phone}</span>
             </div>
           )}
-
-          {/* Services */}
           <div>
-            <span className="font-medium text-brand-black">Hizmetler:</span>{" "}
+            <span className="font-medium text-gray-700">Hizmetler:</span>
             {services.length > 0 ? (
-              <ul className="ml-4 list-disc text-sm text-brand-gray-600">
-                {services.map((s, idx) => (
-                  <li key={idx}>
-                    {s.name} — Kalan: {s.pointsLeft ?? 0}, Oturum:{" "}
-                    {s.sessionsTaken ?? 0}
+              <ul className="ml-5 list-disc text-gray-600">
+                {services.map((s, i) => (
+                  <li key={i}>
+                    {s.name} (Kalan: {s.pointsLeft || 0}, Oturum:{" "}
+                    {s.sessionsTaken || 0})
                   </li>
                 ))}
               </ul>
             ) : (
-              <span className="ml-2 text-sm text-brand-gray-600">
-                Kayıt yok
-              </span>
+              <span className="ml-2 text-gray-600">Yok</span>
             )}
           </div>
-
-          {/* Payment History */}
           <div>
-            <span className="font-medium text-brand-black">Ödeme Geçmişi:</span>{" "}
+            <span className="font-medium text-gray-700">Ödeme Geçmişi:</span>
             {paymentHistory.length > 0 ? (
-              <ul className="ml-4 list-disc text-sm text-brand-gray-600">
+              <ul className="ml-5 list-disc text-gray-600">
                 {paymentHistory.map((ph, i) => (
                   <li key={i}>
-                    {new Date(ph.date).toLocaleDateString()} — {ph.method} —{" "}
-                    {ph.amount}₺ {ph.note && `(${ph.note})`}
+                    {new Date(ph.date).toLocaleDateString()} - {ph.method}
+                    {ph.note ? ` (${ph.note})` : ""}
                   </li>
                 ))}
               </ul>
             ) : (
-              <span className="ml-2 text-sm text-brand-gray-600">
-                Geçmiş yok
-              </span>
+              <span className="ml-2 text-gray-600">Yok</span>
             )}
           </div>
-
-          {/* Past Appointments */}
           <div>
-            <span className="font-medium text-brand-black">
+            <span className="font-medium text-gray-700">
               Geçmiş Randevular:
-            </span>{" "}
+            </span>
             {loadingHistory ? (
-              <p className="ml-2 text-sm text-brand-gray-600">Yükleniyor...</p>
+              <p className="ml-2 text-gray-600">Yükleniyor...</p>
             ) : pastAppointments.length > 0 ? (
-              <ul className="ml-4 list-disc text-sm text-brand-gray-600">
+              <ul className="ml-5 list-disc text-gray-600">
                 {pastAppointments.map((a) => (
                   <li key={a.id}>
-                    {new Date(a.start).toLocaleDateString()} — {a.employeeEmail}{" "}
-                    — {a.status}
+                    {new Date(a.start).toLocaleDateString()} - {a.employeeEmail}{" "}
+                    - {a.status}
                   </li>
                 ))}
               </ul>
             ) : (
-              <span className="ml-2 text-sm text-brand-gray-600">
-                Geçmiş yok
-              </span>
+              <span className="ml-2 text-gray-600">Yok</span>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Call Note Modal */}
+      {showCallModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setShowCallModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-lg p-6 w-80 max-w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 className="text-lg font-semibold mb-3">Çağrı Notu Girin</h4>
+            <textarea
+              rows={4}
+              value={callNote}
+              onChange={(e) => setCallNote(e.target.value)}
+              className="w-full border rounded-md p-2 mb-4 focus:ring-2 focus:ring-blue-200"
+              placeholder="Notunuzu buraya yazın..."
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowCallModal(false)}
+                className="px-4 py-2 bg-gray-200 rounded-md"
+              >
+                İptal
+              </button>
+              <button
+                onClick={confirmCall}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md"
+              >
+                Kaydet & Çağrı
+              </button>
+            </div>
           </div>
         </div>
       )}

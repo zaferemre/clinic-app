@@ -22,4 +22,6 @@ router.get("/:companyId/appointments", getAppointments);
 router.post("/:companyId/appointments", createAppointment);
 router.delete("/:companyId/appointments/:appointmentId", deleteAppointment);
 router.put("/:companyId/appointments/:appointmentId", updateAppointment);
+router.patch("/:companyId/appointments/:appointmentId", updateAppointment);
+
 export default router;

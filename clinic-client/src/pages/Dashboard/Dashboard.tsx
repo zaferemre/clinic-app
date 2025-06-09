@@ -17,6 +17,7 @@ import {
   BellIcon,
   ChatBubbleLeftRightIcon,
   BuildingStorefrontIcon,
+  CogIcon,
 } from "@heroicons/react/24/outline";
 
 export const Dashboard: React.FC = () => {
@@ -34,26 +35,23 @@ export const Dashboard: React.FC = () => {
   const fetchAllDashboardData = async () => {
     if (!idToken || !companyId) return;
 
-    // Patients count
     getPatients(idToken, companyId)
       .then((data) => setPatientCount(data.length))
       .catch(() => setPatientCount(0));
 
-    // Today's appointments
     getAppointments(idToken, companyId)
       .then((events) => {
         const todayStr = new Date().toISOString().split("T")[0];
-        const todays = events.filter((ev) => ev.start.startsWith(todayStr));
-        setTodayAppointments(todays);
+        setTodayAppointments(
+          events.filter((ev) => ev.start.startsWith(todayStr))
+        );
       })
       .catch(() => setTodayAppointments([]));
 
-    // Unread alerts
     getNotifications(idToken, companyId)
       .then((list) => setUnreadAlerts(list))
       .catch(() => setUnreadAlerts([]));
 
-    // Services count
     getServices(idToken, companyId)
       .then((list) => setServices(list))
       .catch(() => setServices([]));
@@ -61,7 +59,6 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     if (!idToken || !companyId) return;
-
     fetchAllDashboardData();
     pollInterval.current = window.setInterval(fetchAllDashboardData, 30000);
     return () => {
@@ -76,14 +73,14 @@ export const Dashboard: React.FC = () => {
       <div className="flex-1 overflow-auto p-4 space-y-6">
         <h1 className="text-2xl font-semibold text-brand-black">Panel</h1>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-2 ">
           {/* Patients */}
           <div
             className="relative flex flex-col items-center justify-center bg-white hover:bg-blue-100 transition rounded-xl shadow p-6 cursor-pointer"
             onClick={() => navigate("/patients")}
           >
             <UsersIcon className="h-10 w-10 text-blue-500" />
-            <p className="mt-3 text-lg font-medium text-blue-600">Patients</p>
+            <p className="mt-3 text-lg font-medium text-blue-600">Müşteriler</p>
             <span className="mt-1 text-sm text-blue-500">
               {patientCount} kayıtlı
             </span>
@@ -95,7 +92,7 @@ export const Dashboard: React.FC = () => {
             onClick={() => navigate("/employees")}
           >
             <UserGroupIcon className="h-10 w-10 text-pink-500" />
-            <p className="mt-3 text-lg font-medium text-pink-600">Employees</p>
+            <p className="mt-3 text-lg font-medium text-pink-600">Çalışanlar</p>
           </div>
 
           {/* Services */}
@@ -118,7 +115,7 @@ export const Dashboard: React.FC = () => {
             onClick={() => navigate("/calendar")}
           >
             <CalendarIcon className="h-10 w-10 text-yellow-500" />
-            <p className="mt-3 text-lg font-medium text-yellow-600">Calendar</p>
+            <p className="mt-3 text-lg font-medium text-yellow-600">Takvim</p>
             <span className="mt-1 text-sm text-yellow-500">
               {todayAppointments.length} bugün
             </span>
@@ -133,7 +130,7 @@ export const Dashboard: React.FC = () => {
               <span className="absolute top-3 right-3 h-3 w-3 bg-red-500 rounded-full" />
             )}
             <BellIcon className="h-10 w-10 text-red-500" />
-            <p className="mt-3 text-lg font-medium text-red-600">Alerts</p>
+            <p className="mt-3 text-lg font-medium text-red-600">Bildirimler</p>
             <span className="mt-1 text-sm text-red-500">
               {unreadAlerts.length} beklemede
             </span>
@@ -145,7 +142,16 @@ export const Dashboard: React.FC = () => {
             onClick={() => navigate("/messaging")}
           >
             <ChatBubbleLeftRightIcon className="h-10 w-10 text-green-500" />
-            <p className="mt-3 text-lg font-medium text-green-600">Messaging</p>
+            <p className="mt-3 text-lg font-medium text-green-600">Mesajlar</p>
+          </div>
+
+          {/* Settings */}
+          <div
+            className="relative flex flex-col items-center justify-center bg-white hover:bg-gray-200 transition rounded-xl shadow p-6 cursor-pointer"
+            onClick={() => navigate("/settings")}
+          >
+            <CogIcon className="h-10 w-10 text-gray-600" />
+            <p className="mt-3 text-lg font-medium text-gray-700">Ayarlar</p>
           </div>
         </div>
       </div>

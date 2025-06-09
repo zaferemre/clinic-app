@@ -34,11 +34,11 @@ export async function markNotificationCalled(
   );
   if (!res.ok) throw new Error(await res.text());
 }
-
 export async function flagPatientCall(
   idToken: string,
   companyId: string,
-  patientId: string
+  patientId: string,
+  note?: string
 ): Promise<void> {
   const res = await fetch(
     `${API_BASE}/company/${companyId}/patients/${patientId}/flag-call`,
@@ -48,14 +48,14 @@ export async function flagPatientCall(
         "Content-Type": "application/json",
         Authorization: `Bearer ${idToken}`,
       },
+      body: JSON.stringify({ note }), // ← send the note here
     }
   );
   if (!res.ok) {
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     throw new Error(data.error || "Failed to flag patient for call");
   }
 }
-
 export async function markPatientCalled(
   idToken: string,
   companyId: string,

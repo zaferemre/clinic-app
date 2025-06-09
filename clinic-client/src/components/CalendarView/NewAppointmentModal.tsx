@@ -99,7 +99,7 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
             <option value="">Seçiniz</option>
             {patients.map((p) => (
               <option key={p._id} value={p._id}>
-                {p.name} (Kredi: {p.credit})
+                {p.name} (Seans Kredisi: {p.credit})
               </option>
             ))}
           </select>
@@ -107,7 +107,7 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
             onClick={onAddPatient}
             className="text-sm text-blue-600 underline mt-1"
           >
-            + Yeni Hasta Ekle
+            + Yeni Müşteri Ekle
           </button>
         </div>
 

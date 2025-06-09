@@ -6,17 +6,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
-const authorizeClinicAccess_1 = require("../middlewares/authorizeClinicAccess");
+const authorizeCompanyAccess_1 = require("../middlewares/authorizeCompanyAccess");
 const Message_1 = __importDefault(require("../models/Message"));
 const router = express_1.default.Router();
 /**
- * GET /clinic/:clinicId/messages
- * List all pending or sent messages for this clinic.
+ * GET /Company/:companyId/messages
+ * List all pending or sent messages for this Company.
  */
-router.get("/:clinicId/messages", verifyFirebaseToken_1.verifyFirebaseToken, authorizeClinicAccess_1.authorizeClinicAccess, async (req, res) => {
-    const clinicId = req.params.clinicId;
+router.get("/:companyId/messages", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess, async (req, res) => {
+    const companyId = req.params.companyId;
     try {
-        const msgs = await Message_1.default.find({ clinicId }).sort({ scheduledFor: -1 });
+        const msgs = await Message_1.default.find({ companyId }).sort({ scheduledFor: -1 });
         res.json(msgs);
     }
     catch (err) {
@@ -25,15 +25,15 @@ router.get("/:clinicId/messages", verifyFirebaseToken_1.verifyFirebaseToken, aut
     }
 });
 /**
- * POST /clinic/:clinicId/messages/patient/:patientId
+ * POST /Company/:companyId/messages/patient/:patientId
  * Schedule a single‐patient message.
  */
-router.post("/:clinicId/messages/patient/:patientId", verifyFirebaseToken_1.verifyFirebaseToken, authorizeClinicAccess_1.authorizeClinicAccess, async (req, res) => {
-    const { clinicId, patientId } = req.params;
+router.post("/:companyId/messages/patient/:patientId", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess, async (req, res) => {
+    const { companyId, patientId } = req.params;
     const { text, scheduledFor } = req.body;
     try {
         const msg = new Message_1.default({
-            clinicId,
+            companyId,
             patientId,
             text,
             scheduledFor: new Date(scheduledFor),
@@ -47,15 +47,15 @@ router.post("/:clinicId/messages/patient/:patientId", verifyFirebaseToken_1.veri
     }
 });
 /**
- * POST /clinic/:clinicId/messages/bulk
+ * POST /Company/:companyId/messages/bulk
  * Schedule a bulk message to all patients.
  */
-router.post("/:clinicId/messages/bulk", verifyFirebaseToken_1.verifyFirebaseToken, authorizeClinicAccess_1.authorizeClinicAccess, async (req, res) => {
-    const clinicId = req.params.clinicId;
+router.post("/:companyId/messages/bulk", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess, async (req, res) => {
+    const companyId = req.params.companyId;
     const { text, scheduledFor } = req.body;
     try {
         const msg = new Message_1.default({
-            clinicId,
+            companyId,
             text,
             scheduledFor: new Date(scheduledFor),
         });
@@ -68,13 +68,13 @@ router.post("/:clinicId/messages/bulk", verifyFirebaseToken_1.verifyFirebaseToke
     }
 });
 /**
- * POST /clinic/:clinicId/messages/auto-remind
- * Record an auto‐reminder offset (in hours) for the clinic.
+ * POST /Company/:companyId/messages/auto-remind
+ * Record an auto‐reminder offset (in hours) for the Company.
  * The backend should save offsetHours so that a background worker
  * can send WhatsApp reminders offsetHours before each appointment.
  */
-router.post("/:clinicId/messages/auto-remind", verifyFirebaseToken_1.verifyFirebaseToken, authorizeClinicAccess_1.authorizeClinicAccess, async (req, res) => {
-    const { clinicId } = req.params;
+router.post("/:companyId/messages/auto-remind", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess, async (req, res) => {
+    const { companyId } = req.params;
     const { offsetHours } = req.body;
     // Validate
     if (typeof offsetHours !== "number" || offsetHours < 1) {
@@ -82,8 +82,8 @@ router.post("/:clinicId/messages/auto-remind", verifyFirebaseToken_1.verifyFireb
         return;
     }
     try {
-        // Here you would update your Clinic model, e.g.:
-        // await Clinic.findByIdAndUpdate(clinicId, { autoRemindOffsetHours: offsetHours });
+        // Here you would update your Company model, e.g.:
+        // await Company.findByIdAndUpdate(companyId, { autoRemindOffsetHours: offsetHours });
         // For now, just return success:
         res
             .status(200)

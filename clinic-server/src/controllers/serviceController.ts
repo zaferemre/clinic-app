@@ -1,9 +1,11 @@
 // src/controllers/serviceController.ts
 import { RequestHandler } from "express";
-import Company, { ICompany, ServiceInfo } from "../models/Company";
+import Company, { ServiceInfo } from "../models/Company";
+
+import { Request, Response } from "express";
 
 // GET  /company/:companyId/services
-export const getServices: RequestHandler = async (req, res) => {
+export const getServices = async (req: Request, res: Response) => {
   try {
     const company = await Company.findById(req.params.companyId).exec();
     if (!company) return res.status(404).json({ error: "Company not found" });
@@ -14,7 +16,7 @@ export const getServices: RequestHandler = async (req, res) => {
 };
 
 // POST /company/:companyId/services
-export const createService: RequestHandler = async (req, res) => {
+export const createService = async (req: Request, res: Response) => {
   try {
     const { serviceName, servicePrice, serviceKapora, serviceDuration } =
       req.body as ServiceInfo;
@@ -36,7 +38,7 @@ export const createService: RequestHandler = async (req, res) => {
 };
 
 // PUT  /company/:companyId/services/:serviceId
-export const updateService: RequestHandler = async (req, res) => {
+export const updateService = async (req: Request, res: Response) => {
   try {
     const { serviceId } = req.params;
     const updates = req.body as Partial<ServiceInfo>;
@@ -59,7 +61,7 @@ export const updateService: RequestHandler = async (req, res) => {
 };
 
 // DELETE /company/:companyId/services/:serviceId
-export const deleteService: RequestHandler = async (req, res) => {
+export const deleteService = async (req: Request, res: Response) => {
   try {
     const company = await Company.findById(req.params.companyId).exec();
     if (!company) return res.status(404).json({ error: "Company not found" });

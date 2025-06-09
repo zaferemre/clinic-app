@@ -5,19 +5,24 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const appointmentSchema = new mongoose_1.default.Schema({
-    clinicId: {
+    companyId: {
         type: mongoose_1.default.Schema.Types.ObjectId,
         required: true,
-        ref: "Clinic",
+        ref: "Company",
     },
     patientId: {
         type: mongoose_1.default.Schema.Types.ObjectId,
         required: true,
         ref: "Patient",
     },
-    workerEmail: {
+    employeeEmail: {
         type: String,
         required: true,
+    },
+    serviceId: {
+        type: mongoose_1.default.Schema.Types.ObjectId,
+        required: true,
+        ref: "Service",
     },
     start: { type: Date, required: true },
     end: { type: Date, required: true },

@@ -8,6 +8,7 @@ import {
   recordPayment,
   getPatientAppointments,
   flagPatientCall,
+  deletePatient,
 } from "../controllers/patientController";
 import Patient from "../models/Patient";
 
@@ -112,5 +113,5 @@ router.get(
     }
   }
 );
-
+router.delete("/:companyId/patients/:patientId", deletePatient);
 export default router;

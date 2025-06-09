@@ -36,7 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // src/models/Message.ts
 const mongoose_1 = __importStar(require("mongoose"));
 const messageSchema = new mongoose_1.Schema({
-    clinicId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Clinic", required: true },
+    companyId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Clinic", required: true },
     patientId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Patient", required: false },
     text: { type: String, required: true },
     scheduledFor: { type: Date, required: true },

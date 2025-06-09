@@ -55,12 +55,12 @@ const workerSchema = new mongoose_1.Schema({
             end: { type: String, required: true }, // Format "HH:mm"
         },
     ],
-    clinicId: {
+    companyId: {
         type: mongoose_1.default.Schema.Types.ObjectId,
-        ref: "Clinic",
+        ref: "Company",
         required: true,
     },
 });
 // If you want a compound index to ensure no two workers with the same email exist in the same clinic:
-// workerSchema.index({ email: 1, clinicId: 1 }, { unique: true });
+// workerSchema.index({ email: 1, companyId: 1 }, { unique: true });
 exports.default = mongoose_1.default.model("Worker", workerSchema);

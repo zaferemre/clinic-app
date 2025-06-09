@@ -62,31 +62,26 @@ export async function deleteAppointment(
   if (!res.ok) throw new Error(await res.text());
 }
 
-// Update appointment (e.g. start/end/service/employee)
 export async function updateAppointment(
-  idToken: string,
+  token: string,
   companyId: string,
   appointmentId: string,
-  updates: {
-    start?: string;
-    end?: string;
-    serviceId?: string;
-    employeeEmail?: string;
-  }
+  start: string,
+  end: string
 ) {
-  const res = await fetch(
-    `${API_BASE}/company/${companyId}/appointments/${appointmentId}`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify(updates),
-    }
-  );
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const url = `${API_BASE}/company/${companyId}/appointments/${appointmentId}`;
+  console.log("PATCH ➔", url, { start, end });
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ start, end }),
+  });
+  console.log("PATCH ◀", res.status, await res.text());
+  if (!res.ok) throw new Error(`Update failed (${res.status})`);
+  return await res.json();
 }
 
 // Get appointments for a specific patient

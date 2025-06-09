@@ -21,21 +21,23 @@ const AddPatientBanner: React.FC<AddPatientBannerProps> = ({
       <section className="bg-white rounded-xl shadow flex items-center justify-between px-4 py-3">
         {/* Icon */}
         <div className="flex-shrink-0">
-          <UserPlusIcon className="h-8 w-8 text-brand-green-500" />
+          <UserPlusIcon className="h-8 w-8 text-blue-500" />
         </div>
 
         {/* Text */}
         <div className="flex-1 px-4">
-          <h2 className="text-lg font-semibold text-brand-black">Yeni Hasta</h2>
+          <h2 className="text-md font-semibold text-brand-black">
+            Yeni Müşteri
+          </h2>
         </div>
 
         {/* Toggle Button */}
         <button
           className="
-            bg-brand-green-400 hover:bg-brand-green-500
+            bg-blue-400 hover:bg-blue-500
             text-white font-medium
             px-3 py-1 rounded-lg
-            focus:outline-none focus:ring-2 focus:ring-brand-green-300
+            focus:outline-none focus:ring-2 focus:ring-blue-300
           "
           onClick={() => setShowForm((prev) => !prev)}
         >

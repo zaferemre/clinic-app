@@ -1,6 +1,6 @@
 import React from "react";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { Service } from "../../api/serviceApi";
+import { Service } from "../../api/servicesApi";
 
 interface Props {
   service: Service;
