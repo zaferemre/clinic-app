@@ -32,14 +32,12 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const serviceSchema = new mongoose_1.Schema({
-    serviceName: { type: String, required: true },
-    servicePrice: { type: Number, required: true, min: 0 },
-    serviceKapora: { type: Number, default: 0, min: 0 },
-    serviceDuration: { type: Number, required: true, min: 1 },
-}, { _id: true });
+const Service_1 = __importDefault(require("./Service"));
 const employeeSchema = new mongoose_1.Schema({
     email: { type: String, required: true },
     name: { type: String },
@@ -106,6 +104,10 @@ const CompanySchema = new mongoose_1.Schema({
     phoneNumber: { type: String },
     googleUrl: { type: String },
     websiteUrl: { type: String },
+    companyImgUrl: {
+        type: String,
+        default: "https://doodleipsum.com/700?i=533d71e7733d1ad05ecdc25051eed663",
+    },
     location: {
         type: {
             type: String,
@@ -122,8 +124,22 @@ const CompanySchema = new mongoose_1.Schema({
         },
     },
     workingHours: { type: [workingHourSchema], default: [] },
-    services: { type: [serviceSchema], default: [] },
+    services: { type: [Service_1.default], default: [] },
     employees: { type: [employeeSchema], default: [] },
+    isPaid: { type: Boolean, default: false },
+    subscription: {
+        status: {
+            type: String,
+            enum: ["active", "trialing", "canceled"],
+            default: "canceled",
+        },
+        provider: {
+            type: String,
+            enum: ["iyzico", "manual", "other"],
+            default: "manual",
+        },
+        nextBillingDate: { type: Date },
+    },
 }, { timestamps: true });
 CompanySchema.index({ location: "2dsphere" });
 exports.default = mongoose_1.default.models.Company ||

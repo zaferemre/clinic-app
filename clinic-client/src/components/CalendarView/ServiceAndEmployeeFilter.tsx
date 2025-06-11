@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+// src/components/ServiceAndEmployeeFilter.tsx
+import React, { useState, useRef, useEffect } from "react";
 import { FunnelIcon } from "@heroicons/react/24/outline";
 import { CalendarEmployee } from "../CalendarEmployeeSelector/CalendarEmployeeSelector";
 
@@ -6,7 +7,6 @@ interface Service {
   _id: string;
   serviceName: string;
 }
-
 interface Props {
   employees: CalendarEmployee[];
   selectedEmployee: string;
@@ -32,16 +32,6 @@ export const ServiceAndEmployeeFilter: React.FC<Props> = ({
   const [open, setOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  // Reset filters when sidebar opens
-  useEffect(() => {
-    if (open) {
-      onEmployeeChange(
-        currentUserEmail === ownerEmail ? ALL : currentUserEmail
-      );
-      onServiceChange(ALL);
-    }
-  }, [open, currentUserEmail, ownerEmail, onEmployeeChange, onServiceChange]);
-
   // Close sidebar on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -59,24 +49,21 @@ export const ServiceAndEmployeeFilter: React.FC<Props> = ({
 
   return (
     <>
-      {/* FunnelIcon icon button */}
+      {/* Toggle */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed top-3 left-3 z-50 p-2 bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-50 focus:outline-none"
-        aria-label="Filtreleri Aç"
+        className="fixed top-3 left-3 z-50 p-2 bg-white border rounded-lg shadow hover:bg-gray-50"
       >
         <FunnelIcon className="w-6 h-6 text-yellow-600" />
       </button>
 
-      {/* Backdrop */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 transition-opacity"
+          className="fixed inset-0 bg-black/40 z-40"
           onClick={() => setOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
       <div
         ref={sidebarRef}
         className={`fixed top-0 left-0 z-50 h-full w-4/5 max-w-xs bg-white shadow-lg transform transition-transform duration-300 ${
@@ -87,51 +74,47 @@ export const ServiceAndEmployeeFilter: React.FC<Props> = ({
           <h2 className="text-lg font-semibold text-yellow-700">Filtreler</h2>
           <button
             onClick={() => setOpen(false)}
-            aria-label="Kapat"
-            className="text-gray-600 hover:text-gray-800 text-xl"
+            className="text-gray-600 text-xl"
           >
             ×
           </button>
         </div>
 
-        <div className="p-4 flex flex-col space-y-6 h-full overflow-y-auto">
+        <div className="p-4 space-y-6 overflow-y-auto h-full">
           {/* Employee Filter */}
           <div>
             <h3 className="mb-2 text-sm font-medium text-gray-700">Çalışan</h3>
             <div className="space-y-2">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="employee"
-                  checked={selectedEmployee === ALL}
-                  onChange={() => onEmployeeChange(ALL)}
-                  className="form-radio text-yellow-600"
-                />
-                <span className="text-gray-800">Hepsi</span>
-              </label>
+              {/* All */}
+              <button
+                onClick={() => onEmployeeChange(ALL)}
+                className={`w-full text-left p-2 rounded-md ${
+                  selectedEmployee === ALL
+                    ? "bg-yellow-600 text-white"
+                    : "bg-gray-100 hover:bg-gray-200"
+                }`}
+              >
+                Hepsi
+              </button>
+
               {employees.map((emp) => (
-                <label key={emp.email} className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="employee"
-                    checked={selectedEmployee === emp.email}
-                    onChange={() => onEmployeeChange(emp.email)}
-                    className="form-radio text-yellow-600"
-                  />
-                  <span className="text-gray-800">
-                    {emp.name}
-                    {emp.email === currentUserEmail && (
-                      <span className="ml-1 text-xs text-yellow-500">
-                        (Siz)
-                      </span>
-                    )}
-                    {emp.email === ownerEmail && (
-                      <span className="ml-1 text-xs text-yellow-600">
-                        (Yönetici)
-                      </span>
-                    )}
-                  </span>
-                </label>
+                <button
+                  key={emp.email}
+                  onClick={() => onEmployeeChange(emp.email)}
+                  className={`w-full text-left p-2 rounded-md flex justify-between items-center ${
+                    selectedEmployee === emp.email
+                      ? "bg-yellow-600 text-white"
+                      : "bg-gray-100 hover:bg-gray-200"
+                  }`}
+                >
+                  <span>{emp.name}</span>
+                  {emp.email === currentUserEmail && (
+                    <span className="text-xs italic">(Siz)</span>
+                  )}
+                  {emp.email === ownerEmail && (
+                    <span className="text-xs italic">(Yönetici)</span>
+                  )}
+                </button>
               ))}
             </div>
           </div>
@@ -140,27 +123,29 @@ export const ServiceAndEmployeeFilter: React.FC<Props> = ({
           <div>
             <h3 className="mb-2 text-sm font-medium text-gray-700">Hizmet</h3>
             <div className="space-y-2">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="radio"
-                  name="service"
-                  checked={selectedService === ALL}
-                  onChange={() => onServiceChange(ALL)}
-                  className="form-radio text-yellow-600"
-                />
-                <span className="text-gray-800">Hepsi</span>
-              </label>
+              <button
+                onClick={() => onServiceChange(ALL)}
+                className={`w-full text-left p-2 rounded-md ${
+                  selectedService === ALL
+                    ? "bg-yellow-600 text-white"
+                    : "bg-gray-100 hover:bg-gray-200"
+                }`}
+              >
+                Hepsi
+              </button>
+
               {services.map((svc) => (
-                <label key={svc._id} className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    name="service"
-                    checked={selectedService === svc._id}
-                    onChange={() => onServiceChange(svc._id)}
-                    className="form-radio text-yellow-600"
-                  />
-                  <span className="text-gray-800">{svc.serviceName}</span>
-                </label>
+                <button
+                  key={svc._id}
+                  onClick={() => onServiceChange(svc._id)}
+                  className={`w-full text-left p-2 rounded-md ${
+                    selectedService === svc._id
+                      ? "bg-yellow-600 text-white"
+                      : "bg-gray-100 hover:bg-gray-200"
+                  }`}
+                >
+                  {svc.serviceName}
+                </button>
               ))}
             </div>
           </div>

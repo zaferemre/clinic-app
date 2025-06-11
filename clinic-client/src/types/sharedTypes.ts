@@ -33,7 +33,9 @@ export interface WorkingHour {
 export interface Company {
   _id: string;
   name: string;
+  ownerName: string;
   ownerEmail: string;
+  ownerImageUrl?: string;
   companyType: string;
   address?: string;
   phoneNumber?: string;
@@ -46,10 +48,16 @@ export interface Company {
   workingHours: WorkingHour[];
   services: ServiceInfo[];
   employees: EmployeeInfo[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
+  companyImgUrl?: string; // Optional for backward compatibility
+  isPaid?: boolean; // Optional for backward compatibility
+  subscription?: {
+    status: "active" | "trialing" | "canceled";
+    provider: "iyzico" | "manual" | "other";
+    nextBillingDate?: Date;
+  };
 }
-
 export interface Patient {
   _id: string;
   name: string;
@@ -77,6 +85,12 @@ export interface CalendarEvent {
   serviceId: string;
   start: string;
   end: string;
+  title?: string;
+  extendedProps: {
+    serviceId: string;
+    serviceName: string;
+    employeeEmail: string;
+  };
 }
 
 export interface NotificationInfo {

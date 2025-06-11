@@ -46,9 +46,6 @@ const Home: React.FC = () => {
           <h2 className="mt-1 text-2xl font-bold text-gray-800">
             Hoş geldin, {user.name}!
           </h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Bugünün planını hemen aşağıdan görebilirsin.
-          </p>
         </div>
 
         <HomeNavGrid unreadCount={unreadCount} />

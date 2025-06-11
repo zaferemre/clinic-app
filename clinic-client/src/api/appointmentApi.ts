@@ -1,30 +1,34 @@
-// src/api/appointmentApi.ts
-
 import { CalendarEvent } from "../types/sharedTypes";
 import { API_BASE } from "../config/apiConfig";
 
-// Fetch appointments for a company (optionally filtered by employee and service)
+// Fetch appointments for a company (optionally filtered by employeeEmail or serviceId)
 export async function getAppointments(
   idToken: string,
   companyId: string,
-  employeeId?: string,
-  serviceId?: string,
-  serviceName?: string
+  employeeEmail?: string,
+  serviceId?: string
 ): Promise<CalendarEvent[]> {
   let url = `${API_BASE}/company/${companyId}/appointments`;
   const params: string[] = [];
-  if (employeeId) params.push(`employeeId=${encodeURIComponent(employeeId)}`);
+
+  if (employeeEmail)
+    params.push(`employeeEmail=${encodeURIComponent(employeeEmail)}`);
   if (serviceId) params.push(`serviceId=${encodeURIComponent(serviceId)}`);
-  if (serviceName)
-    params.push(`serviceName=${encodeURIComponent(serviceName)}`);
+
   if (params.length > 0) url += `?${params.join("&")}`;
+
   const res = await fetch(url, {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${idToken}`,
     },
   });
-  if (!res.ok) throw new Error(await res.text());
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || "Failed to fetch appointments");
+  }
+
   return res.json();
 }
 
@@ -46,7 +50,12 @@ export async function createAppointment(
     },
     body: JSON.stringify({ patientId, employeeEmail, serviceId, start, end }),
   });
-  if (!res.ok) throw new Error(await res.text());
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || "Failed to create appointment");
+  }
+
   return res.json();
 }
 
@@ -66,29 +75,43 @@ export async function deleteAppointment(
       },
     }
   );
-  if (!res.ok) throw new Error(await res.text());
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || "Failed to delete appointment");
+  }
 }
 
+// Update appointment
 export async function updateAppointment(
-  token: string,
+  idToken: string,
   companyId: string,
   appointmentId: string,
   start: string,
-  end: string
+  end: string,
+  serviceId?: string,
+  employeeEmail?: string
 ) {
   const url = `${API_BASE}/company/${companyId}/appointments/${appointmentId}`;
-  console.log("PATCH ➔", url, { start, end });
+  const body: any = { start, end };
+  if (serviceId) body.serviceId = serviceId;
+  if (employeeEmail) body.employeeEmail = employeeEmail;
+
   const res = await fetch(url, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ start, end }),
+    body: JSON.stringify(body),
   });
-  console.log("PATCH ◀", res.status, await res.text());
-  if (!res.ok) throw new Error(`Update failed (${res.status})`);
-  return await res.json();
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || `Update failed (${res.status})`);
+  }
+
+  return res.json();
 }
 
 // Get appointments for a specific patient
@@ -114,9 +137,28 @@ export async function getPatientAppointments(
       },
     }
   );
+
   if (!res.ok) {
     const data = await res.json();
     throw new Error(data.error || "Failed to fetch patient appointments");
   }
+
+  return res.json();
+}
+
+export async function getAppointmentById(
+  idToken: string,
+  companyId: string,
+  appointmentId: string
+): Promise<CalendarEvent> {
+  const res = await fetch(
+    `${API_BASE}/company/${companyId}/appointments/${appointmentId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+      },
+    }
+  );
+  if (!res.ok) throw new Error(await res.text());
   return res.json();
 }

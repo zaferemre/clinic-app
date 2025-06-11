@@ -1,22 +1,7 @@
 import mongoose, { Document, Schema } from "mongoose";
 
-export interface ServiceInfo {
-  serviceName: string;
-  servicePrice: number;
-  serviceKapora: number;
-  serviceDuration: number;
-}
-
-const serviceSchema = new Schema<ServiceInfo>(
-  {
-    serviceName: { type: String, required: true },
-    servicePrice: { type: Number, required: true, min: 0 },
-    serviceKapora: { type: Number, default: 0, min: 0 },
-    serviceDuration: { type: Number, required: true, min: 1 },
-  },
-  { _id: true }
-);
-
+import { IService } from "./Service";
+import ServiceSchema from "./Service";
 export interface EmployeeInfo {
   email: string;
   name?: string;
@@ -115,12 +100,18 @@ export interface ICompany extends Document {
     coordinates: [number, number];
   };
   workingHours: WorkingHour[];
-  services: ServiceInfo[];
+  services: IService[];
   employees: EmployeeInfo[];
   createdAt: Date;
   updatedAt: Date;
+  companyImgUrl?: string; // Optional for backward compatibility
+  isPaid?: boolean; // Optional for backward compatibility
+  subscription?: {
+    status: "active" | "trialing" | "canceled";
+    provider: "iyzico" | "manual" | "other";
+    nextBillingDate?: Date;
+  };
 }
-
 const CompanySchema = new Schema<ICompany>(
   {
     name: { type: String, required: true },
@@ -135,6 +126,10 @@ const CompanySchema = new Schema<ICompany>(
     phoneNumber: { type: String },
     googleUrl: { type: String },
     websiteUrl: { type: String },
+    companyImgUrl: {
+      type: String,
+      default: "https://doodleipsum.com/700?i=533d71e7733d1ad05ecdc25051eed663",
+    },
     location: {
       type: {
         type: String,
@@ -151,8 +146,22 @@ const CompanySchema = new Schema<ICompany>(
       },
     },
     workingHours: { type: [workingHourSchema], default: [] },
-    services: { type: [serviceSchema], default: [] },
+    services: { type: [ServiceSchema], default: [] },
     employees: { type: [employeeSchema], default: [] },
+    isPaid: { type: Boolean, default: false },
+    subscription: {
+      status: {
+        type: String,
+        enum: ["active", "trialing", "canceled"],
+        default: "canceled",
+      },
+      provider: {
+        type: String,
+        enum: ["iyzico", "manual", "other"],
+        default: "manual",
+      },
+      nextBillingDate: { type: Date },
+    },
   },
   { timestamps: true }
 );

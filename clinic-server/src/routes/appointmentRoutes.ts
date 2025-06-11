@@ -6,6 +6,7 @@ import {
   createAppointment,
   deleteAppointment,
   updateAppointment,
+  getAppointmentById,
 } from "../controllers/appointmentController";
 
 const router = express.Router();
@@ -23,5 +24,5 @@ router.post("/:companyId/appointments", createAppointment);
 router.delete("/:companyId/appointments/:appointmentId", deleteAppointment);
 router.put("/:companyId/appointments/:appointmentId", updateAppointment);
 router.patch("/:companyId/appointments/:appointmentId", updateAppointment);
-
+router.get("/:companyId/appointments/:appointmentId", getAppointmentById);
 export default router;

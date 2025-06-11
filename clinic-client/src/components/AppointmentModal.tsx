@@ -1,11 +1,17 @@
-// src/components/CalendarView/AppointmentModal.tsx
-import React, { useState } from "react";
+// src/components/AppointmentModal.tsx
+
+import React, { useState, useEffect } from "react";
 import { EventInput } from "@fullcalendar/core";
 
 interface Service {
   _id: string;
   serviceName: string;
 }
+interface Employee {
+  email: string;
+  name: string;
+}
+
 interface Props {
   event: EventInput & {
     extendedProps?: {
@@ -15,13 +21,14 @@ interface Props {
     };
   };
   services: Service[];
-  employees: { email: string; name: string }[]; // ← accept employees
+  employees: Employee[];
   onClose: () => void;
   onCancel: (id: string) => Promise<void>;
   onUpdate: (
     id: string,
     changes: { start: string; end: string; serviceId?: string }
   ) => Promise<void>;
+  loading?: boolean;
 }
 
 const COLOR_PALETTE = ["#34D399", "#93C5FD", "#FDBA74", "#F9A8D4", "#FCA5A5"];
@@ -31,6 +38,29 @@ function getEmployeeColor(email: string): string {
   return COLOR_PALETTE[Math.abs(hash) % COLOR_PALETTE.length];
 }
 
+/**
+ * Convert a FullCalendar DateInput (string | Date | number) into
+ * an HTML datetime-local input string (YYYY-MM-DDThh:mm).
+ */
+const toLocalInput = (date?: string | Date | number | number[]): string => {
+  if (date == null) return "";
+  // Handle array case (e.g., [year, month, day, ...])
+  if (Array.isArray(date)) {
+    // FullCalendar uses [year, month, day, ...] (month is 1-based)
+    const [year, month, day, hour = 0, minute = 0] = date;
+    const d = new Date(year, (month ?? 1) - 1, day ?? 1, hour, minute);
+    if (isNaN(d.getTime())) return "";
+    return d.toISOString().slice(0, 16);
+  }
+  const d =
+    typeof date === "string" || typeof date === "number"
+      ? new Date(date)
+      : date;
+  if (isNaN(d.getTime())) return "";
+  // slice to "YYYY-MM-DDTHH:mm"
+  return d.toISOString().slice(0, 16);
+};
+
 export const AppointmentModal: React.FC<Props> = ({
   event,
   services,
@@ -38,70 +68,79 @@ export const AppointmentModal: React.FC<Props> = ({
   onClose,
   onCancel,
   onUpdate,
+  loading = false,
 }) => {
-  const [loading, setLoading] = useState(false);
+  const [startStr, setStartStr] = useState(toLocalInput(event.start));
+  const [endStr, setEndStr] = useState(toLocalInput(event.end));
+  const [serviceId, setServiceId] = useState(
+    event.extendedProps?.serviceId ?? ""
+  );
+  const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
 
-  const isoStart =
-    typeof event.start === "string"
-      ? event.start
-      : event.start instanceof Date
-      ? event.start.toISOString()
-      : "";
-  const isoEnd =
-    typeof event.end === "string"
-      ? event.end
-      : event.end instanceof Date
-      ? event.end.toISOString()
-      : "";
+  useEffect(() => {
+    setStartStr(toLocalInput(event.start));
+    setEndStr(toLocalInput(event.end));
+    setServiceId(event.extendedProps?.serviceId ?? "");
+    setEditing(false);
+    setError(null);
+  }, [event]);
 
-  const [startStr, setStartStr] = useState(isoStart.slice(0, 16));
-  const [endStr, setEndStr] = useState(isoEnd.slice(0, 16));
-  const initSvc = event.extendedProps?.serviceId || "";
-  const [serviceId, setServiceId] = useState(initSvc);
-  const [error, setError] = useState<string | null>(null);
+  const empEmailRaw = event.extendedProps?.employeeEmail ?? "";
+  const empEmail = empEmailRaw.trim();
+  const empName =
+    employees.find((e) => e.email === empEmail)?.name ||
+    (empEmail ? empEmail : "Bilinmeyen");
 
-  const empEmail = event.extendedProps?.employeeEmail || "—";
-  // look up the human‐readable name
-  const empName = employees.find((e) => e.email === empEmail)?.name || empEmail;
-  const color = getEmployeeColor(empEmail);
+  const svcIdRaw = event.extendedProps?.serviceId ?? "";
+  const svcId = svcIdRaw.trim();
   const svcName =
-    services.find((s) => s._id === serviceId)?.serviceName ||
+    services.find((s) => s._id === svcId)?.serviceName ||
     event.extendedProps?.serviceName ||
-    "—";
+    "Bilinmeyen";
+
+  const color = getEmployeeColor(empEmail || "default");
 
   const handleCancelEvt = async () => {
-    setLoading(true);
     setError(null);
     try {
       await onCancel(event.id as string);
       onClose();
     } catch (e: any) {
       setError(e.message || "İptal yapılamadı.");
-    } finally {
-      setLoading(false);
     }
   };
+
   const handleUpdateEvt = async () => {
-    setLoading(true);
     setError(null);
+    if (!startStr || !endStr) {
+      setError("Başlangıç ve Bitiş zamanı gereklidir.");
+      return;
+    }
     try {
       await onUpdate(event.id as string, {
         start: new Date(startStr).toISOString(),
         end: new Date(endStr).toISOString(),
-        serviceId,
+        serviceId: serviceId || undefined,
       });
       onClose();
     } catch (e: any) {
       setError(e.message || "Güncelleme başarısız.");
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-50 text-white font-semibold text-lg">
+          Yükleniyor...
+        </div>
+      )}
+      <div
+        className={`w-full max-w-md relative ${
+          loading ? "opacity-50 pointer-events-none" : ""
+        }`}
+      >
         <div
           className="bg-white rounded-lg shadow-lg overflow-hidden border-l-4"
           style={{ borderColor: color }}
@@ -115,6 +154,7 @@ export const AppointmentModal: React.FC<Props> = ({
             </p>
             {editing ? (
               <>
+                {/* Editable fields */}
                 <label className="block text-sm font-medium text-gray-700">
                   Başlangıç
                 </label>
@@ -123,6 +163,7 @@ export const AppointmentModal: React.FC<Props> = ({
                   value={startStr}
                   onChange={(e) => setStartStr(e.target.value)}
                   className="w-full border rounded px-3 py-2"
+                  disabled={loading}
                 />
                 <label className="block text-sm font-medium text-gray-700">
                   Bitiş
@@ -132,6 +173,7 @@ export const AppointmentModal: React.FC<Props> = ({
                   value={endStr}
                   onChange={(e) => setEndStr(e.target.value)}
                   className="w-full border rounded px-3 py-2"
+                  disabled={loading}
                 />
                 <label className="block text-sm font-medium text-gray-700">
                   Hizmet
@@ -140,6 +182,7 @@ export const AppointmentModal: React.FC<Props> = ({
                   value={serviceId}
                   onChange={(e) => setServiceId(e.target.value)}
                   className="w-full border rounded px-3 py-2"
+                  disabled={loading}
                 >
                   <option value="">Seçiniz</option>
                   {services.map((s) => (
@@ -151,6 +194,7 @@ export const AppointmentModal: React.FC<Props> = ({
               </>
             ) : (
               <>
+                {/* Read-only view */}
                 <p className="text-sm text-gray-800">
                   <span className="font-medium">Başlangıç:</span>{" "}
                   {new Date(event.start as string).toLocaleString()}

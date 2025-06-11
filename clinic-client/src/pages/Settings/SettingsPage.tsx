@@ -1,4 +1,3 @@
-// src/pages/SettingsPage.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,9 +17,8 @@ import {
   PatientSettings,
 } from "../../components/Settings/PatientSettingsModal";
 
-// existing settings (unchanged)
 const settingsOptions = [
-  { label: "Profil", icon: UserIcon, path: "/settings/profile" },
+  { label: "Profil", icon: UserIcon, path: "/settings/user" },
   {
     label: "Şirket Bilgileri",
     icon: BuildingStorefrontIcon,
@@ -34,6 +32,7 @@ const settingsOptions = [
   { label: "Görünüm", icon: SunIcon, path: "/settings/appearance" },
   { label: "Güvenlik", icon: LockClosedIcon, path: "/settings/security" },
 ];
+
 const DEFAULT_PATIENT_SETTINGS: PatientSettings = {
   showCredit: true,
   showPaymentStatus: true,
@@ -76,7 +75,6 @@ export const SettingsPage: React.FC = () => {
       </header>
 
       <main className="flex-1 p-6 space-y-4">
-        {/* existing options */}
         {settingsOptions.map(({ label, icon: Icon, path }) => (
           <button
             key={label}
@@ -89,7 +87,8 @@ export const SettingsPage: React.FC = () => {
             </span>
           </button>
         ))}
-        {/* Patient Settings */}
+
+        {/* Patient Settings Modal Trigger */}
         <button
           onClick={() => setShowPatientModal(true)}
           className="w-full flex items-center space-x-4 p-4 bg-white hover:bg-gray-50 rounded-lg shadow-sm transition"
@@ -100,7 +99,7 @@ export const SettingsPage: React.FC = () => {
           </span>
         </button>
 
-        {/* Logout */}
+        {/* Logout Button */}
         <button
           onClick={handleLogout}
           className="w-full flex items-center space-x-4 p-4 bg-white hover:bg-gray-50 rounded-lg shadow-sm transition text-red-600"

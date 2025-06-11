@@ -352,3 +352,55 @@ export const getAppointments: RequestHandler = async (req, res, next) => {
 export const getServices: RequestHandler = (req, res) => {
   res.json(req.company!.services);
 };
+
+// POST /company/:companyId/employees
+export const addOrUpdateEmployee: RequestHandler = async (req, res, next) => {
+  try {
+    const { companyId } = req.params;
+    const { email, name, role, pictureUrl } = req.body;
+
+    if (!mongoose.isValidObjectId(companyId)) {
+      res.status(400).json({ error: "Invalid company ID" });
+      return;
+    }
+
+    if (!email) {
+      res.status(400).json({ error: "Missing employee email" });
+      return;
+    }
+
+    const company = await Company.findById(companyId).exec();
+    if (!company) {
+      res.status(404).json({ error: "Company not found" });
+      return;
+    }
+
+    // Check if employee exists
+    const existingEmployeeIndex = company.employees.findIndex(
+      (e: { email: string }) => e.email === email
+    );
+    if (existingEmployeeIndex >= 0) {
+      // Update employee info
+      company.employees[existingEmployeeIndex] = {
+        ...company.employees[existingEmployeeIndex].toObject(),
+        name,
+        role,
+        pictureUrl,
+      };
+    } else {
+      // Add new employee
+      company.employees.push({ email, name, role, pictureUrl });
+    }
+
+    await company.save();
+
+    res
+      .status(200)
+      .json({ message: "Employee updated", employees: company.employees });
+    return;
+  } catch (error: any) {
+    console.error("Error in addOrUpdateEmployee:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+    return;
+  }
+};

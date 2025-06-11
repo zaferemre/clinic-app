@@ -3,42 +3,37 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateAppointment = exports.deleteAppointment = exports.createAppointment = exports.getAppointments = void 0;
+exports.getAppointmentById = exports.updateAppointment = exports.deleteAppointment = exports.createAppointment = exports.getAppointments = void 0;
 const Appointment_1 = __importDefault(require("../models/Appointment"));
 const Patient_1 = __importDefault(require("../models/Patient"));
-// GET /company/:companyId/appointments
+// src/controllers/appointmentController.ts
 const getAppointments = async (req, res) => {
     try {
         const { companyId } = req.params;
         const appointments = await Appointment_1.default.find({ companyId })
             .populate("patientId", "name")
+            .populate("serviceId", "serviceName")
             .exec();
-        const events = appointments.map((appt) => {
-            const patientName = appt.patientId?.name ?? "Bilinmeyen Hasta";
-            let color = "#3b82f6";
-            if (appt.status === "done") {
-                color = "#6b7280";
-            }
-            else if (appt.status === "cancelled") {
-                color = "#ef4444";
-            }
-            return {
-                id: appt._id.toString(),
-                title: patientName,
-                start: appt.start,
-                end: appt.end,
-                extendedProps: {
-                    employeeEmail: appt.employeeEmail,
-                    serviceId: appt.serviceId?.toString?.() ?? null,
-                },
-                color,
-            };
-        });
+        const events = appointments.map((appt) => ({
+            id: appt._id.toString(),
+            title: appt.patientId?.name ?? "Randevu",
+            start: appt.start,
+            end: appt.end,
+            extendedProps: {
+                employeeEmail: appt.employeeEmail ?? "",
+                serviceId: appt.serviceId ? appt.serviceId.toString() : "",
+            },
+            color: appt.status === "done"
+                ? "#6b7280"
+                : appt.status === "cancelled"
+                    ? "#ef4444"
+                    : "#3b82f6",
+        }));
         res.status(200).json(events);
     }
     catch (err) {
-        console.error("Error in getAppointments:", err);
-        res.status(500).json({ error: "Server error", details: err.message });
+        console.error("Error fetching appointments:", err);
+        res.status(500).json({ error: "Failed to fetch appointments." });
     }
 };
 exports.getAppointments = getAppointments;
@@ -159,3 +154,34 @@ const updateAppointment = async (req, res) => {
     }
 };
 exports.updateAppointment = updateAppointment;
+// get appointment by ID// In your appointmentController.ts
+const getAppointmentById = async (req, res) => {
+    try {
+        const { companyId, appointmentId } = req.params;
+        // Optionally preload company (if you need embedded services)
+        const company = req.company;
+        const appt = await Appointment_1.default.findOne({ _id: appointmentId, companyId })
+            .populate("patientId", "name")
+            .exec();
+        if (!appt) {
+            res.status(404).json({ error: "Appointment not found" });
+            return;
+        }
+        res.json({
+            id: appt._id.toString(),
+            title: appt.patientId?.name ?? "Randevu",
+            start: appt.start,
+            end: appt.end,
+            extendedProps: {
+                employeeEmail: appt.employeeEmail ?? "",
+                serviceId: appt.serviceId?.toString() ?? "",
+            },
+        });
+        console.log("Appointment found:", appt);
+    }
+    catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Server error" });
+    }
+};
+exports.getAppointmentById = getAppointmentById;

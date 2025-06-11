@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getServices = exports.getAppointments = exports.updateServices = exports.updateWorkingHours = exports.getEmployeeSchedule = exports.joinCompany = exports.addEmployee = exports.getEmployees = exports.updateCompany = exports.getCompany = exports.createCompany = exports.ensureCompanyAccess = void 0;
+exports.addOrUpdateEmployee = exports.getServices = exports.getAppointments = exports.updateServices = exports.updateWorkingHours = exports.getEmployeeSchedule = exports.joinCompany = exports.addEmployee = exports.getEmployees = exports.updateCompany = exports.getCompany = exports.createCompany = exports.ensureCompanyAccess = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const Company_1 = __importDefault(require("../models/Company"));
 const Appointment_1 = __importDefault(require("../models/Appointment"));
@@ -325,3 +325,49 @@ const getServices = (req, res) => {
     res.json(req.company.services);
 };
 exports.getServices = getServices;
+// POST /company/:companyId/employees
+const addOrUpdateEmployee = async (req, res, next) => {
+    try {
+        const { companyId } = req.params;
+        const { email, name, role, pictureUrl } = req.body;
+        if (!mongoose_1.default.isValidObjectId(companyId)) {
+            res.status(400).json({ error: "Invalid company ID" });
+            return;
+        }
+        if (!email) {
+            res.status(400).json({ error: "Missing employee email" });
+            return;
+        }
+        const company = await Company_1.default.findById(companyId).exec();
+        if (!company) {
+            res.status(404).json({ error: "Company not found" });
+            return;
+        }
+        // Check if employee exists
+        const existingEmployeeIndex = company.employees.findIndex((e) => e.email === email);
+        if (existingEmployeeIndex >= 0) {
+            // Update employee info
+            company.employees[existingEmployeeIndex] = {
+                ...company.employees[existingEmployeeIndex].toObject(),
+                name,
+                role,
+                pictureUrl,
+            };
+        }
+        else {
+            // Add new employee
+            company.employees.push({ email, name, role, pictureUrl });
+        }
+        await company.save();
+        res
+            .status(200)
+            .json({ message: "Employee updated", employees: company.employees });
+        return;
+    }
+    catch (error) {
+        console.error("Error in addOrUpdateEmployee:", error);
+        res.status(500).json({ error: "Server error", details: error.message });
+        return;
+    }
+};
+exports.addOrUpdateEmployee = addOrUpdateEmployee;

@@ -44,14 +44,17 @@ export const CalendarPreview: React.FC<{
         const todaysEvents = data.filter((ev) => ev.start.startsWith(todayStr));
         setEvents(
           todaysEvents.map((ev) => {
-            const service = services.find((s) => s._id === ev.serviceId);
+            // pull serviceId out of extendedProps
+            const svcId = ev.extendedProps?.serviceId;
+            const service = services.find((s) => s._id === svcId);
+            // use ev.title as the patient name
+            const patientName = ev.title || "Randevu";
+
             return {
               ...ev,
-              title: ev.patientName
-                ? service
-                  ? `${ev.patientName} • ${service.serviceName}`
-                  : ev.patientName
-                : "Randevu",
+              title: service
+                ? `${patientName} • ${service.serviceName}`
+                : patientName,
               color: "#34D399",
             };
           })

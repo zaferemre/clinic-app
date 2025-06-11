@@ -25,6 +25,7 @@ import {
   createAppointment,
   updateAppointment,
   deleteAppointment,
+  getAppointmentById,
 } from "../../api/appointmentApi";
 import { getPatients } from "../../api/patientApi";
 import { useAuth } from "../../contexts/AuthContext";
@@ -59,14 +60,16 @@ export const CalendarView: React.FC = () => {
 
   const [selectedSpan, setSelectedSpan] = useState<DateSelectArg | null>(null);
   const [showAddPatient, setShowAddPatient] = useState(false);
-  const [modalEvent, setModalEvent] = useState<EventInput | null>(null);
+  const [modalAppointmentData, setModalAppointmentData] = useState<any | null>(
+    null
+  );
+  const [modalLoading, setModalLoading] = useState(false);
 
   const calendarRef = useRef<FullCalendar | null>(null);
   const [calendarDate, setCalendarDate] = useState<string>("");
   const [calendarView, setCalendarView] = useState<string>("threeDay");
 
   const isOwner = currentEmail === ownerEmail;
-
   // format Date → "YYYY-MM-DDTHH:mm"
   const toDateTimeLocal = (date: Date) => {
     const pad = (n: number) => n.toString().padStart(2, "0");
@@ -84,19 +87,16 @@ export const CalendarView: React.FC = () => {
   // Switch view
   const handleViewChange = (view: string) => {
     const api = calendarRef.current?.getApi();
-    if (api) {
-      api.changeView(view);
-    }
+    if (api) api.changeView(view);
   };
 
   // Prev/Next navigation
   const handleNav = (action: "prev" | "next" | "today") => {
     const api = calendarRef.current?.getApi();
-    if (api) {
-      if (action === "prev") api.prev();
-      else if (action === "next") api.next();
-      else if (action === "today") api.today();
-    }
+    if (!api) return;
+    if (action === "prev") api.prev();
+    else if (action === "next") api.next();
+    else api.today();
   };
 
   // Load company owner
@@ -114,7 +114,6 @@ export const CalendarView: React.FC = () => {
       }
     })();
   }, [idToken, companyId]);
-
   // Load patients
   useEffect(() => {
     if (!idToken || !companyId) return;
@@ -164,20 +163,16 @@ export const CalendarView: React.FC = () => {
       }
     })();
   }, [idToken, companyId]);
-
-  // Fetch and filter events
+  // Fetch and filter events with both top-level and extendedProps fallbacks
   const fetchAppointments = useCallback(async () => {
     if (!idToken || !companyId) return;
     try {
       const data = await getAppointments(idToken, companyId);
-
       const filtered = data.filter((ev: any) => {
-        const matchEmp = selectedEmployee
-          ? ev.employeeEmail === selectedEmployee
-          : true;
-        const matchSvc = selectedService
-          ? ev.serviceId === selectedService
-          : true;
+        const emp = ev.employeeEmail ?? ev.extendedProps?.employeeEmail ?? "";
+        const svc = ev.serviceId ?? ev.extendedProps?.serviceId ?? "";
+        const matchEmp = selectedEmployee ? emp === selectedEmployee : true;
+        const matchSvc = selectedService ? svc === selectedService : true;
         return matchEmp && matchSvc;
       });
 
@@ -193,10 +188,9 @@ export const CalendarView: React.FC = () => {
             now > new Date(ev.end).getTime()
               ? "#9CA3AF"
               : palette[idx % palette.length],
-          // Only add extendedProps if you need them for modals, etc.
           extendedProps: {
-            employeeEmail: ev.employeeEmail ?? "",
-            serviceId: ev.serviceId ?? "",
+            employeeEmail: ev.employeeEmail ?? ev.extendedProps.employeeEmail,
+            serviceId: ev.serviceId ?? ev.extendedProps.serviceId,
           },
         }))
       );
@@ -208,6 +202,36 @@ export const CalendarView: React.FC = () => {
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
+
+  const handleEventClick = async (ci: EventClickArg) => {
+    const id = ci.event.id;
+    if (!id) return;
+
+    setModalLoading(true);
+    setModalAppointmentData(null);
+
+    try {
+      const appt = await getAppointmentById(idToken!, companyId!, id);
+
+      if (!isOwner && appt.employeeId !== currentEmail) {
+        alert("Sadece kendi randevularınızı düzenleyebilirsiniz.");
+        setModalLoading(false);
+        return;
+      }
+
+      setModalAppointmentData(appt);
+    } catch (err) {
+      alert("Randevu yüklenirken hata oluştu.");
+      console.error(err);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // When modal closes, clear data
+  const closeModal = () => {
+    setModalAppointmentData(null);
+  };
 
   // Creation handlers
   const handleDateSelect = (info: DateSelectArg) => {
@@ -265,44 +289,12 @@ export const CalendarView: React.FC = () => {
     }
   };
 
-  // Event click / cancel
-  const handleEventClick = (ci: EventClickArg) => {
-    // Use nullish coalescing for safety
-    const ext = ci.event.extendedProps as {
-      employeeEmail?: string;
-      serviceId?: string;
-    };
-    const evEmail = ext?.employeeEmail ?? "";
-    const svcId = ext?.serviceId ?? "";
-
-    if (!isOwner && evEmail !== currentEmail) {
-      alert("Sadece kendi randevularınızı düzenleyebilirsiniz.");
-      return;
-    }
-
-    const svcName = services.find((s) => s._id === svcId)?.serviceName ?? "";
-
-    setModalEvent({
-      id: ci.event.id,
-      title: ci.event.title ?? "",
-      start: ci.event.startStr,
-      end: ci.event.endStr,
-      color: ci.event.backgroundColor,
-      extendedProps: {
-        employeeEmail: evEmail,
-        serviceId: svcId,
-        serviceName: svcName,
-      },
-    });
-  };
-
   const handleCancel = async (id: string) => {
     await deleteAppointment(idToken!, companyId!, id);
-    setModalEvent(null);
+    setModalAppointmentData(null);
     window.dispatchEvent(new Event("refresh"));
   };
 
-  // Drag & drop update
   const handleEventDrop = async (changeInfo: EventDropArg) => {
     const id = changeInfo.event.id;
     const newStart = changeInfo.event.startStr;
@@ -334,9 +326,10 @@ export const CalendarView: React.FC = () => {
         companyId!,
         id,
         changes.start,
-        changes.end
+        changes.end,
+        changes.serviceId
       );
-      setModalEvent(null);
+      setModalAppointmentData(null);
       fetchAppointments();
     } catch (err) {
       console.error(err);
@@ -375,7 +368,7 @@ export const CalendarView: React.FC = () => {
         ownerEmail={ownerEmail}
       />
 
-      {/* MODALS: Add Patient, Appointment Modal, New Appointment */}
+      {/* MODALS */}
       {showAddPatient && (
         <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center">
           <AddPatient
@@ -393,14 +386,26 @@ export const CalendarView: React.FC = () => {
         </div>
       )}
 
-      {modalEvent && (
+      {modalAppointmentData && (
         <AppointmentModal
-          event={modalEvent}
+          event={{
+            // the API gives you `id`, not `_id`
+            id: modalAppointmentData.id,
+            title: modalAppointmentData.title,
+            start: modalAppointmentData.start,
+            end: modalAppointmentData.end,
+            extendedProps: {
+              // pull from the nested extendedProps
+              employeeEmail: modalAppointmentData.extendedProps.employeeEmail,
+              serviceId: modalAppointmentData.extendedProps.serviceId,
+            },
+          }}
           services={services}
           employees={employees}
-          onClose={() => setModalEvent(null)}
+          onClose={closeModal}
           onCancel={handleCancel}
           onUpdate={handleUpdate}
+          loading={modalLoading}
         />
       )}
 
@@ -435,7 +440,7 @@ export const CalendarView: React.FC = () => {
         onAddPatient={() => setShowAddPatient(true)}
       />
 
-      {/* NAVIGATION BAR */}
+      {/* NAVIGATION */}
       <nav className="w-full max-w-3xl mx-auto px-2 pt-3 pb-2 flex items-center justify-between gap-2 bg-transparent">
         <div className="flex items-center gap-1">
           <button
@@ -521,7 +526,7 @@ export const CalendarView: React.FC = () => {
                 timeGridWeek: { buttonText: "Hafta" },
                 dayGridMonth: { buttonText: "Ay" },
               }}
-              headerToolbar={false} // Custom header instead!
+              headerToolbar={false}
               allDaySlot={false}
               selectable
               selectMirror

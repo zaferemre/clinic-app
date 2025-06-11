@@ -6,11 +6,13 @@ import {
   WorkingHour,
   ServiceInfo,
 } from "../types/sharedTypes";
-
 import { API_BASE } from "../config/apiConfig";
+
 // ──────────────── Company APIs ────────────────
 
-// Fetch company by current user's email
+/**
+ * Fetch the company associated with the current user's email
+ */
 export async function getCompanyByEmail(idToken: string): Promise<Company> {
   const res = await fetch(`${API_BASE}/company`, {
     method: "GET",
@@ -23,12 +25,15 @@ export async function getCompanyByEmail(idToken: string): Promise<Company> {
   return res.json();
 }
 
-// Fetch company by ID
+/**
+ * Fetch a company by its ID
+ */
 export async function getCompanyById(
   idToken: string,
   companyId: string
 ): Promise<Company> {
   const res = await fetch(`${API_BASE}/company/${companyId}`, {
+    method: "GET",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${idToken}`,
@@ -38,7 +43,9 @@ export async function getCompanyById(
   return res.json();
 }
 
-// Create new company
+/**
+ * Create a new company (only if the user has none)
+ */
 export async function createCompany(
   idToken: string,
   payload: Partial<
@@ -60,7 +67,9 @@ export async function createCompany(
   return res.json();
 }
 
-// Update company
+/**
+ * Update top-level company fields (owner-only)
+ */
 export async function updateCompany(
   idToken: string,
   updates: Partial<
@@ -84,12 +93,15 @@ export async function updateCompany(
 
 // ──────────────── Employee APIs ────────────────
 
-// Add employee
+/**
+ * Add or update an employee in a company
+ */
 export async function addEmployee(
   idToken: string,
+  companyId: string,
   payload: Omit<EmployeeInfo, "_id">
 ): Promise<EmployeeInfo> {
-  const res = await fetch(`${API_BASE}/company/employees`, {
+  const res = await fetch(`${API_BASE}/company/${companyId}/employees`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -101,7 +113,9 @@ export async function addEmployee(
   return res.json();
 }
 
-// List all employees
+/**
+ * List all employees of a company
+ */
 export async function getEmployees(
   idToken: string,
   companyId: string
@@ -117,41 +131,11 @@ export async function getEmployees(
   return res.json();
 }
 
-// Update employee
-export async function updateEmployee(
-  idToken: string,
-  employeeId: string,
-  updates: Partial<EmployeeInfo>
-): Promise<EmployeeInfo> {
-  const res = await fetch(`${API_BASE}/company/employees/${employeeId}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify(updates),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-// Remove employee
-export async function removeEmployee(
-  idToken: string,
-  employeeId: string
-): Promise<void> {
-  const res = await fetch(`${API_BASE}/company/employees/${employeeId}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-  });
-  if (!res.ok) throw new Error(await res.text());
-}
-
 // ──────────────── Working Hours APIs ────────────────
-// Update working hours
+
+/**
+ * Update working hours for a company (owner-only)
+ */
 export async function updateWorkingHours(
   idToken: string,
   workingHours: WorkingHour[]
@@ -168,10 +152,11 @@ export async function updateWorkingHours(
   return res.json();
 }
 
-// (If you want specific endpoints for updating working hours, add here)
-
 // ──────────────── Service APIs ────────────────
-// Update services
+
+/**
+ * Update service offerings for a company (owner-only)
+ */
 export async function updateServices(
   idToken: string,
   services: ServiceInfo[]
@@ -187,4 +172,28 @@ export async function updateServices(
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
-// (If you want to add/edit/remove services, add here. Pattern is identical.)
+
+// ──────────────── Image Upload API ────────────────
+
+/**
+ * Upload a company image
+ */
+export async function uploadImage(
+  idToken: string,
+  file: File
+): Promise<string> {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await fetch(`${API_BASE}/company/upload-image`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: formData,
+  });
+
+  if (!res.ok) throw new Error("Image upload failed");
+  const data = await res.json();
+  return data.imageUrl;
+}

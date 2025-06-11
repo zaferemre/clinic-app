@@ -1,6 +1,7 @@
 // src/controllers/serviceController.ts
 import { RequestHandler } from "express";
-import Company, { ServiceInfo } from "../models/Company";
+import Company from "../models/Company";
+import { IService } from "../models/Service";
 
 // GET  /company/:companyId/services
 export const getServices: RequestHandler = async (req, res): Promise<void> => {
@@ -55,7 +56,7 @@ export const updateService: RequestHandler = async (
 ): Promise<void> => {
   try {
     const { serviceId, companyId } = req.params;
-    const updates = req.body as Partial<ServiceInfo>;
+    const updates = req.body as Partial<IService>;
     const company = await Company.findById(companyId).exec();
     if (!company) {
       res.status(404).json({ error: "Company not found" });

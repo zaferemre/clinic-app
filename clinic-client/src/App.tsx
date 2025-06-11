@@ -1,11 +1,10 @@
-// src/AppRoutes.tsx
-
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
+
 import Home from "./pages/Home/Home";
 import PatientsPage from "./pages/Patients/Patients";
 import CalendarPage from "./pages/Calendar/Calendar";
@@ -19,6 +18,7 @@ import EmployeesPage from "./components/EmployeesPage/EmployeesPage";
 import { AuthContextProvider, useAuth } from "./contexts/AuthContext";
 import { ServicesPage } from "./pages/ServicesPage/ServicesPage";
 import SettingsPage from "./pages/Settings/SettingsPage";
+import CompanySettings from "./components/Settings/CompanySettings";
 
 function AppRoutes() {
   const { idToken, companyId, checkingCompany } = useAuth();
@@ -31,7 +31,6 @@ function AppRoutes() {
     );
   }
 
-  // 1) Not authenticated → only login
   if (!idToken) {
     return (
       <Routes>
@@ -41,8 +40,6 @@ function AppRoutes() {
     );
   }
 
-  // 2) Authenticated but no company yet → onboarding
-  //    any route other than /onboarding redirects back there
   if (!companyId) {
     return (
       <Routes>
@@ -52,12 +49,9 @@ function AppRoutes() {
     );
   }
 
-  // 3) Authenticated and inside a company → the app
   return (
     <Routes>
-      {/* once you have a company, landing at /onboarding bounces to home */}
       <Route path="/onboarding" element={<Navigate to="/" replace />} />
-
       <Route path="/" element={<Home />} />
       <Route path="/patients" element={<PatientsPage />} />
       <Route path="/patients/:id/edit" element={<EditPatientPage />} />
@@ -67,9 +61,10 @@ function AppRoutes() {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/messaging" element={<MessagingPage />} />
       <Route path="/services" element={<ServicesPage />} />
-      {/* if someone goes to /login after login, send them home */}
-      <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/settings/company" element={<CompanySettings />} />
+
+      <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

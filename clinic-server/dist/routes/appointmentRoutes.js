@@ -20,4 +20,5 @@ router.post("/:companyId/appointments", appointmentController_1.createAppointmen
 router.delete("/:companyId/appointments/:appointmentId", appointmentController_1.deleteAppointment);
 router.put("/:companyId/appointments/:appointmentId", appointmentController_1.updateAppointment);
 router.patch("/:companyId/appointments/:appointmentId", appointmentController_1.updateAppointment);
+router.get("/:companyId/appointments/:appointmentId", appointmentController_1.getAppointmentById);
 exports.default = router;
