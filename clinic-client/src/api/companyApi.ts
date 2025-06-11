@@ -197,3 +197,20 @@ export async function uploadImage(
   const data = await res.json();
   return data.imageUrl;
 }
+export async function removeEmployee(
+  idToken: string,
+  companyId: string,
+  employeeId: string
+): Promise<void> {
+  const res = await fetch(
+    `${API_BASE}/company/${companyId}/employees/${employeeId}`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+    }
+  );
+  if (!res.ok) throw new Error(await res.text());
+}

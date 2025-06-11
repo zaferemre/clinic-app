@@ -1,4 +1,5 @@
 // src/components/Employees/EmployeeCard.tsx
+
 import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { IEmployee } from "../../types/sharedTypes";
@@ -9,11 +10,10 @@ interface Props {
   employee: IEmployee;
   ownerEmail: string | null;
   ownerImageUrl?: string;
-  updatingEmail: string | null;
-  removingEmail: string | null;
-  onRemove: (email: string) => void;
+  removingId: string | null;
+  onRemove: (id: string) => void;
   onUpdateEmployee: (
-    email: string,
+    id: string,
     updates: {
       role: IEmployee["role"];
       workingHours: IEmployee["workingHours"];
@@ -25,16 +25,18 @@ export const EmployeeCard: React.FC<Props> = ({
   employee,
   ownerEmail,
   ownerImageUrl,
-
-  removingEmail,
+  removingId,
   onRemove,
   onUpdateEmployee,
 }) => {
   const { user } = useAuth();
-  const isOwner = employee.email === ownerEmail;
-  const isSelf = user?.email === employee.email;
-  const canEdit = isOwner || isSelf;
-  const canDelete = isOwner && !isSelf;
+  const currentUserEmail = user?.email || "";
+  const currentUserIsOwner = currentUserEmail === ownerEmail;
+  const isSelf = currentUserEmail === employee.email;
+  const isOwnerCard = employee.role === "owner";
+
+  const canEdit = currentUserIsOwner || isSelf;
+  const canDelete = currentUserIsOwner && !isSelf;
 
   const [showEdit, setShowEdit] = useState(false);
 
@@ -42,13 +44,17 @@ export const EmployeeCard: React.FC<Props> = ({
     role: IEmployee["role"];
     workingHours: IEmployee["workingHours"];
   }) => {
-    await onUpdateEmployee(employee.email, updates);
+    await onUpdateEmployee(employee._id!.toString(), updates);
     setShowEdit(false);
   };
 
+  const avatarUrl = isOwnerCard
+    ? ownerImageUrl || employee.pictureUrl
+    : employee.pictureUrl;
+
   return (
     <li className="relative bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
-      {/* Top-right icons */}
+      {/* Top-right action buttons */}
       <div className="absolute top-3 right-3 flex space-x-2">
         {canEdit && (
           <button
@@ -61,25 +67,21 @@ export const EmployeeCard: React.FC<Props> = ({
         )}
         {canDelete && (
           <button
-            onClick={() => onRemove(employee.email)}
+            onClick={() => onRemove(employee._id!.toString())}
             className="p-1 hover:bg-gray-100 rounded"
             title="Delete"
-            disabled={removingEmail === employee.email}
+            disabled={removingId === employee._id!.toString()}
           >
             <FaTrashAlt className="h-5 w-5 text-red-600" />
           </button>
         )}
       </div>
 
-      {/* Profile */}
+      {/* Profile info */}
       <div className="flex items-center space-x-4">
         <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 border">
           <img
-            src={
-              isOwner
-                ? ownerImageUrl || employee.pictureUrl
-                : employee.pictureUrl
-            }
+            src={avatarUrl}
             alt={employee.name}
             className="w-full h-full object-cover"
           />
