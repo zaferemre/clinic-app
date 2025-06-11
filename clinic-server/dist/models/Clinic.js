@@ -44,17 +44,10 @@ const workerSchema = new mongoose_1.Schema({
     },
     pictureUrl: { type: String, default: "" },
 }, { _id: false });
-const ClinicSchema = new mongoose_1.default.Schema({
-    name: String,
-    ownerEmail: String,
-    workers: [
-        {
-            email: { type: String, required: true },
-            name: String,
-            role: String,
-            pictureUrl: { type: String, default: "" },
-        },
-    ],
-});
-exports.default = mongoose_1.default.models.Clinic ||
-    mongoose_1.default.model("Clinic", ClinicSchema);
+const ClinicSchema = new mongoose_1.Schema({
+    name: { type: String, required: true },
+    ownerEmail: { type: String, required: true, index: true },
+    workers: { type: [workerSchema], default: [] },
+}, { timestamps: true });
+const Clinic = mongoose_1.default.models.Clinic || mongoose_1.default.model("Clinic", ClinicSchema);
+exports.default = Clinic;

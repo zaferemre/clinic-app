@@ -33,11 +33,10 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/models/Worker.ts
 const mongoose_1 = __importStar(require("mongoose"));
 const workerSchema = new mongoose_1.Schema({
     name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    email: { type: String, required: true },
     role: {
         type: String,
         enum: ["Receptionist", "Physiotherapist", "Manager", "Admin"],
@@ -51,16 +50,15 @@ const workerSchema = new mongoose_1.Schema({
                 enum: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
                 required: true,
             },
-            start: { type: String, required: true }, // Format "HH:mm"
-            end: { type: String, required: true }, // Format "HH:mm"
+            start: { type: String, required: true },
+            end: { type: String, required: true },
         },
     ],
     companyId: {
-        type: mongoose_1.default.Schema.Types.ObjectId,
+        type: mongoose_1.Schema.Types.ObjectId,
         ref: "Company",
         required: true,
     },
-});
-// If you want a compound index to ensure no two workers with the same email exist in the same clinic:
-// workerSchema.index({ email: 1, companyId: 1 }, { unique: true });
-exports.default = mongoose_1.default.model("Worker", workerSchema);
+}, { timestamps: true });
+const Worker = mongoose_1.default.models.Worker || mongoose_1.default.model("Worker", workerSchema);
+exports.default = Worker;

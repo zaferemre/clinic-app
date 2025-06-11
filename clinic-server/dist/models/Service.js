@@ -33,13 +33,20 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.ServiceSchema = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
-const ServiceSchema = new mongoose_1.Schema({
-    companyId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Company", required: true },
+// Named export of the raw schema for embedding
+exports.ServiceSchema = new mongoose_1.Schema({
+    companyId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Company",
+        required: true,
+    },
     serviceName: { type: String, required: true },
     servicePrice: { type: Number, required: true, min: 0 },
     serviceKapora: { type: Number, default: 0, min: 0 },
     serviceDuration: { type: Number, required: true, min: 1 },
-});
+}, { timestamps: true });
+// Default export of the model
 exports.default = mongoose_1.default.models.Service ||
-    mongoose_1.default.model("Service", ServiceSchema);
+    mongoose_1.default.model("Service", exports.ServiceSchema);

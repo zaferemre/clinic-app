@@ -32,48 +32,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
-const Service_1 = __importDefault(require("./Service"));
-const employeeSchema = new mongoose_1.Schema({
-    email: { type: String, required: true },
-    name: { type: String },
-    role: {
-        type: String,
-        enum: ["staff", "manager", "admin"],
-        default: "staff",
-    },
-    pictureUrl: {
-        type: String,
-        default: "https://doodleipsum.com/700?i=533d71e7733d1ad05ecdc25051eed663",
-    },
-    services: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Company.services" }],
-    workingHours: {
-        type: [
-            {
-                day: {
-                    type: String,
-                    enum: [
-                        "Monday",
-                        "Tuesday",
-                        "Wednesday",
-                        "Thursday",
-                        "Friday",
-                        "Saturday",
-                        "Sunday",
-                    ],
-                    required: true,
-                },
-                open: { type: String, required: true },
-                close: { type: String, required: true },
-            },
-        ],
-        default: [],
-    },
-}, { _id: true });
+const Service_1 = require("./Service");
 const workingHourSchema = new mongoose_1.Schema({
     day: {
         type: String,
@@ -91,6 +52,26 @@ const workingHourSchema = new mongoose_1.Schema({
     open: { type: String, required: true },
     close: { type: String, required: true },
 }, { _id: false });
+const employeeSchema = new mongoose_1.Schema({
+    email: { type: String, required: true },
+    name: { type: String },
+    role: {
+        type: String,
+        enum: ["staff", "manager", "admin"],
+        default: "staff",
+    },
+    pictureUrl: {
+        type: String,
+        default: "https://doodleipsum.com/700?i=533d71e7733d1ad05ecdc25051eed663",
+    },
+    services: [
+        {
+            type: mongoose_1.Schema.Types.ObjectId,
+            ref: "Service",
+        },
+    ],
+    workingHours: { type: [workingHourSchema], default: [] },
+}, { _id: true });
 const CompanySchema = new mongoose_1.Schema({
     name: { type: String, required: true },
     ownerName: { type: String, required: true },
@@ -109,11 +90,7 @@ const CompanySchema = new mongoose_1.Schema({
         default: "https://doodleipsum.com/700?i=533d71e7733d1ad05ecdc25051eed663",
     },
     location: {
-        type: {
-            type: String,
-            enum: ["Point"],
-            default: "Point",
-        },
+        type: { type: String, enum: ["Point"], default: "Point" },
         coordinates: {
             type: [Number],
             required: true,
@@ -124,8 +101,8 @@ const CompanySchema = new mongoose_1.Schema({
         },
     },
     workingHours: { type: [workingHourSchema], default: [] },
-    services: { type: [Service_1.default], default: [] },
-    employees: { type: [employeeSchema], default: [] },
+    services: { type: [Service_1.ServiceSchema], default: [] }, // embeds ServiceSchema
+    employees: { type: [employeeSchema], default: [] }, // embeds employees
     isPaid: { type: Boolean, default: false },
     subscription: {
         status: {
@@ -141,6 +118,7 @@ const CompanySchema = new mongoose_1.Schema({
         nextBillingDate: { type: Date },
     },
 }, { timestamps: true });
-CompanySchema.index({ location: "2dsphere" });
-exports.default = mongoose_1.default.models.Company ||
-    mongoose_1.default.model("Company", CompanySchema);
+// if you use geospatial queries:
+// CompanySchema.index({ location: "2dsphere" });
+const Company = mongoose_1.default.models.Company || mongoose_1.default.model("Company", CompanySchema);
+exports.default = Company;
