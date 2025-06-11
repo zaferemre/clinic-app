@@ -1,6 +1,7 @@
 // src/models/Company.ts
 
 import mongoose, { Document, Schema } from "mongoose";
+// 🔥 Import only the named ServiceSchema, not the default model
 import { IService, ServiceSchema } from "./Service";
 
 export interface WorkingHour {
@@ -12,8 +13,8 @@ export interface WorkingHour {
     | "Friday"
     | "Saturday"
     | "Sunday";
-  open: string; // format "HH:mm"
-  close: string; // format "HH:mm"
+  open: string; // "HH:mm"
+  close: string; // "HH:mm"
 }
 const workingHourSchema = new Schema<WorkingHour>(
   {
@@ -41,7 +42,7 @@ export interface EmployeeInfo {
   name?: string;
   role?: "staff" | "manager" | "admin";
   pictureUrl?: string;
-  services?: mongoose.Types.ObjectId[]; // references to Service._id
+  services?: mongoose.Types.ObjectId[]; // ← refs to Service._id
   workingHours?: WorkingHour[];
 }
 const employeeSchema = new Schema<EmployeeInfo>(
@@ -57,12 +58,8 @@ const employeeSchema = new Schema<EmployeeInfo>(
       type: String,
       default: "https://doodleipsum.com/700?i=533d71e7733d1ad05ecdc25051eed663",
     },
-    services: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Service",
-      },
-    ],
+    // ⚠️ array of ObjectId refs, not embedding the model
+    services: [{ type: Schema.Types.ObjectId, ref: "Service" }],
     workingHours: { type: [workingHourSchema], default: [] },
   },
   { _id: true }
@@ -78,20 +75,18 @@ export interface ICompany extends Document {
   phoneNumber?: string;
   googleUrl?: string;
   websiteUrl?: string;
-  location?: {
-    type: "Point";
-    coordinates: [number, number];
-  };
+  companyImgUrl?: string;
+  location?: { type: "Point"; coordinates: [number, number] };
   workingHours: WorkingHour[];
-  services: IService[]; // embedded via ServiceSchema
-  employees: EmployeeInfo[]; // embedded via employeeSchema
+  // ⚠️ embedded subdocuments via ServiceSchema
+  services: IService[];
+  employees: EmployeeInfo[];
   isPaid?: boolean;
   subscription?: {
     status: "active" | "trialing" | "canceled";
     provider: "iyzico" | "manual" | "other";
     nextBillingDate?: Date;
   };
-  companyImgUrl: string; // Optional for backward compatibility
   createdAt: Date;
   updatedAt: Date;
 }
@@ -115,11 +110,7 @@ const CompanySchema = new Schema<ICompany>(
       default: "https://doodleipsum.com/700?i=533d71e7733d1ad05ecdc25051eed663",
     },
     location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        default: "Point",
-      },
+      type: { type: String, enum: ["Point"], default: "Point" },
       coordinates: {
         type: [Number],
         required: true,
@@ -130,7 +121,9 @@ const CompanySchema = new Schema<ICompany>(
       },
     },
     workingHours: { type: [workingHourSchema], default: [] },
+    // ① embed services as subdocs via ServiceSchema
     services: { type: [ServiceSchema], default: [] },
+    // ② embed employees
     employees: { type: [employeeSchema], default: [] },
     isPaid: { type: Boolean, default: false },
     subscription: {
@@ -150,7 +143,6 @@ const CompanySchema = new Schema<ICompany>(
   { timestamps: true }
 );
 
-// Enable geo queries on `location`
 CompanySchema.index({ location: "2dsphere" });
 
 export default mongoose.models.Company ||
