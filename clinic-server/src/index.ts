@@ -16,7 +16,14 @@ import appointmentRoutes from "./routes/appointmentRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import servicesRoutes from "./routes/servicesRoutes";
 import messageRoutes from "./routes/messageRoutes";
-
+import "./models/Service";
+import "./models/Company";
+import "./models/Patient";
+import "./models/Appointment";
+import "./models/Clinic";
+import "./models/Message";
+import "./models/Notification";
+import "./models/Worker";
 const app = express();
 
 // CORS + JSON

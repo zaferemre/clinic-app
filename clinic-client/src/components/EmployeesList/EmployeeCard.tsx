@@ -1,5 +1,3 @@
-// src/components/Employees/EmployeeCard.tsx
-
 import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { IEmployee } from "../../types/sharedTypes";
@@ -10,6 +8,7 @@ interface Props {
   employee: IEmployee;
   ownerEmail: string | null;
   ownerImageUrl?: string;
+  updatingEmail?: string | null;
   removingId: string | null;
   onRemove: (id: string) => void;
   onUpdateEmployee: (
@@ -48,13 +47,13 @@ export const EmployeeCard: React.FC<Props> = ({
     setShowEdit(false);
   };
 
+  // If this card represents the owner, use ownerImageUrl
   const avatarUrl = isOwnerCard
     ? ownerImageUrl || employee.pictureUrl
     : employee.pictureUrl;
 
   return (
     <li className="relative bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
-      {/* Top-right action buttons */}
       <div className="absolute top-3 right-3 flex space-x-2">
         {canEdit && (
           <button
@@ -77,7 +76,6 @@ export const EmployeeCard: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Profile info */}
       <div className="flex items-center space-x-4">
         <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 border">
           <img
@@ -95,7 +93,6 @@ export const EmployeeCard: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Edit Modal */}
       <EditEmployeeModal
         show={showEdit}
         employee={employee}

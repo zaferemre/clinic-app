@@ -1,5 +1,6 @@
+// src/models/Company.ts
+
 import mongoose, { Document, Schema } from "mongoose";
-import { IService, ServiceSchema } from "./Service";
 
 export interface WorkingHour {
   day:
@@ -35,11 +36,12 @@ const workingHourSchema = new Schema<WorkingHour>(
 );
 
 export interface EmployeeInfo {
+  _id?: mongoose.Types.ObjectId;
   email: string;
   name?: string;
-  role?: "staff" | "manager" | "admin";
+  role?: "staff" | "manager" | "admin" | "owner";
   pictureUrl?: string;
-  services?: mongoose.Types.ObjectId[]; // ref: Service._id
+  services?: mongoose.Types.ObjectId[]; // now just references
   workingHours?: WorkingHour[];
 }
 const employeeSchema = new Schema<EmployeeInfo>(
@@ -48,17 +50,14 @@ const employeeSchema = new Schema<EmployeeInfo>(
     name: { type: String },
     role: {
       type: String,
-      enum: ["staff", "manager", "admin"],
+      enum: ["owner", "staff", "manager", "admin"],
       default: "staff",
     },
-    pictureUrl: {
-      type: String,
-      default: "https://doodleipsum.com/700?i=533d71e7733d1ad05ecdc25051eed663",
-    },
+    pictureUrl: { type: String, default: "" },
     services: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Service",
+        ref: "Service", // references Service model
       },
     ],
     workingHours: { type: [workingHourSchema], default: [] },
@@ -79,8 +78,8 @@ export interface ICompany extends Document {
   companyImgUrl?: string;
   location?: { type: "Point"; coordinates: [number, number] };
   workingHours: WorkingHour[];
-  services: IService[]; // embedded subdocs
-  employees: EmployeeInfo[]; // embedded subdocs
+  services: mongoose.Types.ObjectId[]; // just IDs
+  employees: EmployeeInfo[];
   isPaid?: boolean;
   subscription?: {
     status: "active" | "trialing" | "canceled";
@@ -96,19 +95,13 @@ const CompanySchema = new Schema<ICompany>(
     name: { type: String, required: true },
     ownerName: { type: String, required: true },
     ownerEmail: { type: String, required: true, index: true },
-    ownerImageUrl: {
-      type: String,
-      default: "https://doodleipsum.com/700?i=533d71e7733d1ad05ecdc25051eed663",
-    },
+    ownerImageUrl: { type: String, default: "" },
     companyType: { type: String, required: true },
     address: { type: String },
     phoneNumber: { type: String },
     googleUrl: { type: String },
     websiteUrl: { type: String },
-    companyImgUrl: {
-      type: String,
-      default: "https://doodleipsum.com/700?i=533d71e7733d1ad05ecdc25051eed663",
-    },
+    companyImgUrl: { type: String, default: "" },
     location: {
       type: { type: String, enum: ["Point"], default: "Point" },
       coordinates: {
@@ -121,8 +114,13 @@ const CompanySchema = new Schema<ICompany>(
       },
     },
     workingHours: { type: [workingHourSchema], default: [] },
-    services: { type: [ServiceSchema], default: [] }, // embeds ServiceSchema
-    employees: { type: [employeeSchema], default: [] }, // embeds employees
+    services: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Service",
+      },
+    ], // <- fixed: no more embedded ServiceSchema
+    employees: { type: [employeeSchema], default: [] },
     isPaid: { type: Boolean, default: false },
     subscription: {
       status: {
@@ -141,10 +139,7 @@ const CompanySchema = new Schema<ICompany>(
   { timestamps: true }
 );
 
-// if you use geospatial queries:
-// CompanySchema.index({ location: "2dsphere" });
+CompanySchema.index({ location: "2dsphere" });
 
-const Company =
-  mongoose.models.Company || mongoose.model<ICompany>("Company", CompanySchema);
-
-export default Company;
+export default mongoose.models.Company ||
+  mongoose.model<ICompany>("Company", CompanySchema);

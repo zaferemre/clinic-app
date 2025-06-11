@@ -15,7 +15,10 @@ import {
   ensureCompanyAccess,
   getServices,
 } from "../controllers/companyController";
-
+import {
+  updateEmployee,
+  deleteEmployee,
+} from "../controllers/employeeController";
 const router = express.Router();
 
 // All routes below require a valid Firebase token
@@ -72,4 +75,7 @@ router.get("/:companyId/schedule/:employeeId", getEmployeeSchedule);
 router.patch("/:companyId/working-hours", updateWorkingHours);
 router.patch("/:companyId/services", updateServices);
 router.get("/:companyId/services", getServices);
+router.patch("/:companyId/employees/:employeeId", updateEmployee);
+router.delete("/:companyId/employees/:employeeId", deleteEmployee);
+
 export default router;

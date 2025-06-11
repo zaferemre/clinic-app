@@ -1,5 +1,3 @@
-// src/api/companyApi.ts
-
 import {
   Company,
   EmployeeInfo,
@@ -10,9 +8,6 @@ import { API_BASE } from "../config/apiConfig";
 
 // ──────────────── Company APIs ────────────────
 
-/**
- * Fetch the company associated with the current user's email
- */
 export async function getCompanyByEmail(idToken: string): Promise<Company> {
   const res = await fetch(`${API_BASE}/company`, {
     method: "GET",
@@ -25,9 +20,6 @@ export async function getCompanyByEmail(idToken: string): Promise<Company> {
   return res.json();
 }
 
-/**
- * Fetch a company by its ID
- */
 export async function getCompanyById(
   idToken: string,
   companyId: string
@@ -43,9 +35,6 @@ export async function getCompanyById(
   return res.json();
 }
 
-/**
- * Create a new company (only if the user has none)
- */
 export async function createCompany(
   idToken: string,
   payload: Partial<
@@ -67,9 +56,6 @@ export async function createCompany(
   return res.json();
 }
 
-/**
- * Update top-level company fields (owner-only)
- */
 export async function updateCompany(
   idToken: string,
   updates: Partial<
@@ -93,9 +79,6 @@ export async function updateCompany(
 
 // ──────────────── Employee APIs ────────────────
 
-/**
- * Add or update an employee in a company
- */
 export async function addEmployee(
   idToken: string,
   companyId: string,
@@ -113,9 +96,6 @@ export async function addEmployee(
   return res.json();
 }
 
-/**
- * List all employees of a company
- */
 export async function getEmployees(
   idToken: string,
   companyId: string
@@ -131,11 +111,50 @@ export async function getEmployees(
   return res.json();
 }
 
-// ──────────────── Working Hours APIs ────────────────
+export async function updateEmployee(
+  idToken: string,
+  companyId: string,
+  employeeId: string,
+  updates: {
+    role: EmployeeInfo["role"];
+    workingHours: WorkingHour[];
+  }
+): Promise<EmployeeInfo> {
+  const res = await fetch(
+    `${API_BASE}/company/${companyId}/employees/${employeeId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+      body: JSON.stringify(updates),
+    }
+  );
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
 
-/**
- * Update working hours for a company (owner-only)
- */
+export async function removeEmployee(
+  idToken: string,
+  companyId: string,
+  employeeId: string
+): Promise<void> {
+  const res = await fetch(
+    `${API_BASE}/company/${companyId}/employees/${employeeId}`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+    }
+  );
+  if (!res.ok) throw new Error(await res.text());
+}
+
+// ──────────────── Working Hours API ────────────────
+
 export async function updateWorkingHours(
   idToken: string,
   workingHours: WorkingHour[]
@@ -152,11 +171,8 @@ export async function updateWorkingHours(
   return res.json();
 }
 
-// ──────────────── Service APIs ────────────────
+// ──────────────── Service API ────────────────
 
-/**
- * Update service offerings for a company (owner-only)
- */
 export async function updateServices(
   idToken: string,
   services: ServiceInfo[]
@@ -175,9 +191,6 @@ export async function updateServices(
 
 // ──────────────── Image Upload API ────────────────
 
-/**
- * Upload a company image
- */
 export async function uploadImage(
   idToken: string,
   file: File
@@ -196,21 +209,4 @@ export async function uploadImage(
   if (!res.ok) throw new Error("Image upload failed");
   const data = await res.json();
   return data.imageUrl;
-}
-export async function removeEmployee(
-  idToken: string,
-  companyId: string,
-  employeeId: string
-): Promise<void> {
-  const res = await fetch(
-    `${API_BASE}/company/${companyId}/employees/${employeeId}`,
-    {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    }
-  );
-  if (!res.ok) throw new Error(await res.text());
 }
