@@ -1,71 +1,19 @@
-// src/models/Company.ts
-
 import mongoose, { Document, Schema } from "mongoose";
 
-export interface WorkingHour {
-  day:
-    | "Monday"
-    | "Tuesday"
-    | "Wednesday"
-    | "Thursday"
-    | "Friday"
-    | "Saturday"
-    | "Sunday";
-  open: string; // "HH:mm"
-  close: string; // "HH:mm"
-}
-const workingHourSchema = new Schema<WorkingHour>(
+// Re-use your existing sub-schemas (workingHourSchema, employeeSchema)
+import { WorkingHour, workingHourSchema } from "./WorkingHour";
+import { EmployeeInfo, employeeSchema } from "./Employee";
+import { IService, ServiceSchema } from "./Service";
+const companyServiceSchema = new Schema(
   {
-    day: {
-      type: String,
-      enum: [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-      ],
-      required: true,
-    },
-    open: { type: String, required: true },
-    close: { type: String, required: true },
-  },
-  { _id: false }
-);
-
-export interface EmployeeInfo {
-  _id?: mongoose.Types.ObjectId;
-  email: string;
-  name?: string;
-  role?: "staff" | "manager" | "admin" | "owner";
-  pictureUrl?: string;
-  services?: mongoose.Types.ObjectId[]; // now just references
-  workingHours?: WorkingHour[];
-}
-const employeeSchema = new Schema<EmployeeInfo>(
-  {
-    email: { type: String, required: true },
-    name: { type: String },
-    role: {
-      type: String,
-      enum: ["owner", "staff", "manager", "admin"],
-      default: "staff",
-    },
-    pictureUrl: { type: String, default: "" },
-    services: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Service", // references Service model
-      },
-    ],
-    workingHours: { type: [workingHourSchema], default: [] },
+    serviceName: { type: String, required: true },
+    servicePrice: { type: Number, required: true, min: 0 },
+    serviceKapora: { type: Number, default: 0, min: 0 },
+    serviceDuration: { type: Number, required: true, min: 1 },
   },
   { _id: true }
 );
-
-export interface ICompany extends Document {
+export interface CompanyDoc extends Document {
   name: string;
   ownerName: string;
   ownerEmail: string;
@@ -78,19 +26,18 @@ export interface ICompany extends Document {
   companyImgUrl?: string;
   location?: { type: "Point"; coordinates: [number, number] };
   workingHours: WorkingHour[];
-  services: mongoose.Types.ObjectId[]; // just IDs
+  services: mongoose.Types.Subdocument[];
   employees: EmployeeInfo[];
-  isPaid?: boolean;
+  roles: string[]; // dynamically managed
+  isPaid: boolean;
   subscription?: {
     status: "active" | "trialing" | "canceled";
     provider: "iyzico" | "manual" | "other";
     nextBillingDate?: Date;
   };
-  createdAt: Date;
-  updatedAt: Date;
 }
 
-const CompanySchema = new Schema<ICompany>(
+const CompanySchema = new Schema<CompanyDoc>(
   {
     name: { type: String, required: true },
     ownerName: { type: String, required: true },
@@ -102,6 +49,7 @@ const CompanySchema = new Schema<ICompany>(
     googleUrl: { type: String },
     websiteUrl: { type: String },
     companyImgUrl: { type: String, default: "" },
+    services: { type: [companyServiceSchema], default: [] },
     location: {
       type: { type: String, enum: ["Point"], default: "Point" },
       coordinates: {
@@ -113,14 +61,16 @@ const CompanySchema = new Schema<ICompany>(
         },
       },
     },
+
     workingHours: { type: [workingHourSchema], default: [] },
-    services: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Service",
-      },
-    ], // <- fixed: no more embedded ServiceSchema
     employees: { type: [employeeSchema], default: [] },
+
+    // <-- dynamic roles array
+    roles: {
+      type: [String],
+      default: ["owner", "admin", "manager", "staff"],
+    },
+
     isPaid: { type: Boolean, default: false },
     subscription: {
       status: {
@@ -142,4 +92,4 @@ const CompanySchema = new Schema<ICompany>(
 CompanySchema.index({ location: "2dsphere" });
 
 export default mongoose.models.Company ||
-  mongoose.model<ICompany>("Company", CompanySchema);
+  mongoose.model<CompanyDoc>("Company", CompanySchema);

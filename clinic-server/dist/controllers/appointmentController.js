@@ -23,11 +23,14 @@ const getAppointments = async (req, res) => {
                 employeeEmail: appt.employeeEmail ?? "",
                 serviceId: appt.serviceId ? appt.serviceId.toString() : "",
             },
-            color: appt.status === "done"
-                ? "#6b7280"
-                : appt.status === "cancelled"
-                    ? "#ef4444"
-                    : "#3b82f6",
+            // Extract color logic to a variable for clarity
+            color: (() => {
+                if (appt.status === "done")
+                    return "#6b7280";
+                if (appt.status === "cancelled")
+                    return "#ef4444";
+                return "#3b82f6";
+            })(),
         }));
         res.status(200).json(events);
     }
@@ -159,7 +162,7 @@ const getAppointmentById = async (req, res) => {
     try {
         const { companyId, appointmentId } = req.params;
         // Optionally preload company (if you need embedded services)
-        const company = req.company;
+        // const company = (req as any).company as CompanyDoc;
         const appt = await Appointment_1.default.findOne({ _id: appointmentId, companyId })
             .populate("patientId", "name")
             .exec();

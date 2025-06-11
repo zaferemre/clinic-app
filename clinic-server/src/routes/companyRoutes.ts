@@ -14,11 +14,19 @@ import {
   updateServices,
   ensureCompanyAccess,
   getServices,
+  deleteCompany,
 } from "../controllers/companyController";
+import { deleteUserAccount } from "../controllers/userController";
 import {
   updateEmployee,
   deleteEmployee,
 } from "../controllers/employeeController";
+import {
+  listRoles,
+  addRole,
+  updateRole,
+  deleteRole,
+} from "../controllers/roleController";
 const router = express.Router();
 
 // All routes below require a valid Firebase token
@@ -72,10 +80,20 @@ router.get("/:companyId/schedule/:employeeId", getEmployeeSchedule);
  * PATCH /company/:companyId/working-hours
  * PATCH /company/:companyId/services
  */
+// Delete current user account
+router.delete("/user", deleteUserAccount);
 router.patch("/:companyId/working-hours", updateWorkingHours);
 router.patch("/:companyId/services", updateServices);
 router.get("/:companyId/services", getServices);
 router.patch("/:companyId/employees/:employeeId", updateEmployee);
 router.delete("/:companyId/employees/:employeeId", deleteEmployee);
+// Owner‐only: delete company entirely
+router.delete("/:companyId", ensureCompanyAccess, deleteCompany);
+
+// Role Management
+router.get("/:companyId/roles", listRoles);
+router.post("/:companyId/roles", addRole);
+router.patch("/:companyId/roles", updateRole);
+router.delete("/:companyId/roles/:role", deleteRole);
 
 export default router;

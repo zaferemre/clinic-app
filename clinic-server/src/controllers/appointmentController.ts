@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import Appointment from "../models/Appointment";
 import Patient from "../models/Patient";
-import { ICompany } from "../models/Company";
+import { CompanyDoc } from "../models/Company";
 
 // src/controllers/appointmentController.ts
 
@@ -15,7 +15,7 @@ export const getAppointments: RequestHandler = async (req, res) => {
 
     const events = appointments.map((appt) => ({
       id: appt._id.toString(),
-      title: (appt.patientId as any)?.name ?? "Randevu",
+      title: appt.patientId?.name ?? "Randevu",
       start: appt.start,
       end: appt.end,
       extendedProps: {
@@ -23,12 +23,12 @@ export const getAppointments: RequestHandler = async (req, res) => {
         serviceId: appt.serviceId ? appt.serviceId.toString() : "",
       },
 
-      color:
-        appt.status === "done"
-          ? "#6b7280"
-          : appt.status === "cancelled"
-          ? "#ef4444"
-          : "#3b82f6",
+      // Extract color logic to a variable for clarity
+      color: (() => {
+        if (appt.status === "done") return "#6b7280";
+        if (appt.status === "cancelled") return "#ef4444";
+        return "#3b82f6";
+      })(),
     }));
 
     res.status(200).json(events);
@@ -63,7 +63,7 @@ export const createAppointment: RequestHandler = async (
       return;
     }
 
-    const company = (req as any).company as ICompany;
+    const company = (req as any).company as CompanyDoc;
     const isOwner = company.ownerEmail === employeeEmail;
     const isEmployee =
       Array.isArray(company.employees) &&
@@ -186,7 +186,7 @@ export const getAppointmentById: RequestHandler = async (
     const { companyId, appointmentId } = req.params;
 
     // Optionally preload company (if you need embedded services)
-    const company = (req as any).company as ICompany;
+    // const company = (req as any).company as CompanyDoc;
 
     const appt = await Appointment.findOne({ _id: appointmentId, companyId })
       .populate("patientId", "name")

@@ -19,6 +19,7 @@ import { AuthContextProvider, useAuth } from "./contexts/AuthContext";
 import { ServicesPage } from "./pages/ServicesPage/ServicesPage";
 import SettingsPage from "./pages/Settings/SettingsPage";
 import CompanySettings from "./components/Settings/CompanySettings";
+import UserSettings from "./components/Settings/UserSettings";
 
 function AppRoutes() {
   const { idToken, companyId, checkingCompany } = useAuth();
@@ -62,6 +63,7 @@ function AppRoutes() {
       <Route path="/messaging" element={<MessagingPage />} />
       <Route path="/services" element={<ServicesPage />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/settings/user" element={<UserSettings />} />
       <Route path="/settings/company" element={<CompanySettings />} />
 
       <Route path="/login" element={<Navigate to="/" replace />} />

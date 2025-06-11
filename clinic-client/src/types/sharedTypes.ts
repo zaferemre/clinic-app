@@ -8,15 +8,6 @@ export interface ServiceInfo {
   serviceDuration: number; // in minutes
 }
 
-export interface EmployeeInfo {
-  _id?: string;
-  email: string;
-  name?: string;
-  role?: "staff" | "manager" | "admin";
-  pictureUrl?: string;
-  services?: string[]; // Array of ServiceInfo._id (as string)
-}
-
 export interface WorkingHour {
   day:
     | "Monday"
@@ -30,6 +21,18 @@ export interface WorkingHour {
   close: string; // "18:00"
 }
 
+export interface EmployeeInfo {
+  _id?: string;
+  email: string;
+  name?: string;
+  // role is now free-form string based on company-defined roles
+  role?: string;
+  pictureUrl?: string;
+  services?: string[]; // Array of ServiceInfo._id
+  workingHours?: WorkingHour[];
+  companyId?: string;
+}
+
 export interface Company {
   _id: string;
   name: string;
@@ -41,6 +44,7 @@ export interface Company {
   phoneNumber?: string;
   googleUrl?: string;
   websiteUrl?: string;
+  companyImgUrl?: string;
   location?: {
     type: "Point";
     coordinates: [number, number];
@@ -48,16 +52,18 @@ export interface Company {
   workingHours: WorkingHour[];
   services: ServiceInfo[];
   employees: EmployeeInfo[];
+  // New dynamic roles list
+  roles: string[];
   createdAt: Date;
   updatedAt: Date;
-  companyImgUrl?: string; // Optional for backward compatibility
-  isPaid?: boolean; // Optional for backward compatibility
+  isPaid?: boolean;
   subscription?: {
     status: "active" | "trialing" | "canceled";
     provider: "iyzico" | "manual" | "other";
     nextBillingDate?: Date;
   };
 }
+
 export interface Patient {
   _id: string;
   name: string;
@@ -102,23 +108,12 @@ export interface NotificationInfo {
   note?: string;
 }
 
-export interface IEmployee {
-  _id: string;
-  email: string;
-  name?: string;
-  role?: string;
-  pictureUrl?: string; // İleride avatar URL’si de eklemek isterseniz
-  // Diğer alanlar (availability, companyId vs.) burada tanımlanabilir
-  workingHours?: WorkingHour[];
-  companyId?: string; // Company ID if needed
-}
-
 export interface IMessage {
   _id: string;
   companyId: string;
   patientId?: string;
   text: string;
-  scheduledFor: string; // ISO
+  scheduledFor: string;
   sent: boolean;
   sentAt?: string;
   createdAt: string;

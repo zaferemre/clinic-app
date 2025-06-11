@@ -10,7 +10,7 @@ type Props = {
 
 export default function LocationPicker({ value, onChange }: Props) {
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: "YOUR_API_KEY", // Replace with your real API key!
+    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY as string,
   });
 
   const handleMapClick = useCallback(

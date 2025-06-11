@@ -2,15 +2,19 @@
 
 import { RequestHandler } from "express";
 import mongoose from "mongoose";
-import Company, { ICompany } from "../models/Company";
+import Company, { CompanyDoc } from "../models/Company";
 import Appointment from "../models/Appointment";
-
+import Patient from "../models/Patient";
+import Message from "../models/Message";
+import Notification from "../models/Notification";
+import Worker from "../models/Worker";
+import Service from "../models/Service";
 // Extend Express Request interface
 declare global {
   namespace Express {
     interface Request {
       user?: { email?: string; name?: string; picture?: string };
-      company?: ICompany;
+      company?: CompanyDoc;
     }
   }
 }
@@ -49,42 +53,65 @@ export const ensureCompanyAccess: RequestHandler = async (req, res, next) => {
  * POST /company
  * Anyone authenticated can create—but only if they have no existing company.
  */
-export const createCompany: RequestHandler = async (req, res, next) => {
-  const ownerEmail = req.user?.email;
-  if (!ownerEmail) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
 
+export const createCompany: RequestHandler = async (req, res, next) => {
   try {
+    const ownerEmail = req.user?.email!;
+    const ownerName = req.user?.name!;
+    const ownerPic = req.user?.picture!;
+
+    // Make sure they don't already have a company
     const exists = await Company.findOne({ ownerEmail }).exec();
     if (exists) {
       res.status(400).json({ error: "Company already exists" });
       return;
     }
 
+    // Build the base payload
+    const {
+      name,
+      companyType,
+      address,
+      phoneNumber,
+      websiteUrl,
+      googleUrl,
+      location,
+      workingHours,
+      services,
+    } = req.body;
+
+    // Create company and seed employees with the owner
     const company = new Company({
       ownerEmail,
-      name: req.body.name,
-      companyType: req.body.companyType,
-      address: req.body.address,
-      phoneNumber: req.body.phoneNumber,
-      googleUrl: req.body.googleUrl,
-      websiteUrl: req.body.websiteUrl,
-      location: req.body.location,
-      workingHours: req.body.workingHours,
-      services: req.body.services,
-      employees: [],
+      ownerName,
+      ownerImageUrl: ownerPic,
+      name,
+      companyType,
+      address,
+      phoneNumber,
+      websiteUrl,
+      googleUrl,
+      location,
+      workingHours,
+      services,
+      roles: ["owner", "admin", "manager", "staff"],
+      employees: [
+        {
+          email: ownerEmail,
+          name: ownerName,
+          pictureUrl: ownerPic,
+          role: "owner",
+          // no services or workingHours initially
+        },
+      ],
     });
+
     await company.save();
     res.status(201).json(company);
-    return;
   } catch (err) {
-    console.error("Error in createCompany:", err);
     next(err);
   }
 };
-
 /**
  * GET /company or /company/:companyId
  * Returns the company for owner or employee (attached by ensureCompanyAccess).
@@ -402,5 +429,33 @@ export const addOrUpdateEmployee: RequestHandler = async (req, res, next) => {
     console.error("Error in addOrUpdateEmployee:", error);
     res.status(500).json({ error: "Server error", details: error.message });
     return;
+  }
+};
+
+export const deleteCompany: RequestHandler = async (req, res, next) => {
+  try {
+    const company = req.company!; // set by ensureCompanyAccess
+    if (req.user!.email !== company.ownerEmail) {
+      res.status(403).json({ error: "Only owner can delete company" });
+      return;
+    }
+    const cid = company._id;
+
+    // Cascade delete all data for this company
+    await Promise.all([
+      Appointment.deleteMany({ companyId: cid }),
+      Patient.deleteMany({ companyId: cid }),
+      Message.deleteMany({ companyId: cid }),
+      Notification.deleteMany({ companyId: cid }),
+      Worker.deleteMany({ companyId: cid }),
+      Service.deleteMany({ companyId: cid }),
+    ]);
+
+    // Finally remove the company itself
+    await Company.findByIdAndDelete(company._id);
+    res.json({ success: true });
+    return;
+  } catch (err) {
+    next(err);
   }
 };

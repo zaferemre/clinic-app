@@ -1,21 +1,22 @@
 import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { IEmployee } from "../../types/sharedTypes";
+import { EmployeeInfo } from "../../types/sharedTypes";
 import { FaTrashAlt, FaUserEdit } from "react-icons/fa";
 import { EditEmployeeModal } from "../Modals/EditEmployeeModal/EditEmployeeModal";
 
 interface Props {
-  employee: IEmployee;
+  employee: EmployeeInfo;
   ownerEmail: string | null;
   ownerImageUrl?: string;
   updatingEmail?: string | null;
+  removingEmail?: string | null;
   removingId: string | null;
   onRemove: (id: string) => void;
   onUpdateEmployee: (
     id: string,
     updates: {
-      role: IEmployee["role"];
-      workingHours: IEmployee["workingHours"];
+      role: EmployeeInfo["role"];
+      workingHours: EmployeeInfo["workingHours"];
     }
   ) => Promise<void>;
 }
@@ -40,8 +41,8 @@ export const EmployeeCard: React.FC<Props> = ({
   const [showEdit, setShowEdit] = useState(false);
 
   const handleSubmit = async (updates: {
-    role: IEmployee["role"];
-    workingHours: IEmployee["workingHours"];
+    role: EmployeeInfo["role"];
+    workingHours: EmployeeInfo["workingHours"];
   }) => {
     await onUpdateEmployee(employee._id!.toString(), updates);
     setShowEdit(false);

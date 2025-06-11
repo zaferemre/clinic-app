@@ -93,7 +93,12 @@ export async function updateAppointment(
   employeeEmail?: string
 ) {
   const url = `${API_BASE}/company/${companyId}/appointments/${appointmentId}`;
-  const body: any = { start, end };
+  const body: {
+    start: string;
+    end: string;
+    serviceId?: string;
+    employeeEmail?: string;
+  } = { start, end };
   if (serviceId) body.serviceId = serviceId;
   if (employeeEmail) body.employeeEmail = employeeEmail;
 

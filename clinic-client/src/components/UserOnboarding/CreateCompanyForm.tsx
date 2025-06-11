@@ -1,8 +1,6 @@
-// src/components/UserOnboarding/CreateCompanyForm.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { createCompany } from "../../api/companyApi";
-
 import LocationPicker from "../LocationPicker";
 
 type DayOfWeek =
@@ -28,7 +26,7 @@ export default function CreateCompanyForm({
 }: {
   onCreated: (id: string, name: string) => void;
 }) {
-  const { idToken } = useAuth();
+  const { idToken, user } = useAuth();
   const [name, setName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [companyType, setCompanyType] = useState("");
@@ -46,49 +44,43 @@ export default function CreateCompanyForm({
   ]);
   const [message, setMessage] = useState<string>("");
 
-  // For demo, ignore employees on creation
+  useEffect(() => {
+    if (user?.name) setOwnerName(user.name);
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
 
-    if (!name.trim() || !companyType.trim()) {
-      setMessage("Şirket adı ve türü zorunludur.");
-      return;
-    }
-    if (!idToken) {
-      setMessage("Önce giriş yapmalısınız.");
-      return;
-    }
-    if (!isOnline && !location) {
-      setMessage("Lütfen çevrimiçi ya da bir konum seçin.");
-      return;
-    }
+    if (!name.trim() || !companyType.trim())
+      return setMessage("Şirket adı ve türü zorunludur.");
+    if (!idToken) return setMessage("Önce giriş yapmalısınız.");
+    if (!isOnline && !location)
+      return setMessage("Lütfen çevrimiçi ya da bir konum seçin.");
 
-    // Build location object per schema
-    let locationField: any = null;
-    if (isOnline) {
-      locationField = { type: "Online" };
-    } else if (location) {
-      locationField = {
-        type: "Point",
-        coordinates: [location.lng, location.lat],
-      };
-    }
+    // Only include location when creating a physical company
+    const locationPayload:
+      | { type: "Point"; coordinates: [number, number] }
+      | undefined =
+      !isOnline && location
+        ? { type: "Point", coordinates: [location.lng, location.lat] }
+        : undefined;
 
     try {
-      const newCompany = await createCompany(idToken, {
+      const payload = {
         name: name.trim(),
         companyType: companyType.trim(),
         address: address.trim(),
         phoneNumber: phoneNumber.trim(),
         websiteUrl: websiteUrl.trim(),
         googleUrl: googleUrl.trim(),
-        location: locationField,
+        ...(locationPayload && { location: locationPayload }),
         workingHours,
-        services: services.filter((s) => s.serviceName), // Only valid ones
+        services: services.filter((s) => s.serviceName),
         employees: [],
-      });
+      };
+
+      const newCompany = await createCompany(idToken, payload);
       onCreated(newCompany._id, newCompany.name);
     } catch (err: unknown) {
       setMessage(
@@ -97,102 +89,108 @@ export default function CreateCompanyForm({
     }
   };
 
-  // Minimal UI for mobile, with toggle for online/location and services add
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 p-4 bg-white rounded-lg shadow fixed inset-x-0 bottom-0 z-50 max-h-[95vh] overflow-y-auto"
-      style={{ maxWidth: 500, margin: "0 auto" }}
+      className="space-y-6 p-6 bg-white rounded-lg shadow-lg max-w-2xl mx-auto mt-8 mb-20 border border-gray-200"
     >
-      <h2 className="text-lg font-semibold text-center">Yeni Şirket Oluştur</h2>
-      <div>
-        <label className="block text-sm mb-1">Şirket Kurucu Adı*</label>
-        <input
-          value={ownerName}
-          onChange={(e) => setOwnerName(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-      </div>
-      <div></div>
-      <div>
-        <label className="block text-sm mb-1">Şirket Adı*</label>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm mb-1">Şirket Türü*</label>
-        <input
-          value={companyType}
-          onChange={(e) => setCompanyType(e.target.value)}
-          className="w-full p-2 border rounded"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm mb-1">Telefon</label>
-        <input
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-      </div>
-      <div>
-        <label className="block text-sm mb-1">Adres</label>
-        <input
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-      </div>
-      <div>
-        <label className="block text-sm mb-1">Web Sitesi</label>
-        <input
-          value={websiteUrl}
-          onChange={(e) => setWebsiteUrl(e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-      </div>
-      <div>
-        <label className="block text-sm mb-1">Google Maps Linki</label>
-        <input
-          value={googleUrl}
-          onChange={(e) => setGoogleUrl(e.target.value)}
-          className="w-full p-2 border rounded"
-        />
+      <h2 className="text-2xl font-semibold text-center text-brand-black">
+        Yeni Şirket Oluştur
+      </h2>
+
+      {/* Owner & Basic Info */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium">Kurucu Adı*</label>
+          <input
+            value={ownerName}
+            onChange={(e) => setOwnerName(e.target.value)}
+            className="mt-1 w-full border px-3 py-2 rounded focus:ring-brand-green-300"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Şirket Adı*</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="mt-1 w-full border px-3 py-2 rounded focus:ring-brand-green-300"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Tür*</label>
+          <input
+            value={companyType}
+            onChange={(e) => setCompanyType(e.target.value)}
+            className="mt-1 w-full border px-3 py-2 rounded focus:ring-brand-green-300"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Telefon</label>
+          <input
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            className="mt-1 w-full border px-3 py-2 rounded focus:ring-brand-green-300"
+          />
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 mt-3">
+      {/* Address */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium">Adres</label>
+          <input
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            className="mt-1 w-full border px-3 py-2 rounded"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Web Sitesi</label>
+          <input
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            className="mt-1 w-full border px-3 py-2 rounded"
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-medium">Google Maps Linki</label>
+          <input
+            value={googleUrl}
+            onChange={(e) => setGoogleUrl(e.target.value)}
+            className="mt-1 w-full border px-3 py-2 rounded"
+          />
+        </div>
+      </div>
+
+      {/* Online / Location Picker */}
+      <div className="flex items-center gap-2 mb-4">
         <input
           type="checkbox"
           checked={isOnline}
-          id="online-checkbox"
           onChange={() => {
             setIsOnline((v) => !v);
             if (!isOnline) setLocation(null);
           }}
         />
-        <label htmlFor="online-checkbox" className="text-sm">
-          Çevrimiçi (Online Hizmet)
-        </label>
+        <span className="text-sm">Çevrimiçi (Online Hizmet)</span>
       </div>
-
       {!isOnline && (
-        <div>
+        <div className="h-60">
           <LocationPicker value={location} onChange={setLocation} />
         </div>
       )}
 
-      {/* Working Hours (basic) */}
+      {/* Working Hours */}
       <div>
-        <label className="block text-sm mb-1">Çalışma Saatleri</label>
+        <label className="block text-sm font-medium mb-2">
+          Çalışma Saatleri
+        </label>
         {workingHours.map((wh, idx) => (
-          <div key={wh.day} className="flex gap-2 items-center text-xs mb-1">
-            <span className="w-20">{wh.day}</span>
+          <div key={wh.day} className="flex items-center gap-3 mb-1 text-sm">
+            <span className="w-24">{wh.day}</span>
             <input
               type="time"
               value={wh.open}
@@ -203,9 +201,9 @@ export default function CreateCompanyForm({
                   )
                 )
               }
-              className="border p-1 rounded"
-              style={{ width: 70 }}
+              className="border rounded px-2 py-1"
             />
+            <span>–</span>
             <input
               type="time"
               value={wh.close}
@@ -216,8 +214,7 @@ export default function CreateCompanyForm({
                   )
                 )
               }
-              className="border p-1 rounded"
-              style={{ width: 70 }}
+              className="border rounded px-2 py-1"
             />
           </div>
         ))}
@@ -225,12 +222,11 @@ export default function CreateCompanyForm({
 
       {/* Services */}
       <div>
-        <label className="block text-sm mb-1">Hizmetler</label>
+        <label className="block text-sm font-medium mb-2">Hizmetler</label>
         {services.map((s, i) => (
-          <div key={i} className="flex gap-2 mb-1">
+          <div key={i} className="grid grid-cols-5 gap-2 mb-2">
             <input
-              type="text"
-              placeholder="Hizmet Adı"
+              placeholder="Adı"
               value={s.serviceName}
               onChange={(e) =>
                 setServices((arr) =>
@@ -239,12 +235,13 @@ export default function CreateCompanyForm({
                   )
                 )
               }
-              className="w-1/3 border p-1 rounded"
+              className="col-span-2 border px-2 py-1 rounded"
             />
             <input
               type="number"
               placeholder="Fiyat"
               value={s.servicePrice}
+              min={0}
               onChange={(e) =>
                 setServices((arr) =>
                   arr.map((v, idx) =>
@@ -254,13 +251,13 @@ export default function CreateCompanyForm({
                   )
                 )
               }
-              className="w-1/4 border p-1 rounded"
-              min={0}
+              className="border px-2 py-1 rounded"
             />
             <input
               type="number"
               placeholder="Kapora"
               value={s.serviceKapora}
+              min={0}
               onChange={(e) =>
                 setServices((arr) =>
                   arr.map((v, idx) =>
@@ -270,13 +267,13 @@ export default function CreateCompanyForm({
                   )
                 )
               }
-              className="w-1/4 border p-1 rounded"
-              min={0}
+              className="border px-2 py-1 rounded"
             />
             <input
               type="number"
-              placeholder="Süre (dk)"
+              placeholder="Süre"
               value={s.serviceDuration}
+              min={1}
               onChange={(e) =>
                 setServices((arr) =>
                   arr.map((v, idx) =>
@@ -286,19 +283,8 @@ export default function CreateCompanyForm({
                   )
                 )
               }
-              className="w-1/4 border p-1 rounded"
-              min={1}
+              className="border px-2 py-1 rounded"
             />
-            <button
-              type="button"
-              onClick={() =>
-                setServices((arr) => arr.filter((_, idx) => idx !== i))
-              }
-              className="text-red-500"
-              disabled={services.length === 1}
-            >
-              ✕
-            </button>
           </div>
         ))}
         <button
@@ -314,21 +300,21 @@ export default function CreateCompanyForm({
               },
             ])
           }
-          className="mt-2 w-full bg-green-100 text-green-800 rounded p-1 text-xs"
+          className="text-sm text-green-700 hover:underline mt-1"
         >
           + Hizmet Ekle
         </button>
       </div>
 
+      {/* Error */}
       {message && (
-        <div className="text-red-600 text-sm p-1 bg-red-50 rounded">
-          {message}
-        </div>
+        <p className="text-sm text-red-600 bg-red-100 p-2 rounded">{message}</p>
       )}
 
+      {/* Submit */}
       <button
         type="submit"
-        className="w-full py-2 bg-brand-green-300 hover:bg-brand-green-400 text-white font-semibold rounded-full"
+        className="w-full py-2 bg-brand-green-600 hover:bg-brand-green-700 text-white font-bold rounded"
         disabled={!name || !companyType || (!isOnline && !location)}
       >
         Oluştur

@@ -18,6 +18,14 @@ const appointmentRoutes_1 = __importDefault(require("./routes/appointmentRoutes"
 const notificationRoutes_1 = __importDefault(require("./routes/notificationRoutes"));
 const servicesRoutes_1 = __importDefault(require("./routes/servicesRoutes"));
 const messageRoutes_1 = __importDefault(require("./routes/messageRoutes"));
+require("./models/Service");
+require("./models/Company");
+require("./models/Patient");
+require("./models/Appointment");
+require("./models/Clinic");
+require("./models/Message");
+require("./models/Notification");
+require("./models/Worker");
 const app = (0, express_1.default)();
 // CORS + JSON
 app.use((0, cors_1.default)({

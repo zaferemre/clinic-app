@@ -1,13 +1,13 @@
 // src/components/Employees/EditEmployeeModal.tsx
 import React, { useState } from "react";
-import { IEmployee, WorkingHour } from "../../../types/sharedTypes";
+import { EmployeeInfo, WorkingHour } from "../../../types/sharedTypes";
 
 interface Props {
   show: boolean;
-  employee: IEmployee;
+  employee: EmployeeInfo;
   onClose: () => void;
   onSubmit: (updates: {
-    role: IEmployee["role"];
+    role: EmployeeInfo["role"];
     workingHours: WorkingHour[];
   }) => Promise<void>;
 }
@@ -18,7 +18,7 @@ export const EditEmployeeModal: React.FC<Props> = ({
   onClose,
   onSubmit,
 }) => {
-  const [role, setRole] = useState<IEmployee["role"]>(employee.role);
+  const [role, setRole] = useState<EmployeeInfo["role"]>(employee.role);
   const [hours, setHours] = useState<WorkingHour[]>(
     employee.workingHours ?? []
   );
@@ -72,7 +72,7 @@ export const EditEmployeeModal: React.FC<Props> = ({
           <label className="block text-sm font-medium">Rol</label>
           <select
             value={role}
-            onChange={(e) => setRole(e.target.value as IEmployee["role"])}
+            onChange={(e) => setRole(e.target.value as EmployeeInfo["role"])}
             className="w-full border px-3 py-2 rounded"
           >
             <option value="staff">Staff</option>

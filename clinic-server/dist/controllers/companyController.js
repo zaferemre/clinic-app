@@ -4,10 +4,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addOrUpdateEmployee = exports.getServices = exports.getAppointments = exports.updateServices = exports.updateWorkingHours = exports.getEmployeeSchedule = exports.joinCompany = exports.addEmployee = exports.getEmployees = exports.updateCompany = exports.getCompany = exports.createCompany = exports.ensureCompanyAccess = void 0;
+exports.deleteCompany = exports.addOrUpdateEmployee = exports.getServices = exports.getAppointments = exports.updateServices = exports.updateWorkingHours = exports.getEmployeeSchedule = exports.joinCompany = exports.addEmployee = exports.getEmployees = exports.updateCompany = exports.getCompany = exports.createCompany = exports.ensureCompanyAccess = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const Company_1 = __importDefault(require("../models/Company"));
 const Appointment_1 = __importDefault(require("../models/Appointment"));
+const Patient_1 = __importDefault(require("../models/Patient"));
+const Message_1 = __importDefault(require("../models/Message"));
+const Notification_1 = __importDefault(require("../models/Notification"));
+const Worker_1 = __importDefault(require("../models/Worker"));
+const Service_1 = __importDefault(require("../models/Service"));
 /**
  * Middleware: ensure the authenticated user (req.user.email)
  * is either the ownerEmail or one of the employees.email,
@@ -41,36 +46,47 @@ exports.ensureCompanyAccess = ensureCompanyAccess;
  * Anyone authenticated can create—but only if they have no existing company.
  */
 const createCompany = async (req, res, next) => {
-    const ownerEmail = req.user?.email;
-    if (!ownerEmail) {
-        res.status(401).json({ error: "Unauthorized" });
-        return;
-    }
     try {
+        const ownerEmail = req.user?.email;
+        const ownerName = req.user?.name;
+        const ownerPic = req.user?.picture;
+        // Make sure they don't already have a company
         const exists = await Company_1.default.findOne({ ownerEmail }).exec();
         if (exists) {
             res.status(400).json({ error: "Company already exists" });
             return;
         }
+        // Build the base payload
+        const { name, companyType, address, phoneNumber, websiteUrl, googleUrl, location, workingHours, services, } = req.body;
+        // Create company and seed employees with the owner
         const company = new Company_1.default({
             ownerEmail,
-            name: req.body.name,
-            companyType: req.body.companyType,
-            address: req.body.address,
-            phoneNumber: req.body.phoneNumber,
-            googleUrl: req.body.googleUrl,
-            websiteUrl: req.body.websiteUrl,
-            location: req.body.location,
-            workingHours: req.body.workingHours,
-            services: req.body.services,
-            employees: [],
+            ownerName,
+            ownerImageUrl: ownerPic,
+            name,
+            companyType,
+            address,
+            phoneNumber,
+            websiteUrl,
+            googleUrl,
+            location,
+            workingHours,
+            services,
+            roles: ["owner", "admin", "manager", "staff"],
+            employees: [
+                {
+                    email: ownerEmail,
+                    name: ownerName,
+                    pictureUrl: ownerPic,
+                    role: "owner",
+                    // no services or workingHours initially
+                },
+            ],
         });
         await company.save();
         res.status(201).json(company);
-        return;
     }
     catch (err) {
-        console.error("Error in createCompany:", err);
         next(err);
     }
 };
@@ -371,3 +387,30 @@ const addOrUpdateEmployee = async (req, res, next) => {
     }
 };
 exports.addOrUpdateEmployee = addOrUpdateEmployee;
+const deleteCompany = async (req, res, next) => {
+    try {
+        const company = req.company; // set by ensureCompanyAccess
+        if (req.user.email !== company.ownerEmail) {
+            res.status(403).json({ error: "Only owner can delete company" });
+            return;
+        }
+        const cid = company._id;
+        // Cascade delete all data for this company
+        await Promise.all([
+            Appointment_1.default.deleteMany({ companyId: cid }),
+            Patient_1.default.deleteMany({ companyId: cid }),
+            Message_1.default.deleteMany({ companyId: cid }),
+            Notification_1.default.deleteMany({ companyId: cid }),
+            Worker_1.default.deleteMany({ companyId: cid }),
+            Service_1.default.deleteMany({ companyId: cid }),
+        ]);
+        // Finally remove the company itself
+        await Company_1.default.findByIdAndDelete(company._id);
+        res.json({ success: true });
+        return;
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.deleteCompany = deleteCompany;

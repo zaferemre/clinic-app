@@ -210,3 +210,101 @@ export async function uploadImage(
   const data = await res.json();
   return data.imageUrl;
 }
+/**
+ * Delete a company (owner only)
+ */
+export async function deleteCompany(
+  idToken: string,
+  companyId: string
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/company/${companyId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+    },
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
+/**
+ * Delete the current user’s account
+ */
+export async function deleteUser(idToken: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/company/user`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+    },
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+/**
+ * Fetch dynamic roles
+ */
+export async function getRoles(
+  idToken: string,
+  companyId: string
+): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/company/${companyId}/roles`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+/**
+ * Create a new role
+ */
+export async function createRole(
+  idToken: string,
+  companyId: string,
+  role: string
+): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/company/${companyId}/roles`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+/**
+ * Update an existing role
+ */
+export async function updateRole(
+  idToken: string,
+  companyId: string,
+  oldRole: string,
+  newRole: string
+): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/company/${companyId}/roles`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({ oldRole, newRole }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+/**
+ * Remove a role
+ */
+export async function removeRole(
+  idToken: string,
+  companyId: string,
+  role: string
+): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/company/${companyId}/roles/${role}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}

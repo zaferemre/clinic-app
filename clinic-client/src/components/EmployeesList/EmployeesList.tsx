@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { EmployeeCard } from "./EmployeeCard";
-import { IEmployee, WorkingHour } from "../../types/sharedTypes";
+import { EmployeeInfo, WorkingHour } from "../../types/sharedTypes";
 import { API_BASE } from "../../config/apiConfig";
 
 export const EmployeesList: React.FC = () => {
   const { idToken, companyId, user } = useAuth();
-  const [employees, setEmployees] = useState<IEmployee[]>([]);
+  const [employees, setEmployees] = useState<EmployeeInfo[]>([]);
   const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
   const [ownerImageUrl, setOwnerImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -45,7 +45,7 @@ export const EmployeesList: React.FC = () => {
         },
       });
       if (!empRes.ok) throw new Error("Çalışanlar yüklenemedi");
-      const empArr: IEmployee[] = await empRes.json();
+      const empArr: EmployeeInfo[] = await empRes.json();
 
       // 3) Prepend owner if missing
       if (comp.ownerEmail && !empArr.some((e) => e.email === comp.ownerEmail)) {
@@ -116,7 +116,7 @@ export const EmployeesList: React.FC = () => {
   // Update employee (role & workingHours)
   const handleUpdateEmployee = async (
     email: string,
-    updates: { role: IEmployee["role"]; workingHours?: WorkingHour[] }
+    updates: { role: EmployeeInfo["role"]; workingHours?: WorkingHour[] }
   ) => {
     if (!idToken || !companyId) return;
     setUpdatingEmail(email);
@@ -163,6 +163,7 @@ export const EmployeesList: React.FC = () => {
             removingEmail={removingEmail}
             onRemove={handleRemoveEmployee}
             onUpdateEmployee={handleUpdateEmployee}
+            removingId={removingEmail === e.email ? e._id ?? null : null}
           />
         ))}
       </ul>
