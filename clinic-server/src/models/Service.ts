@@ -1,4 +1,6 @@
-import mongoose, { Schema, Document } from "mongoose";
+// src/models/Service.ts
+
+import mongoose, { Document, Schema } from "mongoose";
 
 export interface IService extends Document {
   serviceName: string;
@@ -8,7 +10,8 @@ export interface IService extends Document {
   companyId: mongoose.Types.ObjectId;
 }
 
-const ServiceSchema = new Schema<IService>({
+// Export the schema so it can be embedded if needed
+export const ServiceSchema = new Schema<IService>({
   companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
   serviceName: { type: String, required: true },
   servicePrice: { type: Number, required: true, min: 0 },
@@ -16,5 +19,6 @@ const ServiceSchema = new Schema<IService>({
   serviceDuration: { type: Number, required: true, min: 1 },
 });
 
+// Default-export the Mongoose model
 export default mongoose.models.Service ||
   mongoose.model<IService>("Service", ServiceSchema);
