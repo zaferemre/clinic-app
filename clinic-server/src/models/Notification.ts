@@ -1,30 +1,32 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
 
-export interface NotificationDocument extends mongoose.Document {
+export interface NotificationDocument extends Document {
   companyId: mongoose.Types.ObjectId;
   patientId: mongoose.Types.ObjectId;
-  type: "call"; // currently only “call”
+  type: "call";
   status: "pending" | "done";
-  createdAt: Date;
-  updatedAt: Date;
-  workerEmail?: string; // optional who flagged it
-  note?: string; // optional notes field
+  workerEmail?: string;
+  note?: string;
 }
 
-const notificationSchema = new mongoose.Schema<NotificationDocument>(
+const notificationSchema = new Schema<NotificationDocument>(
   {
     companyId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       required: true,
-      ref: "Clinic",
+      ref: "Company",
     },
     patientId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       required: true,
       ref: "Patient",
     },
     type: { type: String, enum: ["call"], required: true },
-    status: { type: String, enum: ["pending", "done"], default: "pending" },
+    status: {
+      type: String,
+      enum: ["pending", "done"],
+      default: "pending",
+    },
     workerEmail: { type: String },
     note: { type: String, default: "" },
   },
@@ -34,4 +36,5 @@ const notificationSchema = new mongoose.Schema<NotificationDocument>(
 const Notification =
   mongoose.models.Notification ||
   mongoose.model<NotificationDocument>("Notification", notificationSchema);
+
 export default Notification;

@@ -1,5 +1,3 @@
-// src/models/Service.ts
-
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IService extends Document {
@@ -10,7 +8,7 @@ export interface IService extends Document {
   companyId: mongoose.Types.ObjectId;
 }
 
-// ① Named export of the raw schema for embedding
+// Named export of the raw schema for embedding
 export const ServiceSchema = new Schema<IService>(
   {
     companyId: {
@@ -26,6 +24,6 @@ export const ServiceSchema = new Schema<IService>(
   { timestamps: true }
 );
 
-// ② Default export of the Mongoose model
+// Default export of the model
 export default mongoose.models.Service ||
   mongoose.model<IService>("Service", ServiceSchema);

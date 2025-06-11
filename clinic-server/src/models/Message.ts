@@ -1,9 +1,8 @@
-// src/models/Message.ts
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IMessage extends Document {
   companyId: mongoose.Types.ObjectId;
-  patientId?: mongoose.Types.ObjectId; // optional — if null, it’s a bulk message
+  patientId?: mongoose.Types.ObjectId;
   text: string;
   scheduledFor: Date;
   sent: boolean;
@@ -12,8 +11,15 @@ export interface IMessage extends Document {
 
 const messageSchema = new Schema<IMessage>(
   {
-    companyId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
-    patientId: { type: Schema.Types.ObjectId, ref: "Patient", required: false },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Company",
+    },
+    patientId: {
+      type: Schema.Types.ObjectId,
+      ref: "Patient",
+    },
     text: { type: String, required: true },
     scheduledFor: { type: Date, required: true },
     sent: { type: Boolean, default: false },
@@ -22,4 +28,7 @@ const messageSchema = new Schema<IMessage>(
   { timestamps: true }
 );
 
-export default mongoose.model<IMessage>("Message", messageSchema);
+const Message =
+  mongoose.models.Message || mongoose.model<IMessage>("Message", messageSchema);
+
+export default Message;

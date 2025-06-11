@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
 
-export interface AppointmentDocument extends mongoose.Document {
+export interface AppointmentDocument extends Document {
   companyId: mongoose.Types.ObjectId;
   patientId: mongoose.Types.ObjectId;
   employeeEmail: string;
@@ -10,15 +10,15 @@ export interface AppointmentDocument extends mongoose.Document {
   status: "scheduled" | "done" | "cancelled";
 }
 
-const appointmentSchema = new mongoose.Schema<AppointmentDocument>(
+const appointmentSchema = new Schema<AppointmentDocument>(
   {
     companyId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       required: true,
       ref: "Company",
     },
     patientId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       required: true,
       ref: "Patient",
     },
@@ -27,7 +27,7 @@ const appointmentSchema = new mongoose.Schema<AppointmentDocument>(
       required: true,
     },
     serviceId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       required: true,
       ref: "Service",
     },
