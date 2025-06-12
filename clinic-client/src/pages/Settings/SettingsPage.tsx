@@ -8,6 +8,7 @@ import {
   SunIcon,
   LockClosedIcon,
   AdjustmentsHorizontalIcon,
+  ArrowRightStartOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
@@ -100,7 +101,7 @@ export const SettingsPage: React.FC = () => {
           onClick={handleLogout}
           className="w-full flex items-center space-x-4 p-4 bg-white hover:bg-gray-50 rounded-lg shadow-sm transition text-red-600"
         >
-          <ArrowRightOnRectangleIcon className="w-6 h-6 text-red-600" />
+          <ArrowRightStartOnRectangleIcon className="w-6 h-6 text-red-600" />
           <span className="text-base font-medium">Çıkış Yap</span>
         </button>
       </main>
