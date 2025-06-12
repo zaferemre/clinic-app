@@ -37,6 +37,12 @@ const mongoose_1 = __importStar(require("mongoose"));
 // Re-use your existing sub-schemas (workingHourSchema, employeeSchema)
 const WorkingHour_1 = require("./WorkingHour");
 const Employee_1 = require("./Employee");
+const AddressSchema = new mongoose_1.Schema({
+    province: { type: String, required: true },
+    district: { type: String, required: true },
+    town: { type: String, required: true },
+    neighborhood: { type: String, required: true },
+}, { _id: false });
 const companyServiceSchema = new mongoose_1.Schema({
     serviceName: { type: String, required: true },
     servicePrice: { type: Number, required: true, min: 0 },
@@ -49,7 +55,7 @@ const CompanySchema = new mongoose_1.Schema({
     ownerEmail: { type: String, required: true, index: true },
     ownerImageUrl: { type: String, default: "" },
     companyType: { type: String, required: true },
-    address: { type: String },
+    address: { type: AddressSchema },
     phoneNumber: { type: String },
     googleUrl: { type: String },
     websiteUrl: { type: String },

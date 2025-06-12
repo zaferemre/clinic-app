@@ -29,12 +29,12 @@ import {
 } from "../../api/appointmentApi";
 import { getPatients } from "../../api/patientApi";
 import { useAuth } from "../../contexts/AuthContext";
-import AddPatient from "../AddPatient/AddPatient";
-import { AppointmentModal } from "../AppointmentModal";
+import { AppointmentModal } from "../Modals/AppointmentModal";
 import { CalendarEmployee } from "../CalendarEmployeeSelector/CalendarEmployeeSelector";
 import { NewAppointmentModal } from "./NewAppointmentModal";
 import { ServiceAndEmployeeFilter } from "./ServiceAndEmployeeFilter";
 import { API_BASE } from "../../config/apiConfig";
+import AddPatientModal from "../AddPatient/AddPatientModal";
 
 interface Service {
   _id: string;
@@ -369,22 +369,12 @@ export const CalendarView: React.FC = () => {
       />
 
       {/* MODALS */}
-      {showAddPatient && (
-        <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center">
-          <AddPatient
-            companyId={companyId!}
-            idToken={idToken!}
-            show={showAddPatient}
-            onClose={() => setShowAddPatient(false)}
-          />
-          <button
-            className="absolute top-4 right-4 text-white text-3xl"
-            onClick={() => setShowAddPatient(false)}
-          >
-            ×
-          </button>
-        </div>
-      )}
+      <AddPatientModal
+        show={showAddPatient}
+        onClose={() => setShowAddPatient(false)}
+        idToken={idToken!}
+        companyId={companyId!}
+      />
 
       {modalAppointmentData && (
         <AppointmentModal

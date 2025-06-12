@@ -1,7 +1,7 @@
 // src/components/AddPatientBanner/AddPatientBanner.tsx
 
 import React, { useState } from "react";
-import AddPatient from "../../AddPatient/AddPatient";
+import AddPatient from "../../AddPatient/AddPatientModal";
 import { UserPlusIcon } from "@heroicons/react/24/outline";
 
 interface AddPatientBannerProps {

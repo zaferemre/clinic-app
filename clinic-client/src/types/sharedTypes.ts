@@ -119,3 +119,11 @@ export interface IMessage {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface PatientSettings {
+  showCredit: boolean;
+  showPaymentStatus: boolean;
+  showServicesReceived: boolean;
+  showServicePointBalance: boolean;
+  showNotes: boolean;
+}

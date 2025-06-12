@@ -308,3 +308,17 @@ export async function removeRole(
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+//JoinCompany API
+export async function joinCompany(
+  idToken: string,
+  companyId: string
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/company/${companyId}/join`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${idToken}`,
+    },
+  });
+  if (!res.ok) throw new Error(await res.text());
+}

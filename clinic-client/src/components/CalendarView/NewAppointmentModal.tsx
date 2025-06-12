@@ -1,5 +1,6 @@
 // src/components/NewAppointmentModal.tsx
 import React from "react";
+import AppModal from "../Modals/AppModal";
 
 interface Patient {
   _id: string;
@@ -55,69 +56,58 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
   selectedService,
   setSelectedService,
   startStr,
-  endStr,
   setStartStr,
+  endStr,
   setEndStr,
   onSubmit,
   onAddPatient,
 }) => {
   if (!show) return null;
 
-  const handleSubmit = () => {
-    const startDate = new Date(startStr);
-    const endDate = new Date(endStr);
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      alert("Tarih bilgisi geçersiz.");
-      return;
-    }
-
-    const startISO = startDate.toISOString();
-    const endISO = endDate.toISOString();
-    const employeeEmailToUse = isOwner ? selectedEmployee : currentEmail;
-
-    onSubmit(startISO, endISO, employeeEmailToUse);
+  const handle = () => {
+    if (!startStr || !endStr) return alert("Geçerli tarih girin.");
+    onSubmit(
+      new Date(startStr).toISOString(),
+      new Date(endStr).toISOString(),
+      isOwner ? selectedEmployee : currentEmail
+    );
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Yeni Randevu Oluştur</h2>
-          <button onClick={onClose} className="text-xl">
-            ×
-          </button>
-        </div>
-
+    <AppModal open={show} onClose={onClose} title="Yeni Randevu Oluştur">
+      <div className="space-y-4">
+        {/* Patient */}
         <div>
-          <label className="block text-sm font-medium mb-1">Hasta:</label>
-          <select
-            value={selectedPatient}
-            onChange={(e) => setSelectedPatient(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-          >
-            <option value="">Seçiniz</option>
-            {patients.map((p) => (
-              <option key={p._id} value={p._id}>
-                {p.name} (Seans Kredisi: {p.credit})
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={onAddPatient}
-            className="text-sm text-blue-600 underline mt-1"
-          >
-            + Yeni Müşteri Ekle
-          </button>
+          <label className="block text-sm">Hasta</label>
+          <div className="flex space-x-2">
+            <select
+              value={selectedPatient}
+              onChange={(e) => setSelectedPatient(e.target.value)}
+              className="flex-1 border rounded p-2"
+            >
+              <option value="">Seçiniz</option>
+              {patients.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name} (Kredi: {p.credit})
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={onAddPatient}
+              className="text-sm text-blue-600 underline"
+            >
+              + Yeni
+            </button>
+          </div>
         </div>
-
+        {/* Employee */}
         {isOwner && (
           <div>
-            <label className="block text-sm font-medium mb-1">Çalışan:</label>
+            <label className="block text-sm">Çalışan</label>
             <select
               value={selectedEmployee}
               onChange={(e) => setSelectedEmployee(e.target.value)}
-              className="w-full border px-3 py-2 rounded"
+              className="w-full border rounded p-2"
             >
               <option value="">Seçiniz</option>
               {employees.map((e) => (
@@ -128,14 +118,13 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
             </select>
           </div>
         )}
-        {!isOwner && <input type="hidden" value={currentEmail} />}
-
+        {/* Service */}
         <div>
-          <label className="block text-sm font-medium mb-1">Hizmet:</label>
+          <label className="block text-sm">Hizmet</label>
           <select
             value={selectedService}
             onChange={(e) => setSelectedService(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
+            className="w-full border rounded p-2"
           >
             <option value="">Seçiniz</option>
             {services.map((s) => (
@@ -145,42 +134,39 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
             ))}
           </select>
         </div>
-
-        <div className="flex space-x-2">
-          <div className="flex-1">
-            <label className="block text-sm mb-1">Başlangıç:</label>
+        {/* Times */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-sm">Başlangıç</label>
             <input
               type="datetime-local"
-              step="60"
-              value={startStr ? startStr.slice(0, 16) : ""}
+              value={startStr.slice(0, 16)}
               onChange={(e) => setStartStr(e.target.value)}
-              className="w-full border px-3 py-1 rounded"
+              className="w-full border rounded p-2"
             />
           </div>
-          <div className="flex-1">
-            <label className="block text-sm mb-1">Bitiş:</label>
+          <div>
+            <label className="block text-sm">Bitiş</label>
             <input
               type="datetime-local"
-              step="60"
-              value={endStr ? endStr.slice(0, 16) : ""}
+              value={endStr.slice(0, 16)}
               onChange={(e) => setEndStr(e.target.value)}
-              className="w-full border px-3 py-1 rounded"
+              className="w-full border rounded p-2"
             />
           </div>
         </div>
-
-        <div className="flex space-x-2 pt-2">
+        <div className="flex justify-end space-x-2 pt-4">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">
+            İptal
+          </button>
           <button
-            onClick={handleSubmit}
-            className="flex-1 bg-green-500 text-white py-2 rounded"
+            onClick={handle}
+            className="px-4 py-2 bg-green-500 text-white rounded"
           >
             Oluştur
           </button>
-          <button onClick={onClose} className="flex-1 bg-gray-300 py-2 rounded">
-            İptal
-          </button>
         </div>
       </div>
-    </div>
+    </AppModal>
   );
 };

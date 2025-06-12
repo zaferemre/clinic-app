@@ -1,5 +1,6 @@
 // src/components/Services/ServiceModal.tsx
 import React, { useState, useEffect } from "react";
+import AppModal from "../../Modals/AppModal";
 import { Service } from "../../../api/servicesApi";
 
 interface Props {
@@ -29,9 +30,9 @@ export const ServiceModal: React.FC<Props> = ({
   useEffect(() => {
     if (serviceToEdit) {
       setName(serviceToEdit.serviceName);
-      setPrice(serviceToEdit.servicePrice.toString());
-      setKapora(serviceToEdit.serviceKapora.toString());
-      setDuration(serviceToEdit.serviceDuration.toString());
+      setPrice(String(serviceToEdit.servicePrice));
+      setKapora(String(serviceToEdit.serviceKapora));
+      setDuration(String(serviceToEdit.serviceDuration));
     } else {
       setName("");
       setPrice("");
@@ -40,14 +41,12 @@ export const ServiceModal: React.FC<Props> = ({
     }
   }, [serviceToEdit]);
 
-  if (!show) return null;
-
-  const handle = () => {
-    const p = parseFloat(price);
-    const k = parseFloat(kapora);
-    const d = parseInt(duration, 10);
-    if (!name || isNaN(p) || p < 0 || isNaN(k) || k < 0 || isNaN(d) || d < 1) {
-      return alert("Lütfen tüm alanları geçerli şekilde doldurun.");
+  const handleSave = () => {
+    const p = parseFloat(price),
+      k = parseFloat(kapora),
+      d = parseInt(duration, 10);
+    if (!name || isNaN(p) || isNaN(k) || isNaN(d) || p < 0 || k < 0 || d < 1) {
+      return alert("Lütfen tüm alanları doğru doldurun.");
     }
     onSubmit({
       serviceName: name,
@@ -56,64 +55,69 @@ export const ServiceModal: React.FC<Props> = ({
       serviceDuration: d,
       _id: serviceToEdit?._id,
     });
+    onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md space-y-4">
-        <h2 className="text-lg font-semibold">
-          {serviceToEdit ? "Hizmeti Düzenle" : "Yeni Hizmet"}
-        </h2>
+    <AppModal
+      open={show}
+      onClose={onClose}
+      title={serviceToEdit ? "Hizmeti Düzenle" : "Yeni Hizmet"}
+    >
+      <div className="space-y-4">
         <div>
-          <label className="block text-sm mb-1">Hizmet Adı:</label>
+          <label className="block text-sm">Hizmet Adı</label>
           <input
-            className="w-full border px-3 py-2 rounded"
+            className="mt-1 w-full border px-3 py-2 rounded"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm mb-1">Ücret (TL):</label>
+          <label className="block text-sm">Ücret (TL)</label>
           <input
             type="number"
             min="0"
-            className="w-full border px-3 py-2 rounded"
+            className="mt-1 w-full border px-3 py-2 rounded"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm mb-1">Kapora (TL):</label>
+          <label className="block text-sm">Kapora (TL)</label>
           <input
             type="number"
             min="0"
-            className="w-full border px-3 py-2 rounded"
+            className="mt-1 w-full border px-3 py-2 rounded"
             value={kapora}
             onChange={(e) => setKapora(e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm mb-1">Süre (dakika):</label>
+          <label className="block text-sm">Süre (dk)</label>
           <input
             type="number"
             min="1"
-            className="w-full border px-3 py-2 rounded"
+            className="mt-1 w-full border px-3 py-2 rounded"
             value={duration}
             onChange={(e) => setDuration(e.target.value)}
           />
         </div>
-        <div className="flex space-x-2 pt-2">
+        <div className="flex justify-end space-x-2 pt-4">
           <button
-            onClick={handle}
-            className="flex-1 bg-green-500 text-white py-2 rounded"
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+          >
+            İptal
+          </button>
+          <button
+            onClick={handleSave}
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
           >
             Kaydet
           </button>
-          <button onClick={onClose} className="flex-1 bg-gray-300 py-2 rounded">
-            İptal
-          </button>
         </div>
       </div>
-    </div>
+    </AppModal>
   );
 };

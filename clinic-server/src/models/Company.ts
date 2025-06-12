@@ -4,6 +4,17 @@ import mongoose, { Document, Schema } from "mongoose";
 import { WorkingHour, workingHourSchema } from "./WorkingHour";
 import { EmployeeInfo, employeeSchema } from "./Employee";
 import { IService, ServiceSchema } from "./Service";
+
+const AddressSchema = new Schema(
+  {
+    province: { type: String, required: true },
+    district: { type: String, required: true },
+    town: { type: String, required: true },
+    neighborhood: { type: String, required: true },
+  },
+  { _id: false }
+);
+
 const companyServiceSchema = new Schema(
   {
     serviceName: { type: String, required: true },
@@ -44,7 +55,7 @@ const CompanySchema = new Schema<CompanyDoc>(
     ownerEmail: { type: String, required: true, index: true },
     ownerImageUrl: { type: String, default: "" },
     companyType: { type: String, required: true },
-    address: { type: String },
+    address: { type: AddressSchema },
     phoneNumber: { type: String },
     googleUrl: { type: String },
     websiteUrl: { type: String },

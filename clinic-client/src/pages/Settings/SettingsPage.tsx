@@ -7,16 +7,12 @@ import {
   BellIcon,
   SunIcon,
   LockClosedIcon,
-  ArrowRightOnRectangleIcon,
   AdjustmentsHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
-import {
-  PatientSettingsModal,
-  PatientSettings,
-} from "../../components/Settings/PatientSettingsModal";
-
+import { PatientSettingsModal } from "../../components/Modals/PatientSettingsModal";
+import { PatientSettings } from "../../types/sharedTypes";
 const settingsOptions = [
   { label: "Profil", icon: UserIcon, path: "/settings/user" },
   {
