@@ -319,6 +319,7 @@ export async function joinCompany(
       "Content-Type": "application/json",
       Authorization: `Bearer ${idToken}`,
     },
+    body: JSON.stringify({ joinCode: companyId }), // send joinCode as companyId
   });
   if (!res.ok) throw new Error(await res.text());
 }

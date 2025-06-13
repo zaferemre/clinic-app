@@ -1,20 +1,17 @@
-// src/components/UserOnboarding/JoinCompanyForm.tsx
-
 import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { getCompanyById, addEmployee } from "../../api/companyApi";
+import { getCompanyById, joinCompany } from "../../api/companyApi";
 
 interface JoinCompanyFormProps {
   onJoined: (companyId: string, companyName: string) => void;
 }
 
 const JoinCompanyForm: React.FC<JoinCompanyFormProps> = ({ onJoined }) => {
-  const { idToken, user } = useAuth();
+  const { idToken } = useAuth();
   const [joinCode, setJoinCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Only a join code is needed now
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
@@ -30,23 +27,20 @@ const JoinCompanyForm: React.FC<JoinCompanyFormProps> = ({ onJoined }) => {
 
     setLoading(true);
     try {
-      // 1. Validate company exists
+      // Try to join the company via backend
+      await joinCompany(idToken, joinCode.trim());
+
+      // Fetch company info for UI update
       const company = await getCompanyById(idToken, joinCode.trim());
-      // 2. Add user as a staff member
-      await addEmployee(idToken, company._id, {
-        email: user?.email ?? "",
-        name: user?.name ?? "",
-        role: "staff",
-        pictureUrl:
-          user && "picture" in user
-            ? (user as { picture?: string }).picture
-            : undefined,
-      });
-      // 3. Success: go to company
       onJoined(company._id, company.name);
-    } catch (err) {
-      if (err instanceof Error) {
-        setMessage(err.message ?? "Şirket katılımı başarısız.");
+    } catch (err: unknown) {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "message" in err &&
+        typeof (err as { message?: unknown }).message === "string"
+      ) {
+        setMessage((err as { message: string }).message);
       } else {
         setMessage("Şirket katılımı başarısız.");
       }

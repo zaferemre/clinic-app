@@ -30,7 +30,12 @@ export interface CompanyDoc extends Document {
   ownerEmail: string;
   ownerImageUrl?: string;
   companyType: string;
-  address?: string;
+  address?: {
+    province: string;
+    district: string;
+    town: string;
+    neighborhood: string;
+  };
   phoneNumber?: string;
   googleUrl?: string;
   websiteUrl?: string;

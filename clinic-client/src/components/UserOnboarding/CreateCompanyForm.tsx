@@ -213,7 +213,7 @@ export default function CreateCompanyForm({
   useEffect(() => {
     if (provQuery && districtQuery) {
       const p = provinces.find((p) => p.Province === provQuery);
-      const list = p?.Districts.map((d: any) => d.District) || [];
+      const list = p?.Districts.map((d: District) => d.District) || [];
       setDistrictSug(
         list.filter((n) =>
           n.toLowerCase().includes(districtQuery.toLowerCase())
@@ -228,8 +228,10 @@ export default function CreateCompanyForm({
   useEffect(() => {
     if (provQuery && districtQuery && townQuery) {
       const p = provinces.find((p) => p.Province === provQuery);
-      const d = p?.Districts.find((d: any) => d.District === districtQuery);
-      const list = d?.Towns.map((t: any) => t.Town) || [];
+      const d = p?.Districts.find(
+        (d: District) => d.District === districtQuery
+      );
+      const list = d?.Towns.map((t: Town) => t.Town) || [];
       setTownSug(
         list.filter((n) => n.toLowerCase().includes(townQuery.toLowerCase()))
       );
@@ -240,8 +242,10 @@ export default function CreateCompanyForm({
   useEffect(() => {
     if (provQuery && districtQuery && townQuery && neighQuery) {
       const p = provinces.find((p) => p.Province === provQuery);
-      const d = p?.Districts.find((d: any) => d.District === districtQuery);
-      const t = d?.Towns.find((t: any) => t.Town === townQuery);
+      const d = p?.Districts.find(
+        (d: District) => d.District === districtQuery
+      );
+      const t = d?.Towns.find((t: Town) => t.Town === townQuery);
       const list = t?.Neighbourhoods || [];
       setNeighSug(
         list.filter((n: string) =>
@@ -259,7 +263,7 @@ export default function CreateCompanyForm({
         )}&limit=1`
       )
         .then((r) => r.json())
-        .then((data: any[]) => {
+        .then((data: { lat: string; lon: string }[]) => {
           if (data[0]) setMapLocation({ lat: +data[0].lat, lng: +data[0].lon });
         });
     }
@@ -282,8 +286,13 @@ export default function CreateCompanyForm({
       name: companyName,
       ownerName,
       companyType,
-      phone: phoneCode.dial_code + phone,
-      address: `${neighQuery}, ${townQuery}, ${districtQuery}, ${provQuery}`,
+      phoneNumber: phoneCode.dial_code + phone,
+      address: {
+        province: provQuery,
+        district: districtQuery,
+        town: townQuery,
+        neighborhood: neighQuery,
+      },
       location: {
         type: "Point" as const,
         coordinates: [finalLoc.lng, finalLoc.lat] as [number, number],
