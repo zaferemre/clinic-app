@@ -323,3 +323,17 @@ export async function joinCompany(
   });
   if (!res.ok) throw new Error(await res.text());
 }
+
+// leaveCompany API
+export async function leaveCompany(
+  idToken: string,
+  companyId: string
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/company/${companyId}/leave`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+    },
+  });
+  if (!res.ok) throw new Error(await res.text());
+}

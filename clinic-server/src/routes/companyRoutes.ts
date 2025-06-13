@@ -15,6 +15,7 @@ import {
   ensureCompanyAccess,
   getServices,
   deleteCompany,
+  leaveCompany,
 } from "../controllers/companyController";
 import { deleteUserAccount } from "../controllers/userController";
 import {
@@ -41,7 +42,7 @@ router.post("/", createCompany);
 
 // POST /company/:companyId/join
 router.post("/:companyId/join", joinCompany);
-
+router.post("/:companyId/leave", leaveCompany);
 /**
  * Everything under /:companyId/* after this point
  * now requires either owner OR already-joined employee.
@@ -87,6 +88,7 @@ router.patch("/:companyId/services", updateServices);
 router.get("/:companyId/services", getServices);
 router.patch("/:companyId/employees/:employeeId", updateEmployee);
 router.delete("/:companyId/employees/:employeeId", deleteEmployee);
+
 // Owner‐only: delete company entirely
 router.delete("/:companyId", ensureCompanyAccess, deleteCompany);
 

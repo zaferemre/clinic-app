@@ -459,3 +459,32 @@ export const deleteCompany: RequestHandler = async (req, res, next) => {
     next(err);
   }
 };
+// POST /company/:companyId/leave
+export const leaveCompany: RequestHandler = async (req, res, next) => {
+  try {
+    const userEmail = req.user?.email;
+    const { companyId } = req.params;
+
+    const company = await Company.findById(companyId);
+    if (!company) {
+      res.status(404).json({ error: "Company not found" });
+      return;
+    }
+
+    if (company.ownerEmail === userEmail) {
+      res.status(400).json({ error: "Owner cannot leave their own company" });
+      return;
+    }
+
+    company.employees = company.employees.filter(
+      (e: (typeof company.employees)[number]) => e.email !== userEmail
+    );
+    await company.save();
+
+    res.json({ success: true });
+    return;
+  } catch (err) {
+    next(err);
+    return;
+  }
+};

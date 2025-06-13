@@ -1,32 +1,44 @@
-// src/pages/Settings/UserSettings.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { getCompanyByEmail, deleteUser } from "../../api/companyApi";
+import {
+  getCompanyByEmail,
+  deleteUser,
+  leaveCompany,
+} from "../../api/companyApi";
 import { updateProfile } from "firebase/auth";
 import { auth } from "../../firebase";
-import { UserIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  UserIcon,
+  TrashIcon,
+  ArrowLeftStartOnRectangleIcon,
+} from "@heroicons/react/24/outline";
+import type { Company } from "../../types/sharedTypes";
 
 export const UserSettings: React.FC = () => {
   const { user, idToken, signOut } = useAuth();
-  const [displayName, setDisplayName] = useState(user?.name || "");
-  const [photoURL, setPhotoURL] = useState(user?.imageUrl || "");
+  const [displayName, setDisplayName] = useState(user?.name ?? "");
+  const [photoURL, setPhotoURL] = useState(user?.imageUrl ?? "");
   const [saving, setSaving] = useState(false);
+
+  const [company, setCompany] = useState<Company | null>(null);
   const [companyOwned, setCompanyOwned] = useState<boolean>(false);
+  const [loadingLeave, setLoadingLeave] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // check if this user owns a company
     async function check() {
       try {
-        await getCompanyByEmail(idToken!);
-        setCompanyOwned(true);
+        const companyData = await getCompanyByEmail(idToken!);
+        setCompany(companyData);
+        setCompanyOwned(companyData.ownerEmail === user?.email);
       } catch {
+        setCompany(null);
         setCompanyOwned(false);
       }
     }
-    check();
-  }, [idToken]);
+    if (idToken && user?.email) check();
+  }, [idToken, user?.email]);
 
   const handleSave = async () => {
     if (!auth.currentUser) return;
@@ -37,8 +49,12 @@ export const UserSettings: React.FC = () => {
         photoURL,
       });
       alert("Profil güncellendi.");
-    } catch (e: any) {
-      alert("Güncelleme hatası: " + e.message);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        alert("Güncelleme hatası: " + e.message);
+      } else {
+        alert("Güncelleme hatası: Bilinmeyen bir hata oluştu.");
+      }
     } finally {
       setSaving(false);
     }
@@ -53,10 +69,40 @@ export const UserSettings: React.FC = () => {
     if (!window.confirm("Hesabınızı silmek istediğinize emin misiniz?")) return;
     try {
       await deleteUser(idToken!);
-      signOut();
+      await signOut();
       navigate("/login", { replace: true });
-    } catch (e: any) {
-      alert("Silme hatası: " + e.message);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        alert("Silme hatası: " + e.message);
+      } else {
+        alert("Silme hatası: Bilinmeyen bir hata oluştu.");
+      }
+    }
+  };
+
+  const handleLeaveCompany = async () => {
+    if (!company || companyOwned) {
+      alert(
+        "Şirket sahibi olduğunuz için ayrılamazsınız. Önce şirketi silmelisiniz."
+      );
+      return;
+    }
+    if (!window.confirm("Şirketten ayrılmak istediğinize emin misiniz?"))
+      return;
+    setLoadingLeave(true);
+    try {
+      await leaveCompany(idToken!, company._id);
+      setCompany(null);
+      setCompanyOwned(false);
+      // Optionally refresh the page or fetch company list again
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        alert("Ayrılma hatası: " + e.message);
+      } else {
+        alert("Ayrılma hatası: Bilinmeyen bir hata oluştu.");
+      }
+    } finally {
+      setLoadingLeave(false);
     }
   };
 
@@ -99,6 +145,28 @@ export const UserSettings: React.FC = () => {
             {saving ? "Kaydediliyor..." : "Kaydet"}
           </button>
         </div>
+
+        {company && (
+          <div className="bg-white p-6 rounded-lg shadow flex items-center space-x-3">
+            <ArrowLeftStartOnRectangleIcon className="w-6 h-6 text-brand-blue-500" />
+            <div>
+              <p className="font-semibold text-brand-blue-600">
+                Şirketten Ayrıl
+              </p>
+              <p className="text-sm text-gray-500">
+                Şirketteki üyeliğiniz silinir. Sahibiyseniz önce şirketi
+                silmelisiniz.
+              </p>
+            </div>
+            <button
+              onClick={handleLeaveCompany}
+              disabled={companyOwned || loadingLeave}
+              className={`ml-auto bg-brand-blue-500 hover:bg-brand-blue-600 text-white px-4 py-2 rounded disabled:opacity-50`}
+            >
+              {loadingLeave ? "Ayrılıyor..." : "Ayrıl"}
+            </button>
+          </div>
+        )}
 
         <div className="bg-white p-6 rounded-lg shadow flex items-center space-x-3">
           <TrashIcon className="w-6 h-6 text-red-600" />
