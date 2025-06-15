@@ -55,7 +55,7 @@ export const PatientsList: React.FC = () => {
     method: "Havale" | "Card" | "Cash"
   ) => {
     if (idToken && companyId) {
-      recordPayment(idToken, companyId, id, { method }).catch((err) =>
+      recordPayment(idToken, companyId, id, method).catch((err) =>
         console.error("Record payment failed:", err)
       );
     }
