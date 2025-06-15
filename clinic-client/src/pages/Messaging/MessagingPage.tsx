@@ -62,9 +62,7 @@ export const MessagingPage: React.FC = () => {
     if (autoRemind) {
       // We assume scheduleAutoRemind accepts: (token, companyId, offsetHours)
       try {
-        await scheduleAutoRemind(idToken, companyId, {
-          offsetHours: remindOffsetHours,
-        });
+        await scheduleAutoRemind(idToken, companyId, remindOffsetHours);
         alert(
           `Randevudan ${remindOffsetHours} saat önce otomatik hatırlatma etkinleştirildi.`
         );

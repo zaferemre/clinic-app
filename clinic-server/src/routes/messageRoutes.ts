@@ -55,15 +55,3 @@ router.post("/:companyId/messages/bulk", async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-
-// Configure auto‐reminders offset
-router.post("/:companyId/messages/auto-remind", async (req, res) => {
-  const { offsetHours } = req.body as { offsetHours: number };
-  if (typeof offsetHours !== "number" || offsetHours < 1) {
-    return res.status(400).json({ error: "Invalid offsetHours" });
-  }
-  // TODO: persist offsetHours on Company
-  res.json({ message: "Auto-remind saved", offsetHours });
-});
-
-export default router;

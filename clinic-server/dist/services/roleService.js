@@ -33,45 +33,20 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteRole = exports.updateRole = exports.addRole = exports.listRoles = void 0;
-const roleService = __importStar(require("../services/roleService"));
-const listRoles = async (req, res, next) => {
-    try {
-        const roles = await roleService.listRoles(req.params.companyId);
-        res.json(roles);
-    }
-    catch (err) {
-        next(err);
-    }
-};
 exports.listRoles = listRoles;
-const addRole = async (req, res, next) => {
-    try {
-        const roles = await roleService.addRole(req.params.companyId, req.body.role);
-        res.status(201).json(roles);
-    }
-    catch (err) {
-        next(err);
-    }
-};
 exports.addRole = addRole;
-const updateRole = async (req, res, next) => {
-    try {
-        const roles = await roleService.updateRole(req.params.companyId, req.body.oldRole, req.body.newRole);
-        res.json(roles);
-    }
-    catch (err) {
-        next(err);
-    }
-};
 exports.updateRole = updateRole;
-const deleteRole = async (req, res, next) => {
-    try {
-        const roles = await roleService.deleteRole(req.params.companyId, req.params.role);
-        res.json(roles);
-    }
-    catch (err) {
-        next(err);
-    }
-};
 exports.deleteRole = deleteRole;
+const repo = __importStar(require("../dataAccess/roleRepository"));
+function listRoles(companyId) {
+    return repo.listRoles(companyId);
+}
+function addRole(companyId, role) {
+    return repo.addRole(companyId, role);
+}
+function updateRole(companyId, oldRole, newRole) {
+    return repo.updateRole(companyId, oldRole, newRole);
+}
+function deleteRole(companyId, role) {
+    return repo.deleteRole(companyId, role);
+}

@@ -7,7 +7,7 @@ import React, {
   ReactNode,
 } from "react";
 import { auth } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { getCompanyByEmail } from "../api/companyApi";
 import type { Company } from "../types/sharedTypes";
 
@@ -15,6 +15,7 @@ interface User {
   uid: string;
   email: string;
   name: string;
+  role?: string;
   imageUrl: string;
 }
 
@@ -24,6 +25,8 @@ interface AuthContextProps {
   companyId: string | null;
   companyName: string | null;
   checkingCompany: boolean;
+  setCompanyId: (id: string | null) => void;
+  setCompanyName: (name: string | null) => void;
   signOut: () => void;
 }
 
@@ -36,60 +39,51 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
-  const [checkingCompany, setCheckingCompany] = useState(false);
+  const [checkingCompany, setCheckingCompany] = useState<boolean>(false);
 
-  // 1) Subscribe to Firebase auth changes
+  // Subscribe to Firebase auth state
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (fbUser) => {
-      if (!fbUser) {
-        console.log("🔒 not logged in");
-        setIdToken(null);
-        setUser(null);
-        return;
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      async (fbUser: FirebaseUser | null) => {
+        if (!fbUser) {
+          setIdToken(null);
+          setUser(null);
+          return;
+        }
+        const token = await fbUser.getIdToken();
+        setIdToken(token);
+        setUser({
+          uid: fbUser.uid,
+          email: fbUser.email ?? "",
+          name: fbUser.displayName ?? "",
+          imageUrl: fbUser.photoURL ?? "",
+        });
       }
-      const token = await fbUser.getIdToken();
-      console.log("🔑 got idToken", token.slice(0, 5), "...");
-
-      setIdToken(token);
-      setUser({
-        uid: fbUser.uid,
-        email: fbUser.email || "",
-        name: fbUser.displayName || "",
-        imageUrl: fbUser.photoURL || "",
-      });
-    });
-    return unsub;
+    );
+    return unsubscribe;
   }, []);
 
-  // 2) Whenever idToken changes, fetch the company
+  // Fetch company info when idToken changes
   useEffect(() => {
-    // if not logged in, clear out
     if (!idToken) {
-      console.log("❌ clearing company because no token");
       setCompanyId(null);
       setCompanyName(null);
       setCheckingCompany(false);
       return;
     }
-
-    // otherwise, start the lookup
     setCheckingCompany(true);
-    console.log("⏳ fetching company for token…");
     getCompanyByEmail(idToken)
       .then((company: Company | null) => {
-        console.log("🏢 company response:", company);
-        if (company && company._id) {
+        if (company?._id) {
           setCompanyId(company._id);
           setCompanyName(company.name);
-          console.log("✅ companyId set to", company._id);
         } else {
           setCompanyId(null);
           setCompanyName(null);
-          console.log("⚠️ company was null or missing _id");
         }
       })
-      .catch((err) => {
-        console.warn("🚨 error fetching company:", err);
+      .catch(() => {
         setCompanyId(null);
         setCompanyName(null);
       })
@@ -98,35 +92,47 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
       });
   }, [idToken]);
 
-  const signOutUser = () => {
+  const signOutUser = React.useCallback(() => {
     auth.signOut();
     setIdToken(null);
     setUser(null);
     setCompanyId(null);
     setCompanyName(null);
     setCheckingCompany(false);
-  };
+  }, []);
+
+  const contextValue = React.useMemo(
+    () => ({
+      idToken,
+      user,
+      companyId,
+      companyName,
+      checkingCompany,
+      setCompanyId,
+      setCompanyName,
+      signOut: signOutUser,
+    }),
+    [
+      idToken,
+      user,
+      companyId,
+      companyName,
+      checkingCompany,
+      setCompanyId,
+      setCompanyName,
+      signOutUser,
+    ]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        idToken,
-        user,
-        companyId,
-        companyName,
-        checkingCompany,
-        signOut: signOutUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used inside <AuthContextProvider>");
+export function useAuth(): AuthContextProps {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthContextProvider");
   }
-  return ctx;
+  return context;
 }

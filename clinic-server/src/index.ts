@@ -10,7 +10,6 @@ import employeeRoutes from "./routes/employeeRoutes";
 import patientRoutes from "./routes/patientRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import serviceRoutes from "./routes/serviceRoutes";
-import messageRoutes from "./routes/messageRoutes";
 
 dotenv.config();
 const app = express();
@@ -34,7 +33,6 @@ app.use("/company", employeeRoutes);
 app.use("/company", patientRoutes);
 app.use("/company", notificationRoutes);
 app.use("/company", serviceRoutes);
-app.use("/company", messageRoutes);
 
 // 404 fallback
 app.use((req: Request, res: Response) => {

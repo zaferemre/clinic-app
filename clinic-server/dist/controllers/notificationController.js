@@ -33,45 +33,25 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteRole = exports.updateRole = exports.addRole = exports.listRoles = void 0;
-const roleService = __importStar(require("../services/roleService"));
-const listRoles = async (req, res, next) => {
+exports.markPatientCalled = exports.getNotifications = void 0;
+const notifService = __importStar(require("../services/notificationService"));
+const getNotifications = async (req, res, next) => {
     try {
-        const roles = await roleService.listRoles(req.params.companyId);
-        res.json(roles);
+        const list = await notifService.getNotifications(req.params.companyId);
+        res.status(200).json(list);
     }
     catch (err) {
         next(err);
     }
 };
-exports.listRoles = listRoles;
-const addRole = async (req, res, next) => {
+exports.getNotifications = getNotifications;
+const markPatientCalled = async (req, res, next) => {
     try {
-        const roles = await roleService.addRole(req.params.companyId, req.body.role);
-        res.status(201).json(roles);
+        await notifService.markPatientCalled(req.params.companyId, req.params.notificationId);
+        res.status(200).json({ message: "Notification marked done" });
     }
     catch (err) {
         next(err);
     }
 };
-exports.addRole = addRole;
-const updateRole = async (req, res, next) => {
-    try {
-        const roles = await roleService.updateRole(req.params.companyId, req.body.oldRole, req.body.newRole);
-        res.json(roles);
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.updateRole = updateRole;
-const deleteRole = async (req, res, next) => {
-    try {
-        const roles = await roleService.deleteRole(req.params.companyId, req.params.role);
-        res.json(roles);
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.deleteRole = deleteRole;
+exports.markPatientCalled = markPatientCalled;

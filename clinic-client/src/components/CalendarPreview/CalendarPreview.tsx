@@ -26,7 +26,17 @@ export const CalendarPreview: React.FC<{
   useEffect(() => {
     if (!idToken || !companyId) return;
     getServices(idToken, companyId)
-      .then(setServices)
+      .then((list) =>
+        setServices(
+          list
+            .filter((s) => typeof s._id === "string")
+            .map((s) => ({
+              _id: s._id as string,
+              serviceName: s.serviceName,
+              serviceDuration: s.serviceDuration,
+            }))
+        )
+      )
       .catch(() => setServices([]));
   }, [idToken, companyId]);
 

@@ -1,190 +1,87 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAppointmentById = exports.updateAppointment = exports.deleteAppointment = exports.createAppointment = exports.getAppointments = void 0;
-const Appointment_1 = __importDefault(require("../models/Appointment"));
-const Patient_1 = __importDefault(require("../models/Patient"));
-// src/controllers/appointmentController.ts
-const getAppointments = async (req, res) => {
+exports.deleteAppointment = exports.updateAppointment = exports.createAppointment = exports.getAppointmentById = exports.getAppointments = void 0;
+const appointmentService = __importStar(require("../services/appointmentService"));
+const getAppointments = async (req, res, next) => {
     try {
-        const { companyId } = req.params;
-        const appointments = await Appointment_1.default.find({ companyId })
-            .populate("patientId", "name")
-            .populate("serviceId", "serviceName")
-            .exec();
-        const events = appointments.map((appt) => ({
-            id: appt._id.toString(),
-            title: appt.patientId?.name ?? "Randevu",
-            start: appt.start,
-            end: appt.end,
-            extendedProps: {
-                employeeEmail: appt.employeeEmail ?? "",
-                serviceId: appt.serviceId ? appt.serviceId.toString() : "",
-            },
-            // Extract color logic to a variable for clarity
-            color: (() => {
-                if (appt.status === "done")
-                    return "#6b7280";
-                if (appt.status === "cancelled")
-                    return "#ef4444";
-                return "#3b82f6";
-            })(),
-        }));
+        const events = await appointmentService.getAppointments(req.params.companyId);
         res.status(200).json(events);
     }
     catch (err) {
-        console.error("Error fetching appointments:", err);
-        res.status(500).json({ error: "Failed to fetch appointments." });
+        next(err);
     }
 };
 exports.getAppointments = getAppointments;
-const createAppointment = async (req, res) => {
+const getAppointmentById = async (req, res, next) => {
     try {
-        const { companyId } = req.params;
-        const { patientId, employeeEmail, serviceId, start, end } = req.body;
-        const newStart = new Date(start);
-        const newEnd = new Date(end);
-        if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime())) {
-            res.status(400).json({ error: "Invalid start or end datetime" });
-            return;
-        }
-        const patient = await Patient_1.default.findById(patientId).exec();
-        if (!patient) {
-            res.status(404).json({ error: "Patient not found" });
-            return;
-        }
-        if (patient.companyId.toString() !== companyId) {
-            res.status(403).json({ error: "Patient not in this company" });
-            return;
-        }
-        const company = req.company;
-        const isOwner = company.ownerEmail === employeeEmail;
-        const isEmployee = Array.isArray(company.employees) &&
-            company.employees.some((e) => e.email === employeeEmail);
-        if (!isOwner && !isEmployee) {
-            res.status(400).json({ error: "Employee not in company" });
-            return;
-        }
-        if (patient.credit < 1) {
-            res.status(400).json({ error: "Insufficient credit" });
-            return;
-        }
-        const overlap = await Appointment_1.default.findOne({
-            companyId,
-            employeeEmail,
-            $or: [
-                { start: { $lt: newEnd, $gte: newStart } },
-                { end: { $gt: newStart, $lte: newEnd } },
-                { start: { $lte: newStart }, end: { $gte: newEnd } },
-            ],
-        }).exec();
-        if (overlap) {
-            res.status(409).json({ error: "That timeslot is already taken." });
-            return;
-        }
-        patient.credit -= 1;
-        await patient.save();
-        const newAppt = new Appointment_1.default({
-            companyId,
-            patientId,
-            employeeEmail,
-            serviceId,
-            start: newStart,
-            end: newEnd,
-            status: "scheduled",
-        });
-        await newAppt.save();
-        res.status(201).json(newAppt);
+        const dto = await appointmentService.getAppointmentById(req.params.companyId, req.params.appointmentId);
+        res.status(200).json(dto);
     }
     catch (err) {
-        console.error("Error in createAppointment:", err);
-        res.status(500).json({ error: "Server error", details: err.message });
-    }
-};
-exports.createAppointment = createAppointment;
-const deleteAppointment = async (req, res) => {
-    try {
-        const { companyId, appointmentId } = req.params;
-        const appt = await Appointment_1.default.findOne({ _id: appointmentId, companyId });
-        if (!appt) {
-            res.status(404).json({ error: "Appointment not found" });
-            return;
-        }
-        // Refund 1 credit back to patient
-        const patient = await Patient_1.default.findById(appt.patientId);
-        if (patient) {
-            patient.credit += 1;
-            await patient.save();
-        }
-        await appt.deleteOne();
-        res.status(204).send();
-    }
-    catch (err) {
-        console.error("Error in deleteAppointment:", err);
-        res.status(500).json({ error: "Server error", details: err.message });
-    }
-};
-exports.deleteAppointment = deleteAppointment;
-const updateAppointment = async (req, res) => {
-    try {
-        const { companyId, appointmentId } = req.params;
-        const { start, end, serviceId, employeeEmail } = req.body;
-        const appt = await Appointment_1.default.findOne({ _id: appointmentId, companyId });
-        if (!appt) {
-            res.status(404).json({ error: "Appointment not found" });
-            return;
-        }
-        const newStart = new Date(start);
-        const newEnd = new Date(end);
-        if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime())) {
-            res.status(400).json({ error: "Invalid date format" });
-            return;
-        }
-        appt.start = newStart;
-        appt.end = newEnd;
-        if (serviceId)
-            appt.serviceId = serviceId;
-        if (employeeEmail)
-            appt.employeeEmail = employeeEmail;
-        await appt.save();
-        res.status(200).json(appt);
-    }
-    catch (err) {
-        console.error("Error in updateAppointment:", err);
-        res.status(500).json({ error: "Server error", details: err.message });
-    }
-};
-exports.updateAppointment = updateAppointment;
-// get appointment by ID// In your appointmentController.ts
-const getAppointmentById = async (req, res) => {
-    try {
-        const { companyId, appointmentId } = req.params;
-        // Optionally preload company (if you need embedded services)
-        // const company = (req as any).company as CompanyDoc;
-        const appt = await Appointment_1.default.findOne({ _id: appointmentId, companyId })
-            .populate("patientId", "name")
-            .exec();
-        if (!appt) {
-            res.status(404).json({ error: "Appointment not found" });
-            return;
-        }
-        res.json({
-            id: appt._id.toString(),
-            title: appt.patientId?.name ?? "Randevu",
-            start: appt.start,
-            end: appt.end,
-            extendedProps: {
-                employeeEmail: appt.employeeEmail ?? "",
-                serviceId: appt.serviceId?.toString() ?? "",
-            },
-        });
-        console.log("Appointment found:", appt);
-    }
-    catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Server error" });
+        next(err);
     }
 };
 exports.getAppointmentById = getAppointmentById;
+const createAppointment = async (req, res, next) => {
+    try {
+        const created = await appointmentService.createAppointment(req.params.companyId, req.body, req.user);
+        res.status(201).json(created);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.createAppointment = createAppointment;
+const updateAppointment = async (req, res, next) => {
+    try {
+        const updated = await appointmentService.updateAppointment(req.params.companyId, req.params.appointmentId, req.body);
+        res.status(200).json(updated);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.updateAppointment = updateAppointment;
+const deleteAppointment = async (req, res, next) => {
+    try {
+        await appointmentService.deleteAppointment(req.params.companyId, req.params.appointmentId);
+        res.status(204).send();
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.deleteAppointment = deleteAppointment;

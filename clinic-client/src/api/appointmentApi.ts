@@ -112,7 +112,7 @@ export function getPatientAppointments(
     start: string;
     end: string;
     status: string;
-    workerEmail: string;
+    employeeEmail: string;
   }[]
 > {
   return request(`/company/${companyId}/patients/${patientId}/appointments`, {

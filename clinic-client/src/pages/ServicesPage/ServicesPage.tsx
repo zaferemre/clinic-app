@@ -70,14 +70,12 @@ export const ServicesPage: React.FC = () => {
         serviceDuration: data.serviceDuration,
       });
     } else {
-      await createService(
-        idToken!,
-        companyId!,
-        data.serviceName,
-        data.servicePrice,
-        data.serviceKapora,
-        data.serviceDuration
-      );
+      await createService(idToken!, companyId!, {
+        serviceName: data.serviceName,
+        servicePrice: data.servicePrice,
+        serviceKapora: data.serviceKapora,
+        serviceDuration: data.serviceDuration,
+      });
     }
     setShowModal(false);
     load();

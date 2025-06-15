@@ -177,7 +177,7 @@ export const updateWorkingHours = async (
     const wh = await companyService.updateWorkingHours(
       req.params.companyId,
       req.body.workingHours,
-      (req.user as IUser).email
+      req.user as IUser
     );
     res.json(wh);
   } catch (err) {
@@ -195,7 +195,7 @@ export const updateServices = async (
     const svcs = await companyService.updateServices(
       req.params.companyId,
       req.body.services,
-      (req.user as IUser).email
+      req.user as IUser
     );
     res.json(svcs);
   } catch (err) {

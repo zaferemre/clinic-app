@@ -1,89 +1,44 @@
 "use strict";
-// src/controllers/companyController.ts
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteCompany = exports.addOrUpdateEmployee = exports.getServices = exports.getAppointments = exports.updateServices = exports.updateWorkingHours = exports.getEmployeeSchedule = exports.joinCompany = exports.addEmployee = exports.getEmployees = exports.updateCompany = exports.getCompany = exports.createCompany = exports.ensureCompanyAccess = void 0;
-const mongoose_1 = __importDefault(require("mongoose"));
-const Company_1 = __importDefault(require("../models/Company"));
-const Appointment_1 = __importDefault(require("../models/Appointment"));
-const Patient_1 = __importDefault(require("../models/Patient"));
-const Message_1 = __importDefault(require("../models/Message"));
-const Notification_1 = __importDefault(require("../models/Notification"));
-const Worker_1 = __importDefault(require("../models/Worker"));
-const Service_1 = __importDefault(require("../models/Service"));
-/**
- * Middleware: ensure the authenticated user (req.user.email)
- * is either the ownerEmail or one of the employees.email,
- * and attach the full Company doc to req.company.
- */
-const ensureCompanyAccess = async (req, res, next) => {
-    const userEmail = req.user?.email;
-    if (!userEmail) {
-        res.status(401).json({ error: "Unauthorized" });
-        return;
-    }
-    try {
-        const company = await Company_1.default.findOne({
-            $or: [{ ownerEmail: userEmail }, { "employees.email": userEmail }],
-        }).exec();
-        if (!company) {
-            res.status(404).json({ error: "Company not found" });
-            return;
-        }
-        req.company = company;
-        next();
-    }
-    catch (err) {
-        console.error("Error in ensureCompanyAccess:", err);
-        next(err);
-    }
-};
-exports.ensureCompanyAccess = ensureCompanyAccess;
-/**
- * POST /company
- * Anyone authenticated can create—but only if they have no existing company.
- */
+exports.leaveCompany = exports.deleteUserAccount = exports.getServices = exports.updateServices = exports.updateWorkingHours = exports.getEmployeeSchedule = exports.joinCompany = exports.deleteEmployee = exports.updateEmployee = exports.addEmployee = exports.listEmployees = exports.deleteCompany = exports.updateCompany = exports.getCompany = exports.createCompany = void 0;
+const companyService = __importStar(require("../services/companyService"));
+// POST   /company
 const createCompany = async (req, res, next) => {
     try {
-        const ownerEmail = req.user?.email;
-        const ownerName = req.user?.name;
-        const ownerPic = req.user?.picture;
-        // Make sure they don't already have a company
-        const exists = await Company_1.default.findOne({ ownerEmail }).exec();
-        if (exists) {
-            res.status(400).json({ error: "Company already exists" });
-            return;
-        }
-        // Build the base payload
-        const { name, companyType, address, phoneNumber, websiteUrl, googleUrl, location, workingHours, services, } = req.body;
-        // Create company and seed employees with the owner
-        const company = new Company_1.default({
-            ownerEmail,
-            ownerName,
-            ownerImageUrl: ownerPic,
-            name,
-            companyType,
-            address,
-            phoneNumber,
-            websiteUrl,
-            googleUrl,
-            location,
-            workingHours,
-            services,
-            roles: ["owner", "admin", "manager", "staff"],
-            employees: [
-                {
-                    email: ownerEmail,
-                    name: ownerName,
-                    pictureUrl: ownerPic,
-                    role: "owner",
-                    // no services or workingHours initially
-                },
-            ],
-        });
-        await company.save();
+        const company = await companyService.createCompany(req.user, req.body);
         res.status(201).json(company);
     }
     catch (err) {
@@ -91,326 +46,158 @@ const createCompany = async (req, res, next) => {
     }
 };
 exports.createCompany = createCompany;
-/**
- * GET /company or /company/:companyId
- * Returns the company for owner or employee (attached by ensureCompanyAccess).
- */
-// GET /company    or    GET /company/:companyId
+// GET    /company or /company/:companyId
 const getCompany = async (req, res, next) => {
     try {
-        // 1) If your ensureCompanyAccess middleware ran, it'll have put the doc on req.company
-        if (req.company) {
-            res.status(200).json(req.company);
-            return; // <— just return void here
-        }
-        // 2) Otherwise, lookup by the logged-in user’s email
-        const userEmail = req.user?.email;
-        if (!userEmail) {
-            res.status(401).json({ error: "Unauthorized" });
-            return;
-        }
-        const company = await Company_1.default.findOne({
-            $or: [{ ownerEmail: userEmail }, { "employees.email": userEmail }],
-        }).exec();
-        if (!company) {
-            res.status(404).json({ error: "Company not found" });
-            return;
-        }
-        res.status(200).json(company);
-        return;
+        const dto = await companyService.getCompany(req.params.companyId, req.user);
+        res.status(200).json(dto);
     }
     catch (err) {
-        console.error("Error in getCompany:", err);
-        next(err); // forward to your error handler
+        next(err);
     }
 };
 exports.getCompany = getCompany;
-/**
- * PATCH /company
- * Only owner can update the top-level fields.
- */
+// PATCH  /company/:companyId
 const updateCompany = async (req, res, next) => {
-    const ownerEmail = req.user?.email;
-    if (ownerEmail !== req.company.ownerEmail) {
-        res.status(403).json({ error: "Forbidden" });
-        return;
-    }
     try {
-        const updated = await Company_1.default.findByIdAndUpdate(req.company._id, { $set: req.body }, { new: true }).exec();
-        res.json(updated);
-        return;
+        const updated = await companyService.updateCompany(req.params.companyId, req.body, req.user);
+        res.status(200).json(updated);
     }
     catch (err) {
-        console.error("Error in updateCompany:", err);
         next(err);
     }
 };
 exports.updateCompany = updateCompany;
-/**
- * GET /company/employees
- * Any owner or employee can list all employees.
- */
-const getEmployees = (req, res) => {
-    res.json(req.company.employees);
-};
-exports.getEmployees = getEmployees;
-/**
- * POST /company/:companyId/employees
- * Only owner can add a new employee record (beyond the “join” flow).
- */
-const addEmployee = async (req, res, next) => {
-    const ownerEmail = req.user?.email;
-    if (ownerEmail !== req.company.ownerEmail) {
-        res.status(403).json({ error: "Forbidden" });
-        return;
-    }
-    try {
-        const newEmp = req.body; // { email, name?, pictureUrl?, role }
-        req.company.employees.push(newEmp);
-        await req.company.save();
-        res.status(201).json(req.company.employees.at(-1));
-        return;
-    }
-    catch (err) {
-        console.error("Error in addEmployee:", err);
-        next(err);
-    }
-};
-exports.addEmployee = addEmployee;
-/**
- * POST /company/:companyId/join
- * Any authenticated user can “join” if they have a valid joinCode.
- */
-const joinCompany = async (req, res, next) => {
-    try {
-        const { companyId } = req.params;
-        const { joinCode } = req.body;
-        const userEmail = req.user?.email;
-        const userName = req.user?.name;
-        const userPic = req.user?.picture;
-        if (!joinCode || joinCode !== companyId) {
-            res.status(400).json({ error: "Invalid joinCode" });
-            return;
-        }
-        if (!mongoose_1.default.isValidObjectId(companyId)) {
-            res.status(400).json({ error: "Invalid company ID" });
-            return;
-        }
-        const company = await Company_1.default.findById(companyId).exec();
-        if (!company) {
-            res.status(404).json({ error: "Company not found" });
-            return;
-        }
-        if (company.ownerEmail === userEmail) {
-            res.status(409).json({ error: "Owner cannot join as employee" });
-            return;
-        }
-        if (company.employees.some((e) => e.email === userEmail)) {
-            res.status(409).json({ error: "Already an employee" });
-            return;
-        }
-        company.employees.push({
-            email: userEmail,
-            name: userName,
-            pictureUrl: userPic,
-            role: "staff",
-        });
-        await company.save();
-        res
-            .status(200)
-            .json({ message: "Joined company", employees: company.employees });
-        return;
-    }
-    catch (err) {
-        console.error("Error in joinCompany:", err);
-        res.status(500).json({ error: "Server error", details: err.message });
-        return;
-    }
-};
-exports.joinCompany = joinCompany;
-/**
- * GET /company/:companyId/schedule/:employeeId
- * Any owner or employee may view schedules—but non-owners can only fetch their own.
- */
-const getEmployeeSchedule = async (req, res, next) => {
-    try {
-        const userEmail = req.user?.email;
-        const company = req.company;
-        const { employeeId } = req.params;
-        // If not owner, ensure employeeId matches logged-in user (use email as identifier)
-        const employee = company.employees.find((e) => e.email === employeeId);
-        if (userEmail !== company.ownerEmail && employee?.email !== userEmail) {
-            res.status(403).json({ error: "Forbidden" });
-            return;
-        }
-        const appts = await Appointment_1.default.find({
-            companyId: company._id,
-            employeeId,
-        }).exec();
-        res.json(appts);
-        return;
-    }
-    catch (err) {
-        console.error("Error in getEmployeeSchedule:", err);
-        next(err);
-    }
-};
-exports.getEmployeeSchedule = getEmployeeSchedule;
-/**
- * PATCH /company/:companyId/working-hours
- * Only owner updates working hours.
- */
-const updateWorkingHours = async (req, res, next) => {
-    const ownerEmail = req.user?.email;
-    if (ownerEmail !== req.company.ownerEmail) {
-        res.status(403).json({ error: "Forbidden" });
-        return;
-    }
-    try {
-        req.company.workingHours = req.body.workingHours;
-        await req.company.save();
-        res.json(req.company.workingHours);
-        return;
-    }
-    catch (err) {
-        console.error("Error in updateWorkingHours:", err);
-        next(err);
-    }
-};
-exports.updateWorkingHours = updateWorkingHours;
-/**
- * PATCH /company/:companyId/services
- * Only owner updates service offerings.
- */
-const updateServices = async (req, res, next) => {
-    const ownerEmail = req.user?.email;
-    if (ownerEmail !== req.company.ownerEmail) {
-        res.status(403).json({ error: "Forbidden" });
-        return;
-    }
-    try {
-        req.company.services = req.body.services;
-        await req.company.save();
-        res.json(req.company.services);
-        return;
-    }
-    catch (err) {
-        console.error("Error in updateServices:", err);
-        next(err);
-    }
-};
-exports.updateServices = updateServices;
-/**
- * GET /company/:companyId/appointments
- * Any owner or employee can view all appointments.
- */
-const getAppointments = async (req, res, next) => {
-    try {
-        const companyId = req.company._id;
-        const appointments = await Appointment_1.default.find({ companyId })
-            .populate("patientId", "name")
-            .exec();
-        const events = appointments.map((appt) => ({
-            title: appt.patientId?.name,
-            start: appt.start,
-            end: appt.end,
-            extendedProps: { employeeEmail: appt.employeeEmail },
-            color: (() => {
-                if (appt.status === "done")
-                    return "#6b7280";
-                if (appt.status === "cancelled")
-                    return "#ef4444";
-                return "#3b82f6";
-            })(),
-        }));
-        res.status(200).json(events);
-    }
-    catch (err) {
-        console.error("Error in getAppointments:", err);
-        next(err);
-    }
-};
-exports.getAppointments = getAppointments;
-/**   get services
- * GET /company/:companyId/services
- * Any owner or employee can view service offerings.
- *
- *
- */
-const getServices = (req, res) => {
-    res.json(req.company.services);
-};
-exports.getServices = getServices;
-// POST /company/:companyId/employees
-const addOrUpdateEmployee = async (req, res, next) => {
-    try {
-        const { companyId } = req.params;
-        const { email, name, role, pictureUrl } = req.body;
-        if (!mongoose_1.default.isValidObjectId(companyId)) {
-            res.status(400).json({ error: "Invalid company ID" });
-            return;
-        }
-        if (!email) {
-            res.status(400).json({ error: "Missing employee email" });
-            return;
-        }
-        const company = await Company_1.default.findById(companyId).exec();
-        if (!company) {
-            res.status(404).json({ error: "Company not found" });
-            return;
-        }
-        // Check if employee exists
-        const existingEmployeeIndex = company.employees.findIndex((e) => e.email === email);
-        if (existingEmployeeIndex >= 0) {
-            // Update employee info
-            company.employees[existingEmployeeIndex] = {
-                ...company.employees[existingEmployeeIndex].toObject(),
-                name,
-                role,
-                pictureUrl,
-            };
-        }
-        else {
-            // Add new employee
-            company.employees.push({ email, name, role, pictureUrl });
-        }
-        await company.save();
-        res
-            .status(200)
-            .json({ message: "Employee updated", employees: company.employees });
-        return;
-    }
-    catch (error) {
-        console.error("Error in addOrUpdateEmployee:", error);
-        res.status(500).json({ error: "Server error", details: error.message });
-        return;
-    }
-};
-exports.addOrUpdateEmployee = addOrUpdateEmployee;
+// DELETE /company/:companyId
 const deleteCompany = async (req, res, next) => {
     try {
-        const company = req.company; // set by ensureCompanyAccess
-        if (req.user.email !== company.ownerEmail) {
-            res.status(403).json({ error: "Only owner can delete company" });
-            return;
-        }
-        const cid = company._id;
-        // Cascade delete all data for this company
-        await Promise.all([
-            Appointment_1.default.deleteMany({ companyId: cid }),
-            Patient_1.default.deleteMany({ companyId: cid }),
-            Message_1.default.deleteMany({ companyId: cid }),
-            Notification_1.default.deleteMany({ companyId: cid }),
-            Worker_1.default.deleteMany({ companyId: cid }),
-            Service_1.default.deleteMany({ companyId: cid }),
-        ]);
-        // Finally remove the company itself
-        await Company_1.default.findByIdAndDelete(company._id);
+        await companyService.deleteCompany(req.params.companyId, req.user);
         res.json({ success: true });
-        return;
     }
     catch (err) {
         next(err);
     }
 };
 exports.deleteCompany = deleteCompany;
+// GET    /company/:companyId/employees
+const listEmployees = async (req, res, next) => {
+    try {
+        const list = await companyService.listEmployees(req.params.companyId);
+        res.json(list);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.listEmployees = listEmployees;
+// POST   /company/:companyId/employees
+const addEmployee = async (req, res, next) => {
+    try {
+        const e = await companyService.addEmployee(req.params.companyId, req.body);
+        res.status(201).json(e);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.addEmployee = addEmployee;
+// PATCH  /company/:companyId/employees/:employeeId
+const updateEmployee = async (req, res, next) => {
+    try {
+        const e = await companyService.updateEmployee(req.params.companyId, req.params.employeeId, req.body);
+        res.json(e);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.updateEmployee = updateEmployee;
+// DELETE /company/:companyId/employees/:employeeId
+const deleteEmployee = async (req, res, next) => {
+    try {
+        await companyService.deleteEmployee(req.params.companyId, req.params.employeeId);
+        res.json({ success: true });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.deleteEmployee = deleteEmployee;
+// POST   /company/:companyId/join
+const joinCompany = async (req, res, next) => {
+    try {
+        const info = await companyService.joinCompany(req.params.companyId, req.body.joinCode, req.user);
+        res.json(info);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.joinCompany = joinCompany;
+// GET    /company/:companyId/schedule/:employeeId
+const getEmployeeSchedule = async (req, res, next) => {
+    try {
+        const sched = await companyService.getEmployeeSchedule(req.params.companyId, req.params.employeeId, req.user.email);
+        res.json(sched);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.getEmployeeSchedule = getEmployeeSchedule;
+// PATCH  /company/:companyId/working-hours
+const updateWorkingHours = async (req, res, next) => {
+    try {
+        const wh = await companyService.updateWorkingHours(req.params.companyId, req.body.workingHours, req.user);
+        res.json(wh);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.updateWorkingHours = updateWorkingHours;
+// PATCH  /company/:companyId/services
+const updateServices = async (req, res, next) => {
+    try {
+        const svcs = await companyService.updateServices(req.params.companyId, req.body.services, req.user);
+        res.json(svcs);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.updateServices = updateServices;
+// GET    /company/:companyId/services
+const getServices = async (req, res, next) => {
+    try {
+        const svcs = await companyService.getServices(req.params.companyId);
+        res.json(svcs);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.getServices = getServices;
+// DELETE /company/user
+const deleteUserAccount = async (req, res, next) => {
+    try {
+        await companyService.deleteUserAccount(req.user.email, req.user.uid);
+        res.json({ success: true });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.deleteUserAccount = deleteUserAccount;
+const leaveCompany = async (req, res, next) => {
+    try {
+        const userEmail = req.user?.email;
+        const { companyId } = req.params;
+        const result = await companyService.leaveCompany(companyId, userEmail);
+        res.json({ success: true });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.leaveCompany = leaveCompany;

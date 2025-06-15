@@ -1,11 +1,11 @@
 import { IUser } from "../thirdParty/firebaseAdminService";
 import * as repo from "../dataAccess/companyRepository";
-import type { Company } from "../models/Company";
+import { CompanyDoc } from "../models/Company";
 
 /**
  * Create a new company with the authenticated user as owner.
  */
-export function createCompany(user: IUser, body: any): Promise<Company> {
+export function createCompany(user: IUser, body: any): Promise<CompanyDoc> {
   return repo.create({
     ownerEmail: user.email,
     ownerName: user.name || "",
@@ -30,8 +30,8 @@ export function createCompany(user: IUser, body: any): Promise<Company> {
 export async function getCompany(
   companyId: string | undefined,
   user: IUser
-): Promise<Company> {
-  let company: Company | null;
+): Promise<CompanyDoc> {
+  let company: CompanyDoc | null;
   if (companyId) {
     company = await repo.findByIdWithAccessCheck(companyId, user.email);
   } else {
@@ -53,15 +53,18 @@ export function updateCompany(
   companyId: string,
   updates: any,
   user: IUser
-): Promise<Company | null> {
+): Promise<CompanyDoc | null> {
   return repo.updateByIdWithOwnerCheck(companyId, user.email, updates);
 }
 
 /**
  * Delete a company and cascade-remove data. Only owner may call.
  */
-export function deleteCompany(companyId: string, user: IUser): Promise<void> {
-  return repo.deleteByIdWithCascade(companyId, user.email);
+export async function deleteCompany(
+  companyId: string,
+  user: IUser
+): Promise<void> {
+  await repo.deleteByIdWithCascade(companyId, user.email);
 }
 
 /**

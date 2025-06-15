@@ -93,6 +93,7 @@ export interface CalendarEvent {
   start: string;
   end: string;
   extendedProps: {
+    employeeId?: string;
     employeeEmail: string;
     serviceId: string;
   };

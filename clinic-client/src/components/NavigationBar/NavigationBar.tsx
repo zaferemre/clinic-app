@@ -19,6 +19,8 @@ import { getEmployees } from "../../api/employeeApi";
 import { createAppointment } from "../../api/appointmentApi";
 import AppModal from "../Modals/AppModal";
 
+import { EmployeeInfo, Patient, ServiceInfo } from "../../types/sharedTypes";
+
 export const NavigationBar: React.FC = () => {
   const { idToken, companyId, user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -29,9 +31,9 @@ export const NavigationBar: React.FC = () => {
     null
   );
 
-  const [patients, setPatients] = useState<any[]>([]);
-  const [services, setServices] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
+  const [services, setServices] = useState<ServiceInfo[]>([]);
+  const [employees, setEmployees] = useState<EmployeeInfo[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState("");
   const [selectedService, setSelectedService] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState("");
@@ -127,11 +129,7 @@ export const NavigationBar: React.FC = () => {
           {({ isActive }) => (
             <>
               <BuildingOffice2Icon className="h-7 w-7" />
-              {isActive && (
-                <span className="ml-2 font-bold">
-                  {user?.companyName || "Panel"}
-                </span>
-              )}
+              {isActive && <span className="ml-2 font-bold">{"Panel"}</span>}
             </>
           )}
         </NavLink>
@@ -233,8 +231,10 @@ export const NavigationBar: React.FC = () => {
         show={activeModal === "randevu"}
         onClose={() => setActiveModal(null)}
         patients={patients}
-        employees={employees}
-        services={services}
+        employees={employees.map((e) => ({ ...e, name: e.name ?? "" }))}
+        services={services.filter(
+          (s): s is ServiceInfo & { _id: string } => typeof s._id === "string"
+        )}
         isOwner={isOwner}
         currentEmail={currentEmail}
         selectedPatient={selectedPatient}

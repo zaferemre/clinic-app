@@ -284,7 +284,6 @@ export default function CreateCompanyForm({
     const finalLoc = isOnline ? IST_CENTER : mapLocation!;
     const payload = {
       name: companyName,
-      ownerName,
       companyType,
       phoneNumber: phoneCode.dial_code + phone,
       address: {
@@ -305,6 +304,9 @@ export default function CreateCompanyForm({
         serviceDuration: Number(s.serviceDuration) || 0,
       })),
       employees: [],
+      roles: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
     try {
       const created = await createCompany(idToken, payload);

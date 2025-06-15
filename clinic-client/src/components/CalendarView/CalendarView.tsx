@@ -213,7 +213,7 @@ export const CalendarView: React.FC = () => {
     try {
       const appt = await getAppointmentById(idToken!, companyId!, id);
 
-      if (!isOwner && appt.employeeId !== currentEmail) {
+      if (!isOwner && appt.extendedProps.employeeEmail !== currentEmail) {
         alert("Sadece kendi randevularınızı düzenleyebilirsiniz.");
         setModalLoading(false);
         return;

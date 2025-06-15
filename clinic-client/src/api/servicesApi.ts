@@ -43,3 +43,5 @@ export function deleteService(
     token,
   });
 }
+
+export type Service = ServiceInfo;

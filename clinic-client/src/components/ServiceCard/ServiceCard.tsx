@@ -26,7 +26,7 @@ export const ServiceCard: React.FC<Props> = ({
           <PencilIcon className="h-5 w-5 text-indigo-600" />
         </button>
         <button
-          onClick={() => onDelete(service._id)}
+          onClick={() => service._id && onDelete(service._id)}
           className="p-1 hover:bg-gray-100 rounded"
           aria-label="Sil"
         >
