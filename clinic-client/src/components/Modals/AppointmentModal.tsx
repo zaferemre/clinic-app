@@ -33,26 +33,29 @@ interface Props {
 }
 
 /**
- * Convert a FullCalendar DateInput (string | Date | number) into
- * an HTML datetime-local input string (YYYY-MM-DDThh:mm).
+ * Convert FullCalendar DateInput into a local YYYY-MM-DDThh:mm string
+ * using local getters to avoid UTC offset shifts
  */
 const toLocalInput = (date?: string | Date | number | number[]): string => {
   if (date == null) return "";
-  // Handle array case (e.g., [year, month, day, ...])
+  let d: Date;
   if (Array.isArray(date)) {
-    // FullCalendar uses [year, month, day, ...] (month is 1-based)
-    const [year, month, day, hour = 0, minute = 0] = date;
-    const d = new Date(year, (month ?? 1) - 1, day ?? 1, hour, minute);
-    if (isNaN(d.getTime())) return "";
-    return d.toISOString().slice(0, 16);
+    const [y, m, day, h = 0, min = 0] = date;
+    d = new Date(y, (m ?? 1) - 1, day ?? 1, h, min);
+  } else {
+    d =
+      typeof date === "string" || typeof date === "number"
+        ? new Date(date)
+        : date;
   }
-  const d =
-    typeof date === "string" || typeof date === "number"
-      ? new Date(date)
-      : date;
   if (isNaN(d.getTime())) return "";
-  // slice to "YYYY-MM-DDTHH:mm"
-  return d.toISOString().slice(0, 16);
+  const pad2 = (n: number) => n.toString().padStart(2, "0");
+  const YYYY = d.getFullYear();
+  const MM = pad2(d.getMonth() + 1);
+  const DD = pad2(d.getDate());
+  const hh = pad2(d.getHours());
+  const mm = pad2(d.getMinutes());
+  return `${YYYY}-${MM}-${DD}T${hh}:${mm}`;
 };
 
 export const AppointmentModal: React.FC<Props> = ({
@@ -95,7 +98,10 @@ export const AppointmentModal: React.FC<Props> = ({
     onClose();
   };
   const handleUpdateEvt = async () => {
-    if (!startStr || !endStr) return setError("Başlangıç ve Bitiş gerekli.");
+    if (!startStr || !endStr) {
+      setError("Başlangıç ve Bitiş gerekli.");
+      return;
+    }
     await onUpdate(event.id as string, {
       start: new Date(startStr).toISOString(),
       end: new Date(endStr).toISOString(),
@@ -110,14 +116,12 @@ export const AppointmentModal: React.FC<Props> = ({
       onClose={onClose}
       title="Randevu Detayları"
     >
-      {/* If loading show overlay */}
       {loading && (
         <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
           Yükleniyor…
         </div>
       )}
       <div className="space-y-4">
-        {/* Employee & read/edit fields… */}
         <p>
           <strong>Çalışan:</strong> {empName}
         </p>
