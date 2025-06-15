@@ -23,6 +23,7 @@
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "firebase": "^11.8.1",
+    "framer-motion": "^12.18.1",
     "heroicons": "^2.2.0",
     "joi": "^17.13.3",
     "leaflet": "^1.9.4",

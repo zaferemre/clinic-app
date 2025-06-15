@@ -5,7 +5,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { EventClickArg, EventInput } from "@fullcalendar/core";
 import { getAppointments } from "../../api/appointmentApi";
-import { getServices } from "../../api/servicesApi"; // You must implement this
+import { getServices } from "../../api/servicesApi";
 import { CalendarEvent } from "../../types/sharedTypes";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -22,7 +22,6 @@ export const CalendarPreview: React.FC<{
   const [events, setEvents] = useState<EventInput[]>([]);
   const [services, setServices] = useState<Service[]>([]);
 
-  // Fetch services once
   useEffect(() => {
     if (!idToken || !companyId) return;
     getServices(idToken, companyId)
@@ -54,18 +53,15 @@ export const CalendarPreview: React.FC<{
         const todaysEvents = data.filter((ev) => ev.start.startsWith(todayStr));
         setEvents(
           todaysEvents.map((ev) => {
-            // pull serviceId out of extendedProps
             const svcId = ev.extendedProps?.serviceId;
             const service = services.find((s) => s._id === svcId);
-            // use ev.title as the patient name
             const patientName = ev.title || "Randevu";
-
             return {
               ...ev,
               title: service
                 ? `${patientName} • ${service.serviceName}`
                 : patientName,
-              color: "#34D399",
+              color: "#71e25b", // brand green (or swap for another palette color if desired)
             };
           })
         );
@@ -91,28 +87,31 @@ export const CalendarPreview: React.FC<{
   )}:00`;
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-4  mb-4 flex justify-center">
+    <div className="bg-white rounded-2xl shadow p-3 mb-4 flex justify-center">
       <div className="w-full max-w-lg">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-semibold text-gray-800">
+          <h3 className="text-lg font-bold text-brand-main tracking-tight">
             Bugünün Randevuları
           </h3>
-          <span className="text-sm text-gray-500">{events.length} adet</span>
+          <span className="text-sm text-black font-semibold">
+            {events.length} adet
+          </span>
         </div>
-        <div className="h-64 overflow-hidden">
+        <div className="h-64 overflow-hidden rounded-xl border border-brand-main/10 bg-brand-bg">
           <style>{`
             .fc .fc-toolbar { display: none; }
-            .fc .fc-now-indicator { background-color: red !important; }
+            .fc .fc-now-indicator { background-color: #e2725b !important; }
             .fc .fc-timegrid-slot-lane .fc-timegrid-slot-text {
-              color: #4B5563;
+              color: #6B7280;
               font-size: 0.75rem;
             }
             .fc .fc-timegrid-event {
-              background-color: #34D399 !important;
+              background-color: #71e25b !important;
               border: none !important;
               color: #FFFFFF !important;
               font-size: 0.75rem;
               border-radius: 0.375rem;
+              box-shadow: 0 2px 6px 0 rgba(0,0,0,0.07);
             }
           `}</style>
           <FullCalendar

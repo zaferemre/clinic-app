@@ -1,36 +1,40 @@
 // src/components/ServiceAndEmployeeFilter.tsx
-import React, { useState, useRef, useEffect } from "react";
-import { FunnelIcon } from "@heroicons/react/24/outline";
+import React, { useRef, useEffect, useMemo } from "react";
 import { CalendarEmployee } from "../CalendarEmployeeSelector/CalendarEmployeeSelector";
 
-interface Service {
-  _id: string;
-  serviceName: string;
-}
 interface Props {
   employees: CalendarEmployee[];
   selectedEmployee: string;
   onEmployeeChange: (id: string) => void;
-  services: Service[];
-  selectedService: string;
-  onServiceChange: (id: string) => void;
+
   currentUserEmail: string;
   ownerEmail: string;
+  open: boolean;
+  onClose: () => void;
 }
 
 export const ServiceAndEmployeeFilter: React.FC<Props> = ({
   employees,
   selectedEmployee,
   onEmployeeChange,
-  services,
-  selectedService,
-  onServiceChange,
+
   currentUserEmail,
   ownerEmail,
+  open,
+  onClose,
 }) => {
   const ALL = "";
-  const [open, setOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Dedupe employees by email (case-insensitive)
+  const uniqueEmployees = useMemo(() => {
+    const map = new Map<string, CalendarEmployee>();
+    employees.forEach((e) => {
+      const key = e.email.toLowerCase().trim();
+      if (!map.has(key)) map.set(key, e);
+    });
+    return Array.from(map.values());
+  }, [employees]);
 
   // Close sidebar on outside click
   useEffect(() => {
@@ -40,30 +44,18 @@ export const ServiceAndEmployeeFilter: React.FC<Props> = ({
         sidebarRef.current &&
         !sidebarRef.current.contains(e.target as Node)
       ) {
-        setOpen(false);
+        onClose();
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
+  }, [open, onClose]);
 
   return (
     <>
-      {/* Toggle */}
-      <button
-        onClick={() => setOpen(true)}
-        className="fixed top-3 left-3 z-50 p-2 bg-white border rounded-lg shadow hover:bg-gray-50"
-      >
-        <FunnelIcon className="w-6 h-6 text-yellow-600" />
-      </button>
-
       {open && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40"
-          onClick={() => setOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
       )}
-
       <div
         ref={sidebarRef}
         className={`fixed top-0 left-0 z-50 h-full w-4/5 max-w-xs bg-white shadow-lg transform transition-transform duration-300 ${
@@ -72,10 +64,7 @@ export const ServiceAndEmployeeFilter: React.FC<Props> = ({
       >
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-lg font-semibold text-yellow-700">Filtreler</h2>
-          <button
-            onClick={() => setOpen(false)}
-            className="text-gray-600 text-xl"
-          >
+          <button onClick={onClose} className="text-gray-600 text-xl">
             ×
           </button>
         </div>
@@ -90,20 +79,19 @@ export const ServiceAndEmployeeFilter: React.FC<Props> = ({
                 onClick={() => onEmployeeChange(ALL)}
                 className={`w-full text-left p-2 rounded-md ${
                   selectedEmployee === ALL
-                    ? "bg-yellow-600 text-white"
+                    ? "bg-brand-main text-white"
                     : "bg-gray-100 hover:bg-gray-200"
                 }`}
               >
                 Hepsi
               </button>
-
-              {employees.map((emp) => (
+              {uniqueEmployees.map((emp) => (
                 <button
                   key={emp.email}
                   onClick={() => onEmployeeChange(emp.email)}
                   className={`w-full text-left p-2 rounded-md flex justify-between items-center ${
                     selectedEmployee === emp.email
-                      ? "bg-yellow-600 text-white"
+                      ? "bg-brand-main text-white"
                       : "bg-gray-100 hover:bg-gray-200"
                   }`}
                 >
@@ -114,37 +102,6 @@ export const ServiceAndEmployeeFilter: React.FC<Props> = ({
                   {emp.email === ownerEmail && (
                     <span className="text-xs italic">(Yönetici)</span>
                   )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Service Filter */}
-          <div>
-            <h3 className="mb-2 text-sm font-medium text-gray-700">Hizmet</h3>
-            <div className="space-y-2">
-              <button
-                onClick={() => onServiceChange(ALL)}
-                className={`w-full text-left p-2 rounded-md ${
-                  selectedService === ALL
-                    ? "bg-yellow-600 text-white"
-                    : "bg-gray-100 hover:bg-gray-200"
-                }`}
-              >
-                Hepsi
-              </button>
-
-              {services.map((svc) => (
-                <button
-                  key={svc._id}
-                  onClick={() => onServiceChange(svc._id)}
-                  className={`w-full text-left p-2 rounded-md ${
-                    selectedService === svc._id
-                      ? "bg-yellow-600 text-white"
-                      : "bg-gray-100 hover:bg-gray-200"
-                  }`}
-                >
-                  {svc.serviceName}
                 </button>
               ))}
             </div>

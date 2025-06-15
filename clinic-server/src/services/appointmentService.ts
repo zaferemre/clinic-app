@@ -1,3 +1,4 @@
+// src/services/appointmentService.ts
 import * as repo from "../dataAccess/appointmentRepository";
 import * as patientRepo from "../dataAccess/patientRepository";
 import { IUser } from "../thirdParty/firebaseAdminService";
@@ -9,9 +10,12 @@ export async function getAppointments(companyId: string) {
     title: appt.patientId?.name ?? "Randevu",
     start: appt.start,
     end: appt.end,
+    serviceId: appt.serviceId?.toString() ?? "",
     extendedProps: {
       employeeEmail: appt.employeeEmail ?? "",
       serviceId: appt.serviceId?.toString() ?? "",
+      patientId:
+        appt.patientId?._id?.toString?.() ?? appt.patientId?.toString?.() ?? "",
     },
     color:
       appt.status === "done"
@@ -33,9 +37,12 @@ export async function getAppointmentById(
     title: appt.patientId?.name ?? "Randevu",
     start: appt.start,
     end: appt.end,
+    serviceId: appt.serviceId?.toString() ?? "",
     extendedProps: {
       employeeEmail: appt.employeeEmail ?? "",
       serviceId: appt.serviceId?.toString() ?? "",
+      patientId:
+        appt.patientId?._id?.toString?.() ?? appt.patientId?.toString?.() ?? "",
     },
   };
 }
@@ -52,7 +59,8 @@ export async function createAppointment(
     throw { status: 400, message: "Invalid datetime" };
   }
 
-  const patient = await patientRepo.findById(patientId);
+  // ✅ Pass companyId into findById
+  const patient = await patientRepo.findById(companyId, patientId);
   if (!patient) throw { status: 404, message: "Patient not found" };
   if (patient.companyId.toString() !== companyId)
     throw { status: 403, message: "Patient not in this company" };
@@ -70,6 +78,7 @@ export async function createAppointment(
   );
   if (overlap) throw { status: 409, message: "Timeslot taken" };
 
+  // debit one credit
   patient.credit -= 1;
   await patient.save();
 
@@ -110,7 +119,11 @@ export async function deleteAppointment(
   const appt = await repo.findOne(companyId, appointmentId);
   if (!appt) throw { status: 404, message: "Appointment not found" };
 
-  const patient = await patientRepo.findById(appt.patientId.toString());
+  // ✅ Pass companyId into findById here as well
+  const patient = await patientRepo.findById(
+    companyId,
+    appt.patientId.toString()
+  );
   if (patient) {
     patient.credit += 1;
     await patient.save();

@@ -32,9 +32,13 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPatient = createPatient;
 exports.getPatients = getPatients;
+exports.getPatientById = getPatientById;
 exports.updatePatient = updatePatient;
 exports.recordPayment = recordPayment;
 exports.getPatientAppointments = getPatientAppointments;
@@ -45,6 +49,7 @@ exports.deletePatient = deletePatient;
 const repo = __importStar(require("../dataAccess/patientRepository"));
 const apptRepo = __importStar(require("../dataAccess/appointmentRepository"));
 const notifRepo = __importStar(require("../dataAccess/notificationRepository"));
+const http_errors_1 = __importDefault(require("http-errors"));
 async function createPatient(companyId, dto) {
     return repo.create({
         ...dto,
@@ -55,6 +60,13 @@ async function createPatient(companyId, dto) {
 }
 async function getPatients(companyId) {
     return repo.findByCompany(companyId);
+}
+// ← new
+async function getPatientById(companyId, patientId) {
+    const patient = await repo.findById(companyId, patientId);
+    if (!patient)
+        throw (0, http_errors_1.default)(404, "Patient not found");
+    return patient;
 }
 async function updatePatient(companyId, patientId, updates) {
     return repo.updateById(companyId, patientId, updates);

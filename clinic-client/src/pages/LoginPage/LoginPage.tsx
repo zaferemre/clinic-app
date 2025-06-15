@@ -66,7 +66,7 @@ const LoginPage: React.FC = () => {
   return (
     <div className="relative min-h-screen w-full bg-white flex flex-col">
       {/* Top: Gradient background with logo */}
-      <div className="absolute inset-0 h-1/2 bg-[radial-gradient(circle_at_top,_rgba(0,200,150,0.6)_0%,_rgba(120,100,255,0.3)_50%,_white_90%)] z-0" />
+      <div className="absolute inset-0 h-1/2 z-0 bg-[radial-gradient(circle_at_top,_rgba(226,114,91,0.6)_0%,_rgba(184,108,255,0.24)_50%,_white_90%)]" />
 
       {/* Logo stays near the top */}
       <div className="relative mt-6 z-10 flex items-end justify-center h-1/2 pb-6">
@@ -145,7 +145,16 @@ const LoginPage: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-brand-green-300 hover:bg-brand-green-500 text-white font-semibold rounded-full focus:outline-none focus:ring-2 focus:ring-brand-green-200 transition-colors duration-200 drop-shadow-md"
+              className="
+              px-6 py-2
+              bg-[#e2725b] hover:bg-[#cf6147]
+              text-white font-semibold
+              rounded-full
+              focus:outline-none focus:ring-2 focus:ring-[#f7ab68]/50
+              transition-colors duration-150
+              shadow-md
+              drop-shadow-md
+            "
             >
               Sign In
             </button>

@@ -1,3 +1,4 @@
+// src/components/PatientCard/PatientCard.tsx
 import React, { useState, useEffect } from "react";
 import {
   PencilIcon,
@@ -10,31 +11,8 @@ import { deletePatient } from "../../api/patientApi";
 import { getPatientAppointments } from "../../api/appointmentApi";
 import { flagPatientCall } from "../../api/notificationApi";
 import { useAuth } from "../../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-
-export interface ServiceEntry {
-  name: string;
-  pointsLeft?: number;
-  sessionsTaken?: number;
-}
-
-export interface PaymentHistoryEntry {
-  date: string;
-  method: "Havale" | "Card" | "Cash" | "Unpaid";
-  amount: number;
-  note?: string;
-}
-
-export interface Patient {
-  _id: string;
-  name: string;
-  age?: number;
-  phone?: string;
-  credit: number;
-  services: ServiceEntry[];
-  paymentHistory: PaymentHistoryEntry[];
-  note?: string;
-}
+import EditPatientModal from "../Modals/EditPatientModal";
+import type { Patient } from "../../types/sharedTypes";
 
 interface PatientCardProps {
   patient: Patient;
@@ -43,6 +21,7 @@ interface PatientCardProps {
   onCreditChange: (id: string, newCredit: number) => void;
   onRecordPayment: (id: string, method: "Havale" | "Card" | "Cash") => void;
   onDeletePatient: (deletedId: string) => void;
+  onUpdatePatient?: (updated: Partial<Patient>) => void;
 }
 
 export const PatientCard: React.FC<PatientCardProps> = ({
@@ -52,13 +31,10 @@ export const PatientCard: React.FC<PatientCardProps> = ({
   onCreditChange,
   onRecordPayment,
   onDeletePatient,
+  onUpdatePatient,
 }) => {
   const { idToken, companyId } = useAuth();
-  const navigate = useNavigate();
-  const { _id, name, age, phone, credit, services, paymentHistory, note } =
-    patient;
-
-  const [localCredit, setLocalCredit] = useState<number>(credit);
+  const [localCredit, setLocalCredit] = useState(patient.credit);
   const [pastAppointments, setPastAppointments] = useState<
     { id: string; start: string; status: string; employeeEmail: string }[]
   >([]);
@@ -66,16 +42,21 @@ export const PatientCard: React.FC<PatientCardProps> = ({
 
   const [showCallModal, setShowCallModal] = useState(false);
   const [callNote, setCallNote] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
-    setLocalCredit(credit);
-  }, [credit]);
+    setLocalCredit(patient.credit);
+  }, [patient.credit]);
 
   const loadHistory = async () => {
     if (!idToken || !companyId) return;
     setLoadingHistory(true);
     try {
-      const data = await getPatientAppointments(idToken, companyId, _id);
+      const data = await getPatientAppointments(
+        idToken,
+        companyId,
+        patient._id
+      );
       setPastAppointments(data);
     } catch {
       setPastAppointments([]);
@@ -89,12 +70,11 @@ export const PatientCard: React.FC<PatientCardProps> = ({
     setCallNote("");
     setShowCallModal(true);
   };
-
   const confirmCall = async () => {
     setShowCallModal(false);
     if (!idToken || !companyId) return;
     try {
-      await flagPatientCall(idToken, companyId, _id, callNote);
+      await flagPatientCall(idToken, companyId, patient._id, callNote);
       alert("Müşteri çağrı listesine eklendi.");
     } catch (err: any) {
       alert(err.message || "Çağrı eklenemedi.");
@@ -106,8 +86,8 @@ export const PatientCard: React.FC<PatientCardProps> = ({
     if (!window.confirm("Bu müşteriyi silmek istediğinize emin misiniz?"))
       return;
     try {
-      await deletePatient(idToken!, companyId!, _id);
-      onDeletePatient(_id);
+      await deletePatient(idToken!, companyId!, patient._id);
+      onDeletePatient(patient._id);
     } catch (err: any) {
       alert(err.message || "Silme işlemi başarısız.");
     }
@@ -115,28 +95,23 @@ export const PatientCard: React.FC<PatientCardProps> = ({
 
   const handleCreditChangeLocal = (newCredit: number) => {
     setLocalCredit(newCredit);
-    onCreditChange(_id, newCredit);
+    onCreditChange(patient._id, newCredit);
+  };
+  const handlePaymentMethodChange = (method: any) => {
+    if (method !== "Unpaid") onRecordPayment(patient._id, method);
   };
 
-  const handlePaymentMethodChange = (
-    method: "Havale" | "Card" | "Cash" | "Unpaid"
-  ) => {
-    if (method !== "Unpaid") onRecordPayment(_id, method);
-  };
-
-  const hasNoHistory = paymentHistory.length === 0;
-  const isLowCredit = credit < 2;
   let bgClass = "bg-white";
-  if (hasNoHistory && isLowCredit)
+  if (patient.paymentHistory.length === 0 && patient.credit < 2)
     bgClass = "bg-gradient-to-r from-blue-50 to-amber-50";
-  else if (hasNoHistory) bgClass = "bg-blue-50";
-  else if (isLowCredit) bgClass = "bg-amber-50";
+  else if (patient.paymentHistory.length === 0) bgClass = "bg-blue-50";
+  else if (patient.credit < 2) bgClass = "bg-amber-50";
 
   return (
     <div
       className={`${bgClass} rounded-xl p-6 mb-6 shadow hover:shadow-lg transition cursor-pointer relative`}
       onClick={() => {
-        onToggleExpand(_id);
+        onToggleExpand(patient._id);
         if (!isExpanded) loadHistory();
       }}
     >
@@ -152,22 +127,26 @@ export const PatientCard: React.FC<PatientCardProps> = ({
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h3 className="text-2xl font-semibold text-gray-800">{name}</h3>
-          {age != null && (
-            <span className="text-sm text-gray-500">{age} yaş</span>
+          <h3 className="text-2xl font-semibold text-gray-800">
+            {patient.name}
+          </h3>
+          {patient.age != null && (
+            <span className="text-sm text-gray-500">{patient.age} yaş</span>
           )}
         </div>
         <div className="flex items-center space-x-2">
+          {/* Edit */}
           <button
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/patients/${_id}/edit`);
+              setShowEditModal(true);
             }}
             className="p-2 bg-green-100 rounded hover:bg-green-200"
             aria-label="Düzenle"
           >
             <PencilIcon className="w-5 h-5 text-green-600" />
           </button>
+          {/* Call */}
           <button
             onClick={openCallModal}
             className="p-2 bg-blue-100 rounded hover:bg-blue-200"
@@ -175,6 +154,7 @@ export const PatientCard: React.FC<PatientCardProps> = ({
           >
             <PhoneIcon className="w-5 h-5 text-blue-600" />
           </button>
+          {/* Delete */}
           <button
             onClick={handleDelete}
             className="p-2 bg-red-100 rounded hover:bg-red-200"
@@ -186,7 +166,9 @@ export const PatientCard: React.FC<PatientCardProps> = ({
       </div>
 
       {/* Note */}
-      {note && <p className="mb-4 italic text-gray-600">“{note}”</p>}
+      {patient.note && (
+        <p className="mb-4 italic text-gray-600">“{patient.note}”</p>
+      )}
 
       {/* Credit & Payment */}
       <div className="flex flex-wrap items-center gap-6 mb-4">
@@ -209,14 +191,13 @@ export const PatientCard: React.FC<PatientCardProps> = ({
           <label className="mr-2 font-medium text-gray-700">Ödeme Durumu</label>
           <select
             value={
-              paymentHistory.length > 0
-                ? paymentHistory[paymentHistory.length - 1].method
+              patient.paymentHistory.length > 0
+                ? patient.paymentHistory[patient.paymentHistory.length - 1]
+                    .method
                 : "Unpaid"
             }
             onClick={(e) => e.stopPropagation()}
-            onChange={(e) =>
-              handlePaymentMethodChange(e.currentTarget.value as any)
-            }
+            onChange={(e) => handlePaymentMethodChange(e.currentTarget.value)}
             className="px-2 py-1 border rounded focus:ring-2 focus:ring-green-200"
           >
             <option value="Unpaid">Ödenmedi</option>
@@ -230,17 +211,19 @@ export const PatientCard: React.FC<PatientCardProps> = ({
       {/* Expanded Details */}
       {isExpanded && (
         <div className="space-y-4">
-          {phone && (
+          {/* Phone */}
+          {patient.phone && (
             <div>
               <span className="font-medium text-gray-700">Telefon:</span>{" "}
-              <span className="text-gray-600">{phone}</span>
+              <span className="text-gray-600">{patient.phone}</span>
             </div>
           )}
+          {/* Services */}
           <div>
             <span className="font-medium text-gray-700">Hizmetler:</span>
-            {services.length > 0 ? (
+            {patient.services.length > 0 ? (
               <ul className="ml-5 list-disc text-gray-600">
-                {services.map((s, i) => (
+                {patient.services.map((s, i) => (
                   <li key={i}>
                     {s.name} (Kalan: {s.pointsLeft || 0}, Oturum:{" "}
                     {s.sessionsTaken || 0})
@@ -251,11 +234,12 @@ export const PatientCard: React.FC<PatientCardProps> = ({
               <span className="ml-2 text-gray-600">Yok</span>
             )}
           </div>
+          {/* Payment History */}
           <div>
             <span className="font-medium text-gray-700">Ödeme Geçmişi:</span>
-            {paymentHistory.length > 0 ? (
+            {patient.paymentHistory.length > 0 ? (
               <ul className="ml-5 list-disc text-gray-600">
-                {paymentHistory.map((ph, i) => (
+                {patient.paymentHistory.map((ph, i) => (
                   <li key={i}>
                     {new Date(ph.date).toLocaleDateString()} - {ph.method}
                     {ph.note ? ` (${ph.note})` : ""}
@@ -266,6 +250,7 @@ export const PatientCard: React.FC<PatientCardProps> = ({
               <span className="ml-2 text-gray-600">Yok</span>
             )}
           </div>
+          {/* Past Appointments */}
           <div>
             <span className="font-medium text-gray-700">
               Geçmiş Randevular:
@@ -323,6 +308,14 @@ export const PatientCard: React.FC<PatientCardProps> = ({
           </div>
         </div>
       )}
+
+      {/* Edit Patient Modal */}
+      <EditPatientModal
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        patient={patient}
+        onUpdated={(updated) => onUpdatePatient?.(updated)}
+      />
     </div>
   );
 };

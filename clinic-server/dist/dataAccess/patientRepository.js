@@ -13,8 +13,9 @@ const Patient_1 = __importDefault(require("../models/Patient"));
 function findByCompany(companyId) {
     return Patient_1.default.find({ companyId }).exec();
 }
-function findById(id) {
-    return Patient_1.default.findById(id).exec();
+// ← updated: now enforces companyId
+function findById(companyId, patientId) {
+    return Patient_1.default.findOne({ _id: patientId, companyId }).exec();
 }
 function create(data) {
     return new Patient_1.default(data).save();

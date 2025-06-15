@@ -14,6 +14,8 @@ import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 
 import { PhoneIcon, CheckIcon } from "@heroicons/react/24/outline";
 
+import { tr } from "date-fns/locale";
+
 const NotificationsPage: React.FC = () => {
   const { idToken, companyId, companyName } = useAuth();
   const [notifications, setNotifications] = useState<NotificationInfo[]>([]);
@@ -22,23 +24,23 @@ const NotificationsPage: React.FC = () => {
   // Format today’s header (e.g. “TUESDAY 9 APRIL”)
   useEffect(() => {
     const now = new Date();
-    setTodayStr(format(now, "EEEE d MMMM").toUpperCase());
+    setTodayStr(format(now, "EEEE d MMMM", { locale: tr }));
   }, []);
 
-  const fetchAll = async () => {
-    if (!idToken || !companyId) return;
-    try {
-      const list = await getNotifications(idToken, companyId);
-      setNotifications(list);
-    } catch (err) {
-      console.error("Error fetching notifications:", err);
-      setNotifications([]);
-    }
-  };
-
   useEffect(() => {
-    if (idToken && companyId) fetchAll();
-  }, [idToken, companyId, fetchAll]);
+    if (idToken && companyId) {
+      const fetchAll = async () => {
+        try {
+          const list = await getNotifications(idToken, companyId);
+          setNotifications(list);
+        } catch (err) {
+          console.error("Error fetching notifications:", err);
+          setNotifications([]);
+        }
+      };
+      fetchAll();
+    }
+  }, [idToken, companyId]);
 
   const handleDial = async (patientId: string) => {
     if (!idToken || !companyId) return;
@@ -60,7 +62,13 @@ const NotificationsPage: React.FC = () => {
     if (!idToken || !companyId) return;
     try {
       await markNotificationCalled(idToken, companyId, notifId);
-      await fetchAll();
+      // Re-fetch notifications after marking as called
+      try {
+        const list = await getNotifications(idToken, companyId);
+        setNotifications(list);
+      } catch (err) {
+        setNotifications([]);
+      }
     } catch (err: unknown) {
       console.error("❌ Error marking called:", err);
       const msg = err instanceof Error ? err.message : "Bilinmeyen hata";
@@ -73,8 +81,10 @@ const NotificationsPage: React.FC = () => {
       {/* Header */}
       <header className="pt-4 px-4">
         <p className="text-xs text-brand-green-500 tracking-wide">{todayStr}</p>
-        <h1 className="mt-1 text-2xl font-bold text-brand-black">
-          {companyName} › Çağrı Listesi
+        <h1 className="mt-1 text-2xl font-bold">
+          <span className="text-brand-main">{companyName}</span>
+          <span className="text-brand-main mx-1">›</span>
+          <span className="text-brand-black">Bildirimler</span>
         </h1>
       </header>
 

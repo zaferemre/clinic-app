@@ -14,7 +14,7 @@ const CreateCompanyButton: React.FC<{
         onClick={() => setOpen(true)}
         className="
           flex-1 flex items-center justify-center gap-2 px-6 py-4
-          rounded-2xl bg-brand-green-400 text-white shadow-xl font-semibold
+          rounded-2xl bg-brand-main text-white shadow-xl font-semibold
           text-lg transition duration-150
           hover:bg-brand-green-500 hover:scale-[1.03] active:scale-95
           focus:outline-none focus:ring-2 focus:ring-brand-green-200

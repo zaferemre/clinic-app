@@ -89,15 +89,17 @@ export interface Patient {
 
 export interface CalendarEvent {
   id: string;
-  title: string; // usually patientName
+  title: string;
   start: string;
   end: string;
+
   extendedProps: {
     employeeId?: string;
-    employeeEmail: string;
-    serviceId: string;
+    employeeEmail?: string;
+    serviceId?: string;
+    patientId?: string;
   };
-  color?: string; // optional event color
+  color?: string;
 }
 
 export interface NotificationInfo {
@@ -127,4 +129,20 @@ export interface PatientSettings {
   showServicesReceived: boolean;
   showServicePointBalance: boolean;
   showNotes: boolean;
+}
+export interface Appointment {
+  _id: string;
+  patientId: string;
+  patientName: string;
+  employeeEmail: string;
+  serviceId: string;
+  start: string | { $date: string };
+  end: string | { $date: string };
+  status: "scheduled" | "done" | "cancelled" | string;
+  extendedProps?: {
+    employeeEmail?: string;
+    serviceId?: string;
+    patientId?: string; // added for better type safety
+    patientName?: string; // optional, for convenience
+  };
 }

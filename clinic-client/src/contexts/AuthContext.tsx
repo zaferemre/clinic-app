@@ -9,13 +9,14 @@ import React, {
 import { auth } from "../firebase";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { getCompanyByEmail } from "../api/companyApi";
-import type { Company } from "../types/sharedTypes";
+import { getEmployees } from "../api/employeeApi";
+import type { EmployeeInfo } from "../types/sharedTypes";
 
 interface User {
   uid: string;
   email: string;
   name: string;
-  role?: string;
+  role: string; // now required
   imageUrl: string;
 }
 
@@ -41,7 +42,7 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [checkingCompany, setCheckingCompany] = useState<boolean>(false);
 
-  // Subscribe to Firebase auth state
+  // 1. Listen for Firebase Auth changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(
       auth,
@@ -58,13 +59,14 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
           email: fbUser.email ?? "",
           name: fbUser.displayName ?? "",
           imageUrl: fbUser.photoURL ?? "",
+          role: "staff", // temporary default
         });
       }
     );
     return unsubscribe;
   }, []);
 
-  // Fetch company info when idToken changes
+  // 2. When the token changes, fetch company & assign real role
   useEffect(() => {
     if (!idToken) {
       setCompanyId(null);
@@ -72,25 +74,55 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
       setCheckingCompany(false);
       return;
     }
+
+    let isMounted = true;
     setCheckingCompany(true);
-    getCompanyByEmail(idToken)
-      .then((company: Company | null) => {
+
+    (async () => {
+      try {
+        const company = await getCompanyByEmail(idToken);
+        if (!isMounted) return;
+
         if (company?._id) {
           setCompanyId(company._id);
           setCompanyName(company.name);
+
+          // grab the email of the currently signed-in user
+          const email = auth.currentUser?.email ?? "";
+          const isOwner = company.ownerEmail === email;
+
+          // 2.a) Owner → role = "owner"
+          setUser((u) => (u ? { ...u, role: isOwner ? "owner" : "staff" } : u));
+
+          // 2.b) Non-owner → fetch their employee record to get the real role
+          if (!isOwner) {
+            const employees: EmployeeInfo[] = await getEmployees(
+              idToken,
+              company._id
+            );
+            if (!isMounted) return;
+            const me = employees.find((e) => e.email === email);
+            setUser((u) => (u ? { ...u, role: me?.role ?? "staff" } : u));
+          }
         } else {
+          // no company found → default role
           setCompanyId(null);
           setCompanyName(null);
+          setUser((u) => (u ? { ...u, role: "staff" } : u));
         }
-      })
-      .catch(() => {
+      } catch {
         setCompanyId(null);
         setCompanyName(null);
-      })
-      .finally(() => {
-        setCheckingCompany(false);
-      });
-  }, [idToken]);
+        setUser((u) => (u ? { ...u, role: "staff" } : u));
+      } finally {
+        if (isMounted) setCheckingCompany(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [idToken]); // ← only re-run when the token itself changes
 
   const signOutUser = React.useCallback(() => {
     auth.signOut();
@@ -101,31 +133,21 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
     setCheckingCompany(false);
   }, []);
 
-  const contextValue = React.useMemo(
-    () => ({
-      idToken,
-      user,
-      companyId,
-      companyName,
-      checkingCompany,
-      setCompanyId,
-      setCompanyName,
-      signOut: signOutUser,
-    }),
-    [
-      idToken,
-      user,
-      companyId,
-      companyName,
-      checkingCompany,
-      setCompanyId,
-      setCompanyName,
-      signOutUser,
-    ]
-  );
-
   return (
-    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+    <AuthContext.Provider
+      value={{
+        idToken,
+        user,
+        companyId,
+        companyName,
+        checkingCompany,
+        setCompanyId,
+        setCompanyName,
+        signOut: signOutUser,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
   );
 };
 

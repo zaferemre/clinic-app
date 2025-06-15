@@ -1,6 +1,7 @@
 import * as repo from "../dataAccess/patientRepository";
 import * as apptRepo from "../dataAccess/appointmentRepository";
 import * as notifRepo from "../dataAccess/notificationRepository";
+import createError from "http-errors";
 
 export async function createPatient(companyId: string, dto: any) {
   return repo.create({
@@ -13,6 +14,13 @@ export async function createPatient(companyId: string, dto: any) {
 
 export async function getPatients(companyId: string) {
   return repo.findByCompany(companyId);
+}
+
+// ← new
+export async function getPatientById(companyId: string, patientId: string) {
+  const patient = await repo.findById(companyId, patientId);
+  if (!patient) throw createError(404, "Patient not found");
+  return patient;
 }
 
 export async function updatePatient(

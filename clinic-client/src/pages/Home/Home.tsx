@@ -1,28 +1,29 @@
-// src/pages/Home/Home.tsx
 import React, { useState, useEffect } from "react";
-import { CalendarPreview } from "../../components/CalendarPreview/CalendarPreview";
+import { useAuth } from "../../contexts/AuthContext";
+import { GreetingHeader } from "../../components/GreetingHeader/GreetingHeader";
+import { QuickActionsRow } from "../../components/QuickActionsRow/QuickActionsRow";
+import { UpcomingAppointments } from "../../components/UpcomingAppointments/UpcomingAppointments";
 import { HomeNavGrid } from "../../components/HomeNavGrid/HomeNavGrid";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
-import { useAuth } from "../../contexts/AuthContext";
-import { format } from "date-fns";
+import { useTodaysAppointments } from "../../hooks/useTodaysAppointments";
 import { getNotifications } from "../../api/notificationApi";
-import { NotificationInfo } from "../../types/sharedTypes";
-import { tr } from "date-fns/locale";
+import type { NotificationInfo } from "../../types/sharedTypes";
 
 const Home: React.FC = () => {
   const { idToken, companyId, companyName, user } = useAuth();
-  const [todayStr, setTodayStr] = useState("");
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
-    const now = new Date();
-    const formatted = format(now, "EEEE, d MMMM", { locale: tr });
-    setTodayStr(formatted.charAt(0).toUpperCase() + formatted.slice(1));
-  }, []);
+  // pass empty string for null so the hook signature stays `string`
+  const { appointments: todaysAppointments, employees: allEmployees } =
+    useTodaysAppointments(idToken ?? "", companyId ?? "");
 
+  // Fetch unread notifications count
   useEffect(() => {
     const fetchUnread = async () => {
-      if (!idToken || !companyId) return setUnreadCount(0);
+      if (!idToken || !companyId) {
+        setUnreadCount(0);
+        return;
+      }
       try {
         const allNotifs: NotificationInfo[] = await getNotifications(
           idToken,
@@ -36,27 +37,38 @@ const Home: React.FC = () => {
     fetchUnread();
   }, [idToken, companyId]);
 
+  // only render once we're fully authenticated & have company info
   if (!idToken || !companyId || !companyName || !user) return null;
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 pb-16">
-      <div className="flex-1 overflow-auto px-4 py-4 space-y-6">
-        <div>
-          <p className="text-xs text-green-600 tracking-wide">{todayStr}</p>
-          <h2 className="mt-1 text-2xl font-bold text-gray-800">
-            Hoş geldin, {user.name}!
-          </h2>
+    <div className="flex flex-col h-screen bg-gray-50 pb-16">
+      <div className="flex-1 overflow-auto px-4 py-4 space-y-4">
+        {/* Greeting and company info */}
+        <GreetingHeader
+          userName={user.name}
+          userAvatarUrl={user.imageUrl || ""}
+          companyName={companyName}
+        />
+
+        {/* Nav grid */}
+        <div className="rounded-2xl shadow bg-white p-2">
+          <HomeNavGrid unreadCount={unreadCount} />
         </div>
 
-        <HomeNavGrid unreadCount={unreadCount} />
+        {/* Quick Actions */}
+        <QuickActionsRow
+          onAddAppointment={() => {}}
+          onAddPatient={() => {}}
+          onAddService={() => {}}
+        />
 
-        <CalendarPreview
-          onEventClick={() => {
-            /* navigate to calendar */
-          }}
+        {/* Today's appointments */}
+        <UpcomingAppointments
+          appointments={todaysAppointments}
+          user={{ email: user.email, role: user.role ?? "" }}
+          employees={allEmployees}
         />
       </div>
-
       <NavigationBar />
     </div>
   );

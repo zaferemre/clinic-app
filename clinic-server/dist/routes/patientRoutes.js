@@ -8,10 +8,13 @@ const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
 const authorizeCompanyAccess_1 = require("../middlewares/authorizeCompanyAccess");
 const patientController_1 = require("../controllers/patientController");
 const router = express_1.default.Router();
-// require token + access for any :companyId
+// protect all /:companyId routes
 router.use("/:companyId", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess);
+// Create & list
 router.post("/:companyId/patients", patientController_1.createPatient);
 router.get("/:companyId/patients", patientController_1.getPatients);
+// ← single‐patient GET
+router.get("/:companyId/patients/:patientId", patientController_1.getPatientById);
 router.patch("/:companyId/patients/:patientId", patientController_1.updatePatient);
 router.patch("/:companyId/patients/:patientId/payment", patientController_1.recordPayment);
 router.patch("/:companyId/patients/:patientId/flag-call", patientController_1.flagPatientCall);

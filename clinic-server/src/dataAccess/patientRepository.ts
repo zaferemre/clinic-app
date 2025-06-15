@@ -4,8 +4,9 @@ export function findByCompany(companyId: string) {
   return Patient.find({ companyId }).exec();
 }
 
-export function findById(id: string) {
-  return Patient.findById(id).exec();
+// ← updated: now enforces companyId
+export function findById(companyId: string, patientId: string) {
+  return Patient.findOne({ _id: patientId, companyId }).exec();
 }
 
 export function create(data: any) {

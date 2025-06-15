@@ -1,4 +1,3 @@
-// src/components/HomeNavGrid/HomeNavGrid.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,14 +11,10 @@ interface NavCard {
   label: string;
   icon: React.ReactNode;
   route: string;
-  bgColor?: string;
-  textColor?: string;
+  bg: string;
+  text: string;
 }
 
-/**
- * Props:
- *   unreadCount: number of unread notifications
- */
 interface HomeNavGridProps {
   unreadCount: number;
 }
@@ -27,66 +22,58 @@ interface HomeNavGridProps {
 export const HomeNavGrid: React.FC<HomeNavGridProps> = ({ unreadCount }) => {
   const navigate = useNavigate();
 
-  // Define the four cards; the Alerts card will show a dot if unreadCount > 0
   const cards: NavCard[] = [
     {
-      label: "Patients",
+      label: "Hastalar",
       icon: <UsersIcon className="h-8 w-8" />,
       route: "/patients",
-      bgColor: "bg-brand-blue-100",
-      textColor: "text-brand-blue-500",
+      bg: "bg-brand-green/20",
+      text: "text-green-600",
     },
     {
-      label: "Employees",
+      label: "Panel",
       icon: <BuildingOffice2Icon className="h-8 w-8" />,
-      route: "/employees",
-      bgColor: "bg-brand-pink-100",
-      textColor: "text-brand-pink-500",
+      route: "/dashboard",
+      bg: "bg-brand-yellow/20",
+      text: "text-brand-main",
     },
     {
-      label: "Calendar",
+      label: "Takvim",
       icon: <CalendarIcon className="h-8 w-8" />,
       route: "/calendar",
-      bgColor: "bg-brand-orange-100",
-      textColor: "text-brand-orange-500",
+      bg: "bg-brand-fuchsia/20",
+      text: "text-brand-fuchsia",
     },
     {
-      label: "Alerts",
+      label: "Bildirimler",
       icon: <BellIcon className="h-8 w-8" />,
       route: "/notifications",
-      bgColor: "bg-brand-red-100",
-      textColor: "text-brand-red-500",
+      bg: "bg-brand-red/20",
+      text: "text-brand-red",
     },
   ];
-
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-2 gap-3 p-2">
       {cards.map((card) => (
         <button
           key={card.label}
           onClick={() => navigate(card.route)}
           className={`
             relative
-            ${card.bgColor || "bg-white"}
-            rounded-xl shadow-lg
+            ${card.bg}
+            rounded-xl shadow
             aspect-square
             flex flex-col items-center justify-center
-            hover:shadow-xl transition
+            hover:bg-brand-main/20 active:bg-brand-main/30 transition
+            focus:outline-none
           `}
         >
-          {/* If this is the “Alerts” card and there are unread items, show a small red dot */}
-          {card.label === "Alerts" && unreadCount > 0 && (
-            <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
+          {/* Show a red dot for unread notifications */}
+          {card.label === "Bildirimler" && unreadCount > 0 && (
+            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
           )}
-
-          <div className={`${card.textColor || "text-brand-green-400"}`}>
-            {card.icon}
-          </div>
-          <span
-            className={`mt-2 text-sm font-medium ${
-              card.textColor || "text-brand-black"
-            }`}
-          >
+          <div className={`${card.text}`}>{card.icon}</div>
+          <span className={`mt-2 text-base font-semibold ${card.text}`}>
             {card.label}
           </span>
         </button>

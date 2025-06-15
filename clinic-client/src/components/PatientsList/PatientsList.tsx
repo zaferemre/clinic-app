@@ -1,30 +1,24 @@
+// src/components/PatientsList/PatientsList.tsx
 import React, { useState, useEffect } from "react";
-import {
-  PatientCard,
-  Patient as CardPatient,
-} from "../PatientCard/PatientCard";
+import { PatientCard } from "../PatientCard/PatientCard";
+import type { Patient } from "../../types/sharedTypes";
 import {
   getPatients,
   updatePatientField,
   recordPayment,
 } from "../../api/patientApi";
-import { Patient } from "../../types/sharedTypes";
 import { useAuth } from "../../contexts/AuthContext";
 
 export const PatientsList: React.FC = () => {
   const { idToken, companyId } = useAuth();
-  const [patients, setPatients] = useState<CardPatient[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // 0 = “Tümü”, 1 = “Ödenmedi”, 2 = “Az Kredi”
   const [filterMode, setFilterMode] = useState<0 | 1 | 2>(0);
-
-  // Search query
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Fetch all patients when idToken or companyId changes
-  // ─────────────────────────────────────────────────────────────────────────────
+  // Fetch all patients
   useEffect(() => {
     if (!idToken || !companyId) {
       setPatients([]);
@@ -33,21 +27,10 @@ export const PatientsList: React.FC = () => {
 
     getPatients(idToken, companyId)
       .then((apiData: Patient[]) => {
-        // Map from API → CardPatient (no more balanceDue)
-        const cardPatients: CardPatient[] = apiData.map((p) => ({
-          _id: p._id,
-          name: p.name,
-          age: p.age,
-          phone: p.phone,
-          credit: p.credit,
-          services: p.services,
-          paymentHistory: p.paymentHistory,
-          note: p.note,
-        }));
-        setPatients(cardPatients);
+        setPatients(apiData);
       })
       .catch((err) => console.error("Failed to fetch patients:", err));
-  }, [companyId, idToken]);
+  }, [idToken, companyId]);
 
   // Toggle expand/collapse
   const handleToggleExpand = (id: string) => {
@@ -72,7 +55,7 @@ export const PatientsList: React.FC = () => {
     method: "Havale" | "Card" | "Cash"
   ) => {
     if (idToken && companyId) {
-      recordPayment(idToken, companyId, id, method).catch((err) =>
+      recordPayment(idToken, companyId, id, { method }).catch((err) =>
         console.error("Record payment failed:", err)
       );
     }
@@ -83,44 +66,31 @@ export const PatientsList: React.FC = () => {
     setPatients((prev) => prev.filter((p) => p._id !== deletedId));
   };
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Build the filtered list of patients
-  // ─────────────────────────────────────────────────────────────────────────────
+  // Filter & search
   const filteredPatients = patients
-    // a) filter by search term
     .filter((p) =>
       p.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
     )
-    // b) apply paid/unpaid or low-credit filters
     .filter((p) => {
       const latestMethod =
         p.paymentHistory.length > 0
           ? p.paymentHistory[p.paymentHistory.length - 1].method
           : "Unpaid";
-
-      if (filterMode === 1) {
-        // “Ödenmedi”: last method = Unpaid
-        return latestMethod === "Unpaid";
-      } else if (filterMode === 2) {
-        // “Az Kredi”: credit < 3
-        return p.credit < 3;
-      }
-      // filterMode === 0 → all
+      if (filterMode === 1) return latestMethod === "Unpaid";
+      if (filterMode === 2) return p.credit < 3;
       return true;
     });
 
   return (
     <div className="space-y-4">
-      {/* — Search + Filters — */}
+      {/* Search + Filters */}
       <div className="px-4 pt-4 space-y-3">
         <input
           type="text"
           placeholder="Hasta adı ara..."
           className="
-            w-full
-            border border-brand-gray-300 rounded-md
-            px-3 py-2
-            focus:outline-none focus:ring-2 focus:ring-blue-300
+            w-full border border-brand-gray-300 rounded-md
+            px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300
           "
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -159,9 +129,9 @@ export const PatientsList: React.FC = () => {
         </div>
       </div>
 
-      {/* — Patient Cards — */}
+      {/* Patient Cards */}
       <div className="px-4 pb-16">
-        {filteredPatients.length > 0 ? (
+        {filteredPatients.length ? (
           filteredPatients.map((pat) => (
             <PatientCard
               key={pat._id}
@@ -171,6 +141,13 @@ export const PatientsList: React.FC = () => {
               onCreditChange={handleCreditChange}
               onRecordPayment={handleRecordPayment}
               onDeletePatient={handleDeletePatient}
+              onUpdatePatient={(updates) =>
+                setPatients((prev) =>
+                  prev.map((p) =>
+                    p._id === pat._id ? { ...p, ...updates } : p
+                  )
+                )
+              }
             />
           ))
         ) : (

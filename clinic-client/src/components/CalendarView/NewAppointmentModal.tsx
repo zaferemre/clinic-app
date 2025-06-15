@@ -1,5 +1,5 @@
 // src/components/NewAppointmentModal.tsx
-import React from "react";
+import React, { useMemo } from "react";
 import AppModal from "../Modals/AppModal";
 
 interface Patient {
@@ -62,6 +62,16 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
   onSubmit,
   onAddPatient,
 }) => {
+  // Deduplicate employees by email
+  const uniqueEmployees = useMemo(() => {
+    const seen = new Set<string>();
+    return employees.filter((e) => {
+      if (seen.has(e.email)) return false;
+      seen.add(e.email);
+      return true;
+    });
+  }, [employees]);
+
   if (!show) return null;
 
   const handle = () => {
@@ -100,7 +110,8 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
             </button>
           </div>
         </div>
-        {/* Employee */}
+
+        {/* Employee (only for owner) */}
         {isOwner && (
           <div>
             <label className="block text-sm">Çalışan</label>
@@ -110,7 +121,7 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
               className="w-full border rounded p-2"
             >
               <option value="">Seçiniz</option>
-              {employees.map((e) => (
+              {uniqueEmployees.map((e) => (
                 <option key={e.email} value={e.email}>
                   {e.name}
                 </option>
@@ -118,6 +129,7 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
             </select>
           </div>
         )}
+
         {/* Service */}
         <div>
           <label className="block text-sm">Hizmet</label>
@@ -134,6 +146,7 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
             ))}
           </select>
         </div>
+
         {/* Times */}
         <div className="grid grid-cols-2 gap-2">
           <div>
@@ -155,6 +168,8 @@ export const NewAppointmentModal: React.FC<NewAppointmentModalProps> = ({
             />
           </div>
         </div>
+
+        {/* Actions */}
         <div className="flex justify-end space-x-2 pt-4">
           <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">
             İptal

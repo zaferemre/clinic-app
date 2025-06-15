@@ -9,7 +9,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../contexts/AuthContext";
 import { getNotifications } from "../../api/notificationApi";
-
 import AddPatient from "../AddPatient/AddPatientModal";
 import { NewAppointmentModal } from "../CalendarView/NewAppointmentModal";
 import { ServiceModal } from "../Modals/ServiceModal/ServiceModal";
@@ -18,7 +17,6 @@ import { getServices } from "../../api/servicesApi";
 import { getEmployees } from "../../api/employeeApi";
 import { createAppointment } from "../../api/appointmentApi";
 import AppModal from "../Modals/AppModal";
-
 import { EmployeeInfo, Patient, ServiceInfo } from "../../types/sharedTypes";
 
 export const NavigationBar: React.FC = () => {
@@ -87,109 +85,104 @@ export const NavigationBar: React.FC = () => {
     setShowAddModal(false);
   };
 
-  // --- NAV BAR ---
   return (
     <>
-      <nav
-        className="
-          fixed bottom-0 left-0 right-0 z-30
-          bg-white 
-          flex justify-between items-center h-20
-          px-2
-          border-t border-orange-100
-          rounded-t-3xl
-          shadow-[0_8px_32px_0_rgba(255,135,31,0.13)]
-        "
-        style={{
-          boxShadow: "0 8px 32px 0 rgba(255,135,31,0.13)",
-        }}
-      >
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            `flex items-center justify-center flex-1 h-12 rounded-full mx-1 transition-all
-            ${isActive ? "bg-orange-500 text-white p-3" : "text-orange-400"}`
-          }
+      <div className="fixed bottom-3 left-3 right-3 flex justify-center z-30 pointer-events-none">
+        <nav
+          className="
+    bg-brand-main rounded-full
+    flex flex-row justify-between items-center
+    h-14 px-2 shadow-xl pointer-events-auto
+    w-[min(98vw,410px)] mx-auto
+    transition
+  "
         >
-          {({ isActive }) => (
-            <>
-              <HomeIcon className="h-7 w-7" />
-              {isActive && <span className="ml-2 font-bold">Home</span>}
-            </>
-          )}
-        </NavLink>
+          <NavLink to="/" className="flex-1 mx-[2px]">
+            {({ isActive }) => (
+              <div
+                className={`flex items-center justify-center h-11 rounded-full px-2
+          ${isActive ? "bg-white text-brand-main font-bold" : "text-white"}
+          transition`}
+              >
+                <HomeIcon className="h-6 w-6" />
+                {isActive && (
+                  <span className="ml-2 text-base hidden sm:inline">Home</span>
+                )}
+              </div>
+            )}
+          </NavLink>
+          <NavLink to="/dashboard" className="flex-1 mx-[2px]">
+            {({ isActive }) => (
+              <div
+                className={`flex items-center justify-center h-11 rounded-full px-2
+          ${isActive ? "bg-white text-brand-main font-bold" : "text-white"}
+          transition`}
+              >
+                <BuildingOffice2Icon className="h-6 w-6" />
+                {isActive && (
+                  <span className="ml-2 text-base hidden sm:inline">Panel</span>
+                )}
+              </div>
+            )}
+          </NavLink>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="
+flex items-center justify-center h-11 rounded-full px-2 text-white
+      "
+            aria-label="Ekle"
+          >
+            <PlusIcon className="h-8 w-8" />
+          </button>
+          <NavLink to="/calendar" className="flex-1 mx-[2px]">
+            {({ isActive }) => (
+              <div
+                className={`flex items-center justify-center h-11 rounded-full px-2
+          ${isActive ? "bg-white text-brand-main font-bold" : "text-white"}
+          transition`}
+              >
+                <CalendarIcon className="h-6 w-6" />
+                {isActive && (
+                  <span className="ml-2 text-base hidden sm:inline">
+                    Takvim
+                  </span>
+                )}
+              </div>
+            )}
+          </NavLink>
+          <NavLink to="/notifications" className="flex-1 mx-[2px] relative">
+            {({ isActive }) => (
+              <div
+                className={`flex items-center justify-center h-11 rounded-full px-2
+          ${isActive ? "bg-white text-brand-main font-bold" : "text-white"}
+          transition`}
+              >
+                <BellIcon className="h-6 w-6" />
+                {isActive && (
+                  <span className="ml-2 text-base hidden sm:inline">Çağrı</span>
+                )}
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-2 h-2 w-2 rounded-full bg-red-500 border-2 border-white" />
+                )}
+              </div>
+            )}
+          </NavLink>
+        </nav>
+      </div>
 
-        <NavLink
-          to="/dashboard"
-          className={({ isActive }) =>
-            `flex items-center justify-center flex-1 h-12 rounded-full mx-1 transition-all
-            ${isActive ? "bg-orange-500 text-white p-3 " : "text-orange-400"}`
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <BuildingOffice2Icon className="h-7 w-7" />
-              {isActive && <span className="ml-2 font-bold">{"Panel"}</span>}
-            </>
-          )}
-        </NavLink>
-
-        {/* Center Add Button */}
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center justify-center h-14 w-14 rounded-full bg-orange-500 shadow-lg transition hover:scale-105 active:scale-95 border-4 border-white -mt-7 z-10"
-          aria-label="Ekle"
-        >
-          <PlusIcon className="h-8 w-8 text-white" />
-        </button>
-
-        <NavLink
-          to="/calendar"
-          className={({ isActive }) =>
-            `flex items-center justify-center flex-1 h-12 rounded-full mx-1 transition-all
-            ${isActive ? "bg-orange-500 text-white p-3" : "text-orange-400"}`
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <CalendarIcon className="h-7 w-7" />
-              {isActive && <span className="ml-2 font-bold">Takvim</span>}
-            </>
-          )}
-        </NavLink>
-
-        <NavLink
-          to="/notifications"
-          className={({ isActive }) =>
-            `relative flex items-center justify-center flex-1 h-12 rounded-full mx-1 transition-all
-            ${isActive ? "bg-orange-500 text-white p-3" : "text-orange-400"}`
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <BellIcon className="h-7 w-7" />
-              {isActive && <span className="ml-2 font-bold">Çağrılar</span>}
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-5 h-3 w-3 rounded-full bg-red-500 border-2 border-white" />
-              )}
-            </>
-          )}
-        </NavLink>
-      </nav>
-
-      {/* Modals below (unchanged) */}
+      {/* Modal menu: white card with accent buttons */}
       <AppModal
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
         title="Ekle"
       >
-        <div className="flex flex-col gap-4 bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl shadow-xl p-6 transition">
+        <div className="flex flex-col gap-4 bg-white rounded-2xl shadow-xl p-4 transition">
           <button
             onClick={() => {
               setShowAddPatient(true);
               setShowAddModal(false);
             }}
-            className="w-full py-3 rounded-xl font-semibold bg-orange-500 text-white hover:bg-orange-600 shadow transition"
+            className="w-full py-3 rounded-xl font-semibold bg-brand-main text-white hover:bg-brand-red transition"
           >
             Hasta Ekle
           </button>
@@ -198,7 +191,7 @@ export const NavigationBar: React.FC = () => {
               setActiveModal("randevu");
               setShowAddModal(false);
             }}
-            className="w-full py-3 rounded-xl font-semibold bg-orange-400 text-white hover:bg-orange-500 shadow transition"
+            className="w-full py-3 rounded-xl font-semibold bg-brand-main text-white hover:bg-brand-red transition"
           >
             Randevu Ekle
           </button>
@@ -207,15 +200,9 @@ export const NavigationBar: React.FC = () => {
               setActiveModal("service");
               setShowAddModal(false);
             }}
-            className="w-full py-3 rounded-xl font-semibold bg-orange-300 text-white hover:bg-orange-400 shadow transition"
+            className="w-full py-3 rounded-xl font-semibold bg-brand-main text-white hover:bg-brand-red transition"
           >
             Hizmet Ekle
-          </button>
-          <button
-            onClick={() => setShowAddModal(false)}
-            className="w-full py-3 rounded-xl font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 shadow transition"
-          >
-            Kapat
           </button>
         </div>
       </AppModal>

@@ -31,6 +31,23 @@ export const getPatients = async (
   }
 };
 
+// ← new handler
+export const getPatientById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const pat = await patientService.getPatientById(
+      req.params.companyId,
+      req.params.patientId!
+    );
+    res.status(200).json(pat);
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const updatePatient = async (
   req: Request,
   res: Response,
@@ -39,7 +56,7 @@ export const updatePatient = async (
   try {
     const updated = await patientService.updatePatient(
       req.params.companyId,
-      req.params.patientId,
+      req.params.patientId!,
       req.body
     );
     res.status(200).json(updated);
@@ -56,7 +73,7 @@ export const recordPayment = async (
   try {
     const updated = await patientService.recordPayment(
       req.params.companyId,
-      req.params.patientId,
+      req.params.patientId!,
       req.body
     );
     res.status(200).json(updated);
@@ -73,7 +90,7 @@ export const getPatientAppointments = async (
   try {
     const appts = await patientService.getPatientAppointments(
       req.params.companyId,
-      req.params.patientId
+      req.params.patientId!
     );
     res.status(200).json(appts);
   } catch (err) {
@@ -89,7 +106,7 @@ export const flagPatientCall = async (
   try {
     const notif = await patientService.flagPatientCall(
       req.params.companyId,
-      req.params.patientId,
+      req.params.patientId!,
       req.body.note,
       (req.user as IUser).email
     );
@@ -120,7 +137,7 @@ export const markPatientCalled = async (
   try {
     await patientService.markPatientCalled(
       req.params.companyId,
-      req.params.notificationId
+      req.params.notificationId!
     );
     res.status(200).json({ message: "Notification marked done" });
   } catch (err) {
@@ -136,7 +153,7 @@ export const deletePatient = async (
   try {
     await patientService.deletePatient(
       req.params.companyId,
-      req.params.patientId
+      req.params.patientId!
     );
     res.status(204).send();
   } catch (err) {

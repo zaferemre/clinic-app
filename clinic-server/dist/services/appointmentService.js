@@ -38,6 +38,7 @@ exports.getAppointmentById = getAppointmentById;
 exports.createAppointment = createAppointment;
 exports.updateAppointment = updateAppointment;
 exports.deleteAppointment = deleteAppointment;
+// src/services/appointmentService.ts
 const repo = __importStar(require("../dataAccess/appointmentRepository"));
 const patientRepo = __importStar(require("../dataAccess/patientRepository"));
 async function getAppointments(companyId) {
@@ -47,9 +48,11 @@ async function getAppointments(companyId) {
         title: appt.patientId?.name ?? "Randevu",
         start: appt.start,
         end: appt.end,
+        serviceId: appt.serviceId?.toString() ?? "",
         extendedProps: {
             employeeEmail: appt.employeeEmail ?? "",
             serviceId: appt.serviceId?.toString() ?? "",
+            patientId: appt.patientId?._id?.toString?.() ?? appt.patientId?.toString?.() ?? "",
         },
         color: appt.status === "done"
             ? "#6b7280"
@@ -67,9 +70,11 @@ async function getAppointmentById(companyId, appointmentId) {
         title: appt.patientId?.name ?? "Randevu",
         start: appt.start,
         end: appt.end,
+        serviceId: appt.serviceId?.toString() ?? "",
         extendedProps: {
             employeeEmail: appt.employeeEmail ?? "",
             serviceId: appt.serviceId?.toString() ?? "",
+            patientId: appt.patientId?._id?.toString?.() ?? appt.patientId?.toString?.() ?? "",
         },
     };
 }
@@ -79,7 +84,8 @@ async function createAppointment(companyId, dto, user) {
     if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime())) {
         throw { status: 400, message: "Invalid datetime" };
     }
-    const patient = await patientRepo.findById(patientId);
+    // ✅ Pass companyId into findById
+    const patient = await patientRepo.findById(companyId, patientId);
     if (!patient)
         throw { status: 404, message: "Patient not found" };
     if (patient.companyId.toString() !== companyId)
@@ -91,6 +97,7 @@ async function createAppointment(companyId, dto, user) {
     const overlap = await repo.findOverlap(companyId, employeeEmail, newStart, newEnd);
     if (overlap)
         throw { status: 409, message: "Timeslot taken" };
+    // debit one credit
     patient.credit -= 1;
     await patient.save();
     return repo.create({
@@ -120,7 +127,8 @@ async function deleteAppointment(companyId, appointmentId) {
     const appt = await repo.findOne(companyId, appointmentId);
     if (!appt)
         throw { status: 404, message: "Appointment not found" };
-    const patient = await patientRepo.findById(appt.patientId.toString());
+    // ✅ Pass companyId into findById here as well
+    const patient = await patientRepo.findById(companyId, appt.patientId.toString());
     if (patient) {
         patient.credit += 1;
         await patient.save();

@@ -14,9 +14,10 @@ const JoinCompanyButton: React.FC<{
         onClick={() => setOpen(true)}
         className="
           flex-1 flex items-center justify-center gap-2 px-6 py-4
-          rounded-2xl bg-blue-500 text-white shadow-xl font-semibold
+          rounded-2xl bg-white text-brand-main shadow-xl font-semibold
           text-lg transition duration-150
-          hover:bg-blue-600 hover:scale-[1.03] active:scale-95
+          border-y border-brand-main 
+          hover:scale-[1.03] active:scale-95
           focus:outline-none focus:ring-2 focus:ring-blue-300
         "
       >

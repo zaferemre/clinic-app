@@ -24,7 +24,7 @@ const CompanyOnboardingPage: React.FC = () => {
   return (
     <div className="relative min-h-screen w-full bg-white flex flex-col">
       {/* gradient glass background */}
-      <div className="absolute inset-0 h-1/2 z-0 bg-[radial-gradient(circle_at_top,_rgba(0,200,150,0.6)_0%,_rgba(120,100,255,0.3)_50%,_white_90%)]" />
+      <div className="absolute inset-0 h-1/2 z-0 bg-[radial-gradient(circle_at_top,_rgba(226,114,91,0.6)_0%,_rgba(184,108,255,0.24)_50%,_white_90%)]" />
 
       {/* Logout */}
       <button
@@ -35,7 +35,7 @@ const CompanyOnboardingPage: React.FC = () => {
         className="
         absolute top-4 right-4 z-20 flex items-center gap-2
         px-4 py-2 bg-white/60 backdrop-blur
-        text-brand-red-500 font-semibold rounded-2xl border border-white/30 shadow
+        text-brand-main font-semibold rounded-2xl border border-white/30 shadow
         hover:bg-white/80 hover:text-red-600 transition
         active:scale-95
         text-base

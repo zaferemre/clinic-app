@@ -4,6 +4,7 @@ import { authorizeCompanyAccess } from "../middlewares/authorizeCompanyAccess";
 import {
   createPatient,
   getPatients,
+  getPatientById, // ← import new
   updatePatient,
   recordPayment,
   getPatientAppointments,
@@ -13,11 +14,16 @@ import {
 
 const router = express.Router();
 
-// require token + access for any :companyId
+// protect all /:companyId routes
 router.use("/:companyId", verifyFirebaseToken, authorizeCompanyAccess);
 
+// Create & list
 router.post("/:companyId/patients", createPatient);
 router.get("/:companyId/patients", getPatients);
+
+// ← single‐patient GET
+router.get("/:companyId/patients/:patientId", getPatientById);
+
 router.patch("/:companyId/patients/:patientId", updatePatient);
 router.patch("/:companyId/patients/:patientId/payment", recordPayment);
 router.patch("/:companyId/patients/:patientId/flag-call", flagPatientCall);

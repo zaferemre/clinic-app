@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { EmployeeCard } from "./EmployeeCard";
-import { EmployeeInfo, WorkingHour } from "../../types/sharedTypes";
+import { EmployeeInfo } from "../../types/sharedTypes";
 import { API_BASE } from "../../config/apiConfig";
 
 export const EmployeesList: React.FC = () => {
@@ -9,12 +9,12 @@ export const EmployeesList: React.FC = () => {
   const [employees, setEmployees] = useState<EmployeeInfo[]>([]);
   const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
   const [ownerImageUrl, setOwnerImageUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingEmail, setUpdatingEmail] = useState<string | null>(null);
   const [removingEmail, setRemovingEmail] = useState<string | null>(null);
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     if (!idToken || !companyId) {
       setEmployees([]);
       setOwnerEmail(null);
@@ -22,10 +22,12 @@ export const EmployeesList: React.FC = () => {
       setLoading(false);
       return;
     }
+
     setLoading(true);
     setError(null);
+
     try {
-      // 1) Get company metadata
+      // 1) Fetch company info
       const compRes = await fetch(`${API_BASE}/company/${companyId}`, {
         headers: {
           "Content-Type": "application/json",
@@ -34,10 +36,10 @@ export const EmployeesList: React.FC = () => {
       });
       if (!compRes.ok) throw new Error("Şirket bilgisi alınamadı");
       const comp = await compRes.json();
-      setOwnerEmail(comp.ownerEmail);
-      setOwnerImageUrl(comp.ownerImageUrl ?? null);
+      setOwnerEmail(comp.ownerEmail ?? null);
+      setOwnerImageUrl(comp.ownerImageUrl ?? user?.imageUrl ?? null);
 
-      // 2) Get sub‐document employees
+      // 2) Fetch sub-document employees
       const empRes = await fetch(`${API_BASE}/company/${companyId}/employees`, {
         headers: {
           "Content-Type": "application/json",
@@ -48,42 +50,42 @@ export const EmployeesList: React.FC = () => {
       const empArr: EmployeeInfo[] = await empRes.json();
 
       // 3) Prepend owner if missing
-      if (comp.ownerEmail && !empArr.some((e) => e.email === comp.ownerEmail)) {
-        empArr.unshift({
-          _id: "owner",
-          email: comp.ownerEmail,
-          name: comp.ownerName || comp.ownerEmail,
-          role: "owner",
-          pictureUrl: comp.ownerImageUrl || user?.imageUrl || "",
-          workingHours: [],
-        });
+      if (comp.ownerEmail) {
+        const ownerKey = comp.ownerEmail.toLowerCase().trim();
+        const exists = empArr.some(
+          (e) => e.email.toLowerCase().trim() === ownerKey
+        );
+        if (!exists) {
+          empArr.unshift({
+            _id: "owner",
+            email: comp.ownerEmail,
+            name: comp.ownerName ?? comp.ownerEmail,
+            role: "owner",
+            pictureUrl: comp.ownerImageUrl ?? user?.imageUrl ?? "",
+            workingHours: [],
+          });
+        }
       }
 
-      setEmployees(empArr);
+      // 4) Dedupe by email
+      const unique = new Map<string, EmployeeInfo>();
+      empArr.forEach((e) => unique.set(e.email.toLowerCase().trim(), e));
+      setEmployees(Array.from(unique.values()));
     } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Çalışanlar yüklenirken bir hata oluştu."
-      );
+      setError(err instanceof Error ? err.message : "Beklenmeyen hata");
       setEmployees([]);
       setOwnerEmail(null);
       setOwnerImageUrl(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [idToken, companyId, user?.imageUrl]);
 
   useEffect(() => {
     fetchEmployees();
-  }, [idToken, companyId]);
+  }, [fetchEmployees]);
 
-  // Re-fetch helper
-  const refetch = async () => {
-    await fetchEmployees();
-  };
-
-  // Delete employee (owner only)
+  // Delete employee
   const handleRemoveEmployee = async (email: string) => {
     if (!idToken || !companyId || email === ownerEmail) return;
     if (!window.confirm("Bu çalışan silinsin mi?")) return;
@@ -105,9 +107,9 @@ export const EmployeesList: React.FC = () => {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || "Silme başarısız.");
       }
-      await refetch();
-    } catch (err: unknown) {
-      console.error(err);
+      await fetchEmployees();
+    } catch (e) {
+      console.error(e);
     } finally {
       setRemovingEmail(null);
     }
@@ -116,7 +118,7 @@ export const EmployeesList: React.FC = () => {
   // Update employee (role & workingHours)
   const handleUpdateEmployee = async (
     email: string,
-    updates: { role: EmployeeInfo["role"]; workingHours?: WorkingHour[] }
+    updates: Partial<Pick<EmployeeInfo, "role" | "workingHours">>
   ) => {
     if (!idToken || !companyId) return;
     setUpdatingEmail(email);
@@ -135,9 +137,9 @@ export const EmployeesList: React.FC = () => {
         }
       );
       if (!res.ok) throw new Error("Güncelleme başarısız.");
-      await refetch();
-    } catch (err) {
-      console.error(err);
+      await fetchEmployees();
+    } catch (e) {
+      console.error(e);
     } finally {
       setUpdatingEmail(null);
     }
@@ -155,7 +157,7 @@ export const EmployeesList: React.FC = () => {
       <ul className="space-y-3">
         {employees.map((e) => (
           <EmployeeCard
-            key={e._id}
+            key={e._id ?? e.email} // guaranteed unique
             employee={e}
             ownerEmail={ownerEmail}
             ownerImageUrl={ownerImageUrl!}

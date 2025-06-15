@@ -3,17 +3,29 @@ module.exports = {
   content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      // === APP BRAND COLOR PALETTE ===
       colors: {
-        calendar: {
-          bg: "#ffffff",
-          header: "#f3f4f6",
-          weekday: "#6b7280",
-          today: "#3b82f6",
-        },
-        // Primary text/heading color
-        "brand-black": "#111827",
+        // Main brand color (primary action, highlights)
+        "brand-main": "#e2725b", // main orange-red
+        "brand-bg": "#ffffff", // main background
 
-        // Grayscale (used for backgrounds, borders, text)
+        // Palette spectrum (change these for a new look)
+        "brand-green": "#71e25b", // vibrant green
+        "brand-lime": "#a9e25b", // yellow-green
+        "brand-yellow": "#e1e25b", // yellow
+        "brand-orange": "#e2aa5b", // orange
+        "brand-red": "#e2725b", // orange-red (same as main)
+        "brand-pink": "#e25b7c", // pinkish
+        "brand-fuchsia": "#e25bb4", // fuchsia
+        "brand-purple": "#d75be2", // purple
+        "brand-violet": "#9f5be2", // violet
+
+        // For semantic usage, reference these in your app:
+        accent: "#e2725b", // main accent (for buttons etc)
+        "accent-bg": "#fff", // card, modal, and general backgrounds
+
+        // Optional: old palette fallback for quick replace
+        // Remove if not needed
         "brand-gray": {
           100: "#F3F4F6",
           200: "#E5E7EB",
@@ -24,60 +36,20 @@ module.exports = {
           700: "#374151",
         },
 
-        // Brand‐green palette (used for buttons, highlights, active states)
-        "brand-green": {
-          100: "#ECFDF5",
-          300: "#6EE7B7",
-          400: "#34D399",
-          500: "#10B981",
-          600: "#059669",
-        },
-
-        // Pale‐toned reds (use sparingly for error badges, icons, etc.)
-        "brand-red": {
-          100: "#FEF2F2", // very pale pinkish‐red
-          300: "#FCA5A5", // soft rose
-          500: "#EF4444", // richer red for stronger accents
-        },
-
-        // Pale‐toned oranges (use for warnings or mild highlights)
-        "brand-orange": {
-          100: "#FFF7ED", // very pale orange
-          300: "#FDBA74", // light peach
-          500: "#F97316", // deeper orange accent
-        },
-
-        // Pale‐toned blues (for info boxes, links, subtle backgrounds)
-        "brand-blue": {
-          100: "#EFF6FF", // very pale sky‐blue
-          300: "#93C5FD", // light cornflower
-          500: "#3B82F6", // standard blue accent
-        },
-
-        // Pale‐toned pinks (for subtle highlights or badges)
-        "brand-pink": {
-          100: "#FCE7F3", // very pale pink
-          300: "#F9A8D4", // light bubblegum
-          500: "#EC4899", // medium pink accent
-        },
-
-        // Single‐stop utility colors
-        warn: "#F59E0B", // bright amber for warnings
-        error: "#EF4444", // strong red for errors
-        success: "#10B981", // green for success messages
+        // Utility/semantic status colors
+        warn: "#e2aa5b", // orange in palette for warnings
+        error: "#e2725b", // same as accent, customize as needed
+        success: "#71e25b", // green for success messages
       },
 
-      // Use “Inter” as the default sans‐serif
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui"],
       },
 
-      // Custom top‐shadow for bottom‐sheet menu
       boxShadow: {
         tp: "0 -2px 6px rgba(0, 0, 0, 0.1)",
       },
 
-      // Slide‐up and fade‐in animations (used by the pill‐nav bottom sheet)
       keyframes: {
         slideUp: {
           "0%": { transform: "translateY(100%)" },
@@ -96,3 +68,10 @@ module.exports = {
   },
   plugins: [],
 };
+
+/*
+  🟠 HOW TO SWAP COLOR PALETTE 🟠
+  - Just change the hex codes under the colors section above.
+  - Reference colors in your app as "bg-brand-main", "text-brand-green", etc.
+  - No code changes required—just the palette!
+*/
