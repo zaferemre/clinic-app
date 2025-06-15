@@ -1,4 +1,4 @@
-// src/api/sharedTypes.ts
+// src/types/sharedTypes.ts
 
 export interface ServiceInfo {
   _id?: string;
@@ -25,8 +25,7 @@ export interface EmployeeInfo {
   _id?: string;
   email: string;
   name?: string;
-  // role is now free-form string based on company-defined roles
-  role?: string;
+  role?: string; // company-defined roles
   pictureUrl?: string;
   services?: string[]; // Array of ServiceInfo._id
   workingHours?: WorkingHour[];
@@ -54,11 +53,10 @@ export interface Company {
     type: "Point";
     coordinates: [number, number];
   };
-  workingHours: WorkingHour[];
+  workingHours: WorkingHour[]; // ← working hours for the entire company
   services: ServiceInfo[];
   employees: EmployeeInfo[];
-  // New dynamic roles list
-  roles: string[];
+  roles: string[]; // dynamic role list
   createdAt: Date;
   updatedAt: Date;
   isPaid?: boolean;
@@ -91,17 +89,14 @@ export interface Patient {
 
 export interface CalendarEvent {
   id: string;
-  patientName: string;
-  employeeId: string;
-  serviceId: string;
+  title: string; // usually patientName
   start: string;
   end: string;
-  title?: string;
   extendedProps: {
-    serviceId: string;
-    serviceName: string;
     employeeEmail: string;
+    serviceId: string;
   };
+  color?: string; // optional event color
 }
 
 export interface NotificationInfo {

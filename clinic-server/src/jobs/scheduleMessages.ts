@@ -1,19 +1,11 @@
 import cron from "node-cron";
-import Message from "../models/Message";
-import { processScheduledMessage } from "../services/WhatsAppService";
+import * as appointmentService from "../services/notificationService";
 
-// Every minute, check for messages whose scheduledFor <= now and sent = false
+// runs every minute
 cron.schedule("* * * * *", async () => {
   try {
-    const now = new Date();
-    const pending = await Message.find({
-      scheduledFor: { $lte: now },
-      sent: false,
-    }).exec();
-    for (const msg of pending) {
-      await processScheduledMessage(msg);
-    }
+    await appointmentService.processPending();
   } catch (err) {
-    console.error("Error in scheduled message job:", err);
+    console.error("Scheduled job error:", err);
   }
 });

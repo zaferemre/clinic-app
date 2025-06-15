@@ -3,26 +3,22 @@ import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
 import { authorizeCompanyAccess } from "../middlewares/authorizeCompanyAccess";
 import {
   getAppointments,
-  createAppointment,
-  deleteAppointment,
-  updateAppointment,
   getAppointmentById,
+  createAppointment,
+  updateAppointment,
+  deleteAppointment,
 } from "../controllers/appointmentController";
 
 const router = express.Router();
 
-// All routes require a valid Firebase token + company access
+// require token + access for any :companyId
 router.use("/:companyId", verifyFirebaseToken, authorizeCompanyAccess);
 
-/**
- * GET   /company/:companyId/appointments
- * POST  /company/:companyId/appointments
- * PATCH /company/:companyId/appointments/:appointmentId/complete
- */
 router.get("/:companyId/appointments", getAppointments);
+router.get("/:companyId/appointments/:appointmentId", getAppointmentById);
 router.post("/:companyId/appointments", createAppointment);
-router.delete("/:companyId/appointments/:appointmentId", deleteAppointment);
 router.put("/:companyId/appointments/:appointmentId", updateAppointment);
 router.patch("/:companyId/appointments/:appointmentId", updateAppointment);
-router.get("/:companyId/appointments/:appointmentId", getAppointmentById);
+router.delete("/:companyId/appointments/:appointmentId", deleteAppointment);
+
 export default router;

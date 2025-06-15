@@ -1,86 +1,45 @@
-import { API_BASE } from "../config/apiConfig";
+import { ServiceInfo } from "../types/sharedTypes";
+import { request } from "./apiClient";
 
-export interface Service {
-  _id: string;
-  serviceName: string;
-  servicePrice: number;
-  serviceKapora: number;
-  serviceDuration: number;
+export function getServices(
+  token: string,
+  companyId: string
+): Promise<ServiceInfo[]> {
+  return request<ServiceInfo[]>(`/company/${companyId}/services`, { token });
 }
 
-export const getServices = async (
-  idToken: string,
-  companyId: string
-): Promise<Service[]> => {
-  const res = await fetch(`${API_BASE}/company/${companyId}/services`, {
-    headers: { Authorization: `Bearer ${idToken}` },
-  });
-  if (!res.ok) throw new Error((await res.json()).error || res.statusText);
-  return res.json();
-};
-
-export const createService = async (
-  idToken: string,
+export function createService(
+  token: string,
   companyId: string,
-  serviceName: string,
-  servicePrice: number,
-  serviceKapora: number,
-  serviceDuration: number
-): Promise<Service> => {
-  const res = await fetch(`${API_BASE}/company/${companyId}/services`, {
+  payload: Omit<ServiceInfo, "_id">
+): Promise<ServiceInfo> {
+  return request<ServiceInfo>(`/company/${companyId}/services`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({
-      serviceName,
-      servicePrice,
-      serviceKapora,
-      serviceDuration,
-    }),
+    token,
+    body: payload,
   });
-  if (!res.ok) throw new Error((await res.json()).error || res.statusText);
-  return res.json();
-};
+}
 
-export const updateService = async (
-  idToken: string,
+export function updateService(
+  token: string,
   companyId: string,
   serviceId: string,
-  updates: {
-    serviceName?: string;
-    servicePrice?: number;
-    serviceKapora?: number;
-    serviceDuration?: number;
-  }
-): Promise<Service> => {
-  const res = await fetch(
-    `${API_BASE}/company/${companyId}/services/${serviceId}`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify(updates),
-    }
-  );
-  if (!res.ok) throw new Error((await res.json()).error || res.statusText);
-  return res.json();
-};
+  updates: Partial<Omit<ServiceInfo, "_id">>
+): Promise<ServiceInfo> {
+  return request<ServiceInfo>(`/company/${companyId}/services/${serviceId}`, {
+    method: "PUT",
+    token,
+    body: updates,
+  });
+}
 
-export const deleteService = async (
-  idToken: string,
+export function deleteService(
+  token: string,
   companyId: string,
   serviceId: string
-): Promise<void> => {
-  const res = await fetch(
-    `${API_BASE}/company/${companyId}/services/${serviceId}`,
-    {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${idToken}` },
-    }
-  );
-  if (!res.ok) throw new Error((await res.json()).error || res.statusText);
-};
+): Promise<void> {
+  return request(`/company/${companyId}/services/${serviceId}`, {
+    method: "DELETE",
+    token,
+  });
+}

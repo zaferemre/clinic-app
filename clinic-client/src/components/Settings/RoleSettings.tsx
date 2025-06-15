@@ -1,7 +1,7 @@
 // src/components/Settings/RoleSettings.tsx
 
 import React, { useState, useEffect } from "react";
-import { getRoles, createRole, removeRole } from "../../api/companyApi";
+import { getRoles, createRole, removeRole } from "../../api/roleApi";
 import { useAuth } from "../../contexts/AuthContext";
 import { PlusIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
@@ -28,8 +28,8 @@ export const RoleSettings: React.FC = () => {
       const updated = await createRole(idToken!, companyId!, newRole.trim());
       setRoles(updated);
       setIsAdding(false);
-    } catch (e: any) {
-      alert("Hata: " + e.message);
+    } catch (e) {
+      alert("Hata: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setLoading(false);
     }
@@ -46,8 +46,8 @@ export const RoleSettings: React.FC = () => {
     try {
       const updated = await removeRole(idToken!, companyId!, role);
       setRoles(updated);
-    } catch (e: any) {
-      alert("Hata: " + e.message);
+    } catch (e) {
+      alert("Hata: " + (e instanceof Error ? e.message : String(e)));
     }
   };
 

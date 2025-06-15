@@ -1,78 +1,35 @@
-// src/api/notificationApi.ts
-
 import { NotificationInfo } from "../types/sharedTypes";
-import { API_BASE } from "../config/apiConfig";
+import { request } from "./apiClient";
 
-export async function getNotifications(
-  idToken: string,
+export function getNotifications(
+  token: string,
   companyId: string
 ): Promise<NotificationInfo[]> {
-  const res = await fetch(`${API_BASE}/company/${companyId}/notifications`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
+  return request<NotificationInfo[]>(`/company/${companyId}/notifications`, {
+    token,
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
 }
 
-export async function markNotificationCalled(
-  idToken: string,
+export function markNotificationCalled(
+  token: string,
   companyId: string,
   notificationId: string
 ): Promise<void> {
-  const res = await fetch(
-    `${API_BASE}/company/${companyId}/notifications/${notificationId}/mark-called`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    }
+  return request(
+    `/company/${companyId}/notifications/${notificationId}/mark-called`,
+    { method: "PATCH", token }
   );
-  if (!res.ok) throw new Error(await res.text());
 }
-export async function flagPatientCall(
-  idToken: string,
+
+export function flagPatientCall(
+  token: string,
   companyId: string,
   patientId: string,
   note?: string
 ): Promise<void> {
-  const res = await fetch(
-    `${API_BASE}/company/${companyId}/patients/${patientId}/flag-call`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({ note }), // ← send the note here
-    }
-  );
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Failed to flag patient for call");
-  }
-}
-export async function markPatientCalled(
-  idToken: string,
-  companyId: string,
-  notificationId: string
-): Promise<void> {
-  const res = await fetch(
-    `${API_BASE}/company/${companyId}/notifications/${notificationId}/mark-called`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    }
-  );
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data.error || "Failed to mark notification as called");
-  }
+  return request(`/company/${companyId}/patients/${patientId}/flag-call`, {
+    method: "PATCH",
+    token,
+    body: { note },
+  });
 }

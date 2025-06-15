@@ -1,81 +1,49 @@
 import { IMessage } from "../types/sharedTypes";
-import { API_BASE } from "../config/apiConfig";
-export async function getMessages(
-  idToken: string,
+import { request } from "./apiClient";
+
+export function getMessages(
+  token: string,
   companyId: string
 ): Promise<IMessage[]> {
-  const res = await fetch(`${API_BASE}/company/${companyId}/messages`, {
-    headers: {
-      Authorization: `Bearer ${idToken}`,
-      "Content-Type": "application/json",
-    },
-  });
-  if (!res.ok) throw new Error("Could not fetch messages.");
-  return res.json();
+  return request<IMessage[]>(`/company/${companyId}/messages`, { token });
 }
-export const scheduleAutoRemind = async (
-  token: string,
-  companyId: string,
-  payload: { offsetHours: number }
-) => {
-  const res = await fetch(
-    `${API_BASE}/company/${companyId}/messages/auto-remind`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    }
-  );
-  if (!res.ok) {
-    const errData = await res.json();
-    throw new Error(errData.error || "Otomatik hatırlatma kurulamadı");
-  }
-  return res.json();
-};
 
-export async function schedulePatientMessage(
-  idToken: string,
+export function schedulePatientMessage(
+  token: string,
   companyId: string,
   patientId: string,
   body: { text: string; scheduledFor: string }
 ): Promise<IMessage> {
-  const res = await fetch(
-    `${API_BASE}/company/${companyId}/messages/patient/${patientId}`,
+  return request<IMessage>(
+    `/company/${companyId}/messages/patient/${patientId}`,
     {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${idToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
+      token,
+      body,
     }
   );
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Failed to schedule message");
-  }
-  return res.json();
 }
 
-export async function scheduleBulkMessage(
-  idToken: string,
+export function scheduleBulkMessage(
+  token: string,
   companyId: string,
   body: { text: string; scheduledFor: string }
 ): Promise<IMessage> {
-  const res = await fetch(`${API_BASE}/company/${companyId}/messages/bulk`, {
+  return request<IMessage>(`/company/${companyId}/messages/bulk`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${idToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
+    token,
+    body,
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error || "Failed to schedule bulk message");
-  }
-  return res.json();
+}
+
+export function scheduleAutoRemind(
+  token: string,
+  companyId: string,
+  offsetHours: number
+): Promise<{ message: string; offsetHours: number }> {
+  return request(`/company/${companyId}/messages/auto-remind`, {
+    method: "POST",
+    token,
+    body: { offsetHours },
+  });
 }

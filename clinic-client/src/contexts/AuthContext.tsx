@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.tsx
 import React, {
   createContext,
   useState,
@@ -7,14 +8,14 @@ import React, {
 } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { getCompanyByEmail } from "../api/companyApi"; // new import
+import { getCompanyByEmail } from "../api/companyApi";
+import type { Company } from "../types/sharedTypes";
 
 interface User {
   uid: string;
   email: string;
   name: string;
   imageUrl: string;
-  role?: string;
 }
 
 interface AuthContextProps {
@@ -23,8 +24,6 @@ interface AuthContextProps {
   companyId: string | null;
   companyName: string | null;
   checkingCompany: boolean;
-  setCompanyId: (id: string) => void;
-  setCompanyName: (name: string) => void;
   signOut: () => void;
 }
 
@@ -37,59 +36,67 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState<string | null>(null);
-  const [checkingCompany, setCheckingCompany] = useState<boolean>(false);
+  const [checkingCompany, setCheckingCompany] = useState(false);
 
+  // 1) Subscribe to Firebase auth changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+    const unsub = onAuthStateChanged(auth, async (fbUser) => {
       if (!fbUser) {
-        // Logged out
+        console.log("🔒 not logged in");
         setIdToken(null);
         setUser(null);
-        setCompanyId(null);
-        setCompanyName(null);
-        setCheckingCompany(false);
         return;
       }
+      const token = await fbUser.getIdToken();
+      console.log("🔑 got idToken", token.slice(0, 5), "...");
 
-      try {
-        const token = await fbUser.getIdToken();
-        setIdToken(token);
+      setIdToken(token);
+      setUser({
+        uid: fbUser.uid,
+        email: fbUser.email || "",
+        name: fbUser.displayName || "",
+        imageUrl: fbUser.photoURL || "",
+      });
+    });
+    return unsub;
+  }, []);
 
-        setUser({
-          uid: fbUser.uid,
-          email: fbUser.email || "",
-          name: fbUser.displayName || "",
-          imageUrl: fbUser.photoURL || "",
-        });
+  // 2) Whenever idToken changes, fetch the company
+  useEffect(() => {
+    // if not logged in, clear out
+    if (!idToken) {
+      console.log("❌ clearing company because no token");
+      setCompanyId(null);
+      setCompanyName(null);
+      setCheckingCompany(false);
+      return;
+    }
 
-        setCheckingCompany(true);
-        try {
-          const company = await getCompanyByEmail(token);
+    // otherwise, start the lookup
+    setCheckingCompany(true);
+    console.log("⏳ fetching company for token…");
+    getCompanyByEmail(idToken)
+      .then((company: Company | null) => {
+        console.log("🏢 company response:", company);
+        if (company && company._id) {
           setCompanyId(company._id);
           setCompanyName(company.name);
-        } catch (e: unknown) {
-          if (e && typeof e === "object" && "message" in e) {
-            console.warn(
-              "No company found for this user:",
-              (e as { message?: string }).message
-            );
-          } else {
-            console.warn("No company found for this user:", e);
-          }
+          console.log("✅ companyId set to", company._id);
+        } else {
           setCompanyId(null);
           setCompanyName(null);
+          console.log("⚠️ company was null or missing _id");
         }
-      } catch (err) {
-        console.error("Auth context error:", err);
+      })
+      .catch((err) => {
+        console.warn("🚨 error fetching company:", err);
         setCompanyId(null);
         setCompanyName(null);
-      } finally {
+      })
+      .finally(() => {
         setCheckingCompany(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
+      });
+  }, [idToken]);
 
   const signOutUser = () => {
     auth.signOut();
@@ -108,8 +115,6 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
         companyId,
         companyName,
         checkingCompany,
-        setCompanyId,
-        setCompanyName,
         signOut: signOutUser,
       }}
     >
@@ -121,7 +126,7 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error("useAuth must be used inside AuthContextProvider");
+    throw new Error("useAuth must be used inside <AuthContextProvider>");
   }
   return ctx;
 }

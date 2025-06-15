@@ -1,8 +1,12 @@
 // src/pages/Notifications/NotificationsPage.tsx
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { getNotifications, markPatientCalled } from "../../api/notificationApi";
+import {
+  getNotifications,
+  markNotificationCalled,
+} from "../../api/notificationApi";
 import { getPatientById } from "../../api/patientApi";
+
 import { NotificationInfo } from "../../types/sharedTypes";
 
 import { useAuth } from "../../contexts/AuthContext";
@@ -55,7 +59,7 @@ const NotificationsPage: React.FC = () => {
   const handleMarkCalled = async (notifId: string) => {
     if (!idToken || !companyId) return;
     try {
-      await markPatientCalled(idToken, companyId, notifId);
+      await markNotificationCalled(idToken, companyId, notifId);
       await fetchAll();
     } catch (err: unknown) {
       console.error("❌ Error marking called:", err);

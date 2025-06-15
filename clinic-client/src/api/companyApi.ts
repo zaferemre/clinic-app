@@ -4,336 +4,138 @@ import {
   WorkingHour,
   ServiceInfo,
 } from "../types/sharedTypes";
-import { API_BASE } from "../config/apiConfig";
+import { request } from "./apiClient";
 
-// ──────────────── Company APIs ────────────────
-
-export async function getCompanyByEmail(idToken: string): Promise<Company> {
-  const res = await fetch(`${API_BASE}/company`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+export function getCompanyByEmail(token: string): Promise<Company> {
+  return request<Company>("/company", { token });
 }
-
-export async function getCompanyById(
-  idToken: string,
+export function getCompanyById(
+  token: string,
   companyId: string
 ): Promise<Company> {
-  const res = await fetch(`${API_BASE}/company/${companyId}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  return request<Company>(`/company/${companyId}`, { token });
 }
 
-export async function createCompany(
-  idToken: string,
-  payload: Partial<
-    Omit<
-      Company,
-      "_id" | "ownerEmail" | "ownerName" | "createdAt" | "updatedAt"
-    >
-  >
+export function createCompany(
+  token: string,
+  payload: Omit<Company, "_id" | "ownerEmail" | "ownerName">
 ): Promise<Company> {
-  const res = await fetch(`${API_BASE}/company`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  return request<Company>("/company", { method: "POST", token, body: payload });
 }
 
-export async function updateCompany(
-  idToken: string,
-  updates: Partial<
-    Omit<
-      Company,
-      "_id" | "ownerEmail" | "ownerName" | "createdAt" | "updatedAt"
-    >
-  >
+export function updateCompany(
+  token: string,
+  companyId: string,
+  updates: Partial<Omit<Company, "_id" | "ownerEmail" | "ownerName">>
 ): Promise<Company> {
-  const res = await fetch(`${API_BASE}/company`, {
+  return request<Company>(`/company/${companyId}`, {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify(updates),
+    token,
+    body: updates,
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
 }
 
-// ──────────────── Employee APIs ────────────────
+export function deleteCompany(token: string, companyId: string): Promise<void> {
+  return request(`/company/${companyId}`, { method: "DELETE", token });
+}
 
-export async function addEmployee(
-  idToken: string,
+export function listEmployees(
+  token: string,
+  companyId: string
+): Promise<EmployeeInfo[]> {
+  return request<EmployeeInfo[]>(`/company/${companyId}/employees`, { token });
+}
+
+export function addEmployee(
+  token: string,
   companyId: string,
   payload: Omit<EmployeeInfo, "_id">
 ): Promise<EmployeeInfo> {
-  const res = await fetch(`${API_BASE}/company/${companyId}/employees`, {
+  return request<EmployeeInfo>(`/company/${companyId}/employees`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify(payload),
+    token,
+    body: payload,
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
 }
 
-export async function getEmployees(
-  idToken: string,
-  companyId: string
-): Promise<EmployeeInfo[]> {
-  const res = await fetch(`${API_BASE}/company/${companyId}/employees`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-export async function updateEmployee(
-  idToken: string,
+export function updateEmployee(
+  token: string,
   companyId: string,
   employeeId: string,
-  updates: {
-    role: EmployeeInfo["role"];
-    workingHours: WorkingHour[];
-  }
+  updates: Partial<Pick<EmployeeInfo, "role" | "workingHours">>
 ): Promise<EmployeeInfo> {
-  const res = await fetch(
-    `${API_BASE}/company/${companyId}/employees/${employeeId}`,
+  return request<EmployeeInfo>(
+    `/company/${companyId}/employees/${employeeId}`,
     {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify(updates),
+      token,
+      body: updates,
     }
   );
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
 }
 
-export async function removeEmployee(
-  idToken: string,
+export function removeEmployee(
+  token: string,
   companyId: string,
   employeeId: string
 ): Promise<void> {
-  const res = await fetch(
-    `${API_BASE}/company/${companyId}/employees/${employeeId}`,
-    {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    }
-  );
-  if (!res.ok) throw new Error(await res.text());
+  return request(`/company/${companyId}/employees/${employeeId}`, {
+    method: "DELETE",
+    token,
+  });
 }
 
-// ──────────────── Working Hours API ────────────────
+export function joinCompany(token: string, companyId: string): Promise<void> {
+  return request(`/company/${companyId}/join`, {
+    method: "POST",
+    token,
+    body: { joinCode: companyId },
+  });
+}
 
-export async function updateWorkingHours(
-  idToken: string,
+export function leaveCompany(token: string, companyId: string): Promise<void> {
+  return request(`/company/${companyId}/leave`, { method: "POST", token });
+}
+
+export function getEmployeeSchedule(
+  token: string,
+  companyId: string,
+  employeeId: string
+) {
+  return request(`/company/${companyId}/schedule/${employeeId}`, { token });
+}
+
+export function updateWorkingHours(
+  token: string,
+  companyId: string,
   workingHours: WorkingHour[]
 ): Promise<WorkingHour[]> {
-  const res = await fetch(`${API_BASE}/company/working-hours`, {
+  return request(`/company/${companyId}/working-hours`, {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({ workingHours }),
+    token,
+    body: { workingHours },
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
 }
 
-// ──────────────── Service API ────────────────
-
-export async function updateServices(
-  idToken: string,
+export function updateServices(
+  token: string,
+  companyId: string,
   services: ServiceInfo[]
 ): Promise<ServiceInfo[]> {
-  const res = await fetch(`${API_BASE}/company/services`, {
+  return request(`/company/${companyId}/services`, {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({ services }),
+    token,
+    body: { services },
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
 }
 
-// ──────────────── Image Upload API ────────────────
-
-export async function uploadImage(
-  idToken: string,
-  file: File
-): Promise<string> {
-  const formData = new FormData();
-  formData.append("image", file);
-
-  const res = await fetch(`${API_BASE}/company/upload-image`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: formData,
-  });
-
-  if (!res.ok) throw new Error("Image upload failed");
-  const data = await res.json();
-  return data.imageUrl;
-}
-/**
- * Delete a company (owner only)
- */
-export async function deleteCompany(
-  idToken: string,
+export function getServices(
+  token: string,
   companyId: string
-): Promise<void> {
-  const res = await fetch(`${API_BASE}/company/${companyId}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${idToken}`,
-    },
-  });
-  if (!res.ok) throw new Error(await res.text());
+): Promise<ServiceInfo[]> {
+  return request(`/company/${companyId}/services`, { token });
 }
 
-/**
- * Delete the current user’s account
- */
-export async function deleteUser(idToken: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/company/user`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${idToken}`,
-    },
-  });
-  if (!res.ok) throw new Error(await res.text());
-}
-/**
- * Fetch dynamic roles
- */
-export async function getRoles(
-  idToken: string,
-  companyId: string
-): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/company/${companyId}/roles`, {
-    headers: { Authorization: `Bearer ${idToken}` },
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-/**
- * Create a new role
- */
-export async function createRole(
-  idToken: string,
-  companyId: string,
-  role: string
-): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/company/${companyId}/roles`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({ role }),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-/**
- * Update an existing role
- */
-export async function updateRole(
-  idToken: string,
-  companyId: string,
-  oldRole: string,
-  newRole: string
-): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/company/${companyId}/roles`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({ oldRole, newRole }),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-/**
- * Remove a role
- */
-export async function removeRole(
-  idToken: string,
-  companyId: string,
-  role: string
-): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/company/${companyId}/roles/${role}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${idToken}` },
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-//JoinCompany API
-export async function joinCompany(
-  idToken: string,
-  companyId: string
-): Promise<void> {
-  const res = await fetch(`${API_BASE}/company/${companyId}/join`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
-    body: JSON.stringify({ joinCode: companyId }), // send joinCode as companyId
-  });
-  if (!res.ok) throw new Error(await res.text());
-}
-
-// leaveCompany API
-export async function leaveCompany(
-  idToken: string,
-  companyId: string
-): Promise<void> {
-  const res = await fetch(`${API_BASE}/company/${companyId}/leave`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${idToken}`,
-    },
-  });
-  if (!res.ok) throw new Error(await res.text());
+export function deleteUser(token: string): Promise<void> {
+  return request("/company/user", { method: "DELETE", token });
 }
