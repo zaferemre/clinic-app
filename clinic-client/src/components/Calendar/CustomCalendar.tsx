@@ -97,20 +97,16 @@ export const CustomCalendar: React.FC = () => {
       })),
     [services]
   );
-
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   const [selectedService, setSelectedService] = useState<string>("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarView, setCalendarView] =
     useState<keyof typeof VIEW_CONFIG>("threeDay");
-
   const slotRef = useRef<HTMLDivElement>(null);
   const eventsRef = useRef<HTMLDivElement>(null);
-
   const [slotHeight, setSlotHeight] = useState(20);
   const [colWidth, setColWidth] = useState(0);
-
   const [dragStart, setDragStart] = useState<{
     day: Date;
     hour: number;
@@ -124,18 +120,13 @@ export const CustomCalendar: React.FC = () => {
     start: Date;
     end: Date;
   }>(null);
-
   const [modalEvent, setModalEvent] = useState<any | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [now, setNow] = useState(new Date());
-
-  // tick
   useEffect(() => {
     const iv = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(iv);
   }, []);
-
-  // measure slot height
   useEffect(() => {
     const measure = () => {
       if (slotRef.current) {
@@ -147,8 +138,6 @@ export const CustomCalendar: React.FC = () => {
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, []);
-
-  // measure column width
   useEffect(() => {
     const measure = () => {
       if (!eventsRef.current) return;
@@ -162,14 +151,14 @@ export const CustomCalendar: React.FC = () => {
     return () => window.removeEventListener("resize", measure);
   }, [calendarView, currentDate]);
 
-  // compute gridDates
+  // MONTHLY GRID
   const gridDates = useMemo(() => {
     if (calendarView === "month") {
       const y = currentDate.getFullYear();
       const m = currentDate.getMonth();
       const first = new Date(y, m, 1);
       const firstDay = first.getDay();
-      const start = new Date(y, m, 1 - firstDay);
+      const start = new Date(y, m, 1 - firstDay); // Start from Sunday
       return Array.from({ length: 42 }, (_, i) => {
         const d = new Date(start);
         d.setDate(start.getDate() + i);
@@ -189,7 +178,7 @@ export const CustomCalendar: React.FC = () => {
     });
   }, [currentDate, calendarView]);
 
-  // filter & color
+  // FILTER & COLOR
   const coloredAppointments = useMemo(() => {
     const nowMs = Date.now();
     return appointments
@@ -207,7 +196,7 @@ export const CustomCalendar: React.FC = () => {
       }));
   }, [appointments, selectedEmployee, selectedService]);
 
-  // layout events
+  // OVERLAP & LAYOUT
   const positioned = useMemo(() => {
     if (calendarView === "month") return [];
     const byDay: Record<number, any[]> = {};
@@ -215,12 +204,14 @@ export const CustomCalendar: React.FC = () => {
       const di = gridDates.findIndex(
         (d) => d.toDateString() === new Date(evt.start).toDateString()
       );
-      if (di >= 0) (byDay[di] ||= []).push({ ...evt, dayIndex: di });
+      if (di >= 0) {
+        (byDay[di] ||= []).push({ ...evt, dayIndex: di });
+      }
     });
     return Object.values(byDay).flatMap((group) =>
       assignColumns(group).map((ev) => {
-        const s = new Date(ev.start),
-          e = new Date(ev.end);
+        const s = new Date(ev.start);
+        const e = new Date(ev.end);
         return {
           ...ev,
           startHour: s.getHours() + s.getMinutes() / 60,
@@ -231,7 +222,7 @@ export const CustomCalendar: React.FC = () => {
     );
   }, [coloredAppointments, gridDates, calendarView]);
 
-  // nav
+  // NAVIGATION
   const handleNav = (dir: "prev" | "today" | "next") => {
     setCurrentDate((prev) => {
       if (dir === "today") return new Date();
@@ -250,19 +241,19 @@ export const CustomCalendar: React.FC = () => {
     });
   };
 
-  // slots definition
+  // SLOTS (FOR WEEK/3DAY)
   const HOURS = Array.from({ length: 15 }, (_, i) => 8 + i);
   const SLOTS = Array.from({ length: 28 }, (_, i) => ({
     hour: 8 + Math.floor(i / 2),
     minute: (i % 2) * 30,
   }));
 
-  // drag-create handlers using pointer events for mobile
-  const handleSlotPointerDown = (day: Date, hour: number, minute: number) => {
+  // DRAG CREATE HANDLERS
+  const handleSlotMouseDown = (day: Date, hour: number, minute: number) => {
     setDragStart({ day, hour, minute });
     setPreviewSpan(null);
   };
-  const handleSlotPointerMove = (
+  const handleSlotMouseEnter = (
     day: Date,
     hour: number,
     minute: number,
@@ -276,7 +267,7 @@ export const CustomCalendar: React.FC = () => {
       setPreviewSpan({ start: s, end: e });
     }
   };
-  const handleSlotPointerUp = (day: Date, hour: number, minute: number) => {
+  const handleSlotMouseUp = (day: Date, hour: number, minute: number) => {
     if (!dragStart) return;
     const s = new Date(dragStart.day);
     s.setHours(dragStart.hour, dragStart.minute, 0, 0);
@@ -286,7 +277,7 @@ export const CustomCalendar: React.FC = () => {
     setCreateSpan({ start: s, end: e });
     setDragStart(null);
   };
-  const handleGlobalPointerUp = () => {
+  const handleGlobalMouseUp = () => {
     if (previewSpan) {
       setCreateSpan(previewSpan);
       setPreviewSpan(null);
@@ -294,7 +285,7 @@ export const CustomCalendar: React.FC = () => {
     setDragStart(null);
   };
 
-  // modal start/end strings
+  // MODAL
   const [startStr, setStartStr] = useState("");
   const [endStr, setEndStr] = useState("");
   useEffect(() => {
@@ -306,7 +297,6 @@ export const CustomCalendar: React.FC = () => {
       setEndStr(toDateTimeLocal(createSpan.end));
     }
   }, [createSpan]);
-
   const handleCreate = async (sISO: string, eISO: string, empEmail: string) => {
     if (!createSpan || !selectedEmployee || !selectedService) {
       alert("Lütfen tüm alanları seçin.");
@@ -328,7 +318,7 @@ export const CustomCalendar: React.FC = () => {
     }
   };
 
-  // event click/modal
+  // APPOINTMENT MODALS
   const handleEventClick = useCallback(
     async (evt: any) => {
       setModalLoading(true);
@@ -343,7 +333,6 @@ export const CustomCalendar: React.FC = () => {
     },
     [idToken, companyId]
   );
-
   const handleDragEnd = useCallback(
     async (evt: any, off: { x: number; y: number }) => {
       if (!eventsRef.current) return;
@@ -365,7 +354,6 @@ export const CustomCalendar: React.FC = () => {
     },
     [colWidth, slotHeight, gridDates, idToken, companyId]
   );
-
   const handleUpdate = async (
     id: string,
     changes: { start: string; end: string; serviceId?: string }
@@ -380,13 +368,12 @@ export const CustomCalendar: React.FC = () => {
     );
     setModalEvent(null);
   };
-
   const handleCancel = async (id: string) => {
     await deleteAppointment(idToken!, companyId!, id);
     setModalEvent(null);
   };
 
-  // monthly busy stats
+  // BUSY LOGIC FOR MONTH
   const monthlyDayStats = useMemo(() => {
     if (calendarView !== "month") return {};
     const counts: Record<string, any[]> = {};
@@ -404,6 +391,7 @@ export const CustomCalendar: React.FC = () => {
     setCurrentDate(date);
   };
 
+  // RENDER
   return (
     <div className="flex flex-col h-full w-full bg-brand-bg rounded-t-xl shadow-md">
       <ServiceAndEmployeeFilter
@@ -462,11 +450,80 @@ export const CustomCalendar: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-auto">
-        {/* ... Month & 3-day/Week views above as before ... */}
+        {/* MONTHLY VIEW */}
+        {calendarView === "month" && (
+          <div className="p-2 md:p-4">
+            {/* Month/Year Header */}
+            <div className="flex justify-between items-center mb-2 px-2">
+              <span className="font-semibold text-lg">
+                {currentDate.toLocaleString("tr-TR", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </span>
+            </div>
+            {/* Grid */}
+            <div className="grid grid-cols-7 bg-white rounded-lg shadow border text-xs">
+              {/* Day names */}
+              {["Pzr", "Pts", "Sal", "Çar", "Per", "Cum", "Cts"].map((d) => (
+                <div
+                  key={d}
+                  className="p-2 font-bold text-center text-brand-main/80"
+                >
+                  {d}
+                </div>
+              ))}
+              {gridDates.map((date, idx) => {
+                const isToday =
+                  date.toDateString() === new Date().toDateString();
+                const inMonth = date.getMonth() === currentDate.getMonth();
+                const appts = monthlyDayStats[date.toDateString()] || [];
+                const busy = appts.length >= 5;
+                return (
+                  <div
+                    key={idx}
+                    className={`h-20 min-h-[5.5rem] border border-gray-100 relative flex flex-col items-center justify-start cursor-pointer group transition-all
+                          ${
+                            isToday
+                              ? "ring-2 ring-brand-main ring-offset-2"
+                              : ""
+                          }
+                          ${inMonth ? "" : "bg-gray-50 text-gray-300"}
+                          ${busy && inMonth ? BUSY_BG : ""}
+                        `}
+                    onClick={() => inMonth && handleMonthDayClick(date)}
+                  >
+                    <span className="absolute right-2 top-2 font-semibold text-[13px] select-none">
+                      {date.getDate()}
+                    </span>
+                    {/* Appointment indicators */}
+                    <div className="flex flex-wrap justify-start items-center w-full gap-1 mt-6 px-1">
+                      {appts.slice(0, 4).map((appt, i) => (
+                        <span
+                          key={appt.id || i}
+                          className="inline-block w-2.5 h-2.5 rounded-full"
+                          style={{ background: appt.color }}
+                          title={`${appt.patientName || ""} ${
+                            appt.serviceName || ""
+                          }`}
+                        />
+                      ))}
+                      {appts.length > 4 && (
+                        <span className="text-xs text-gray-400 ml-1">
+                          +{appts.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
+        {/* 3 DAY & WEEKLY VIEW */}
         {calendarView !== "month" && (
           <>
-            {/* Day labels header */}
             <div
               className="grid"
               style={{
@@ -490,13 +547,8 @@ export const CustomCalendar: React.FC = () => {
                 </div>
               ))}
             </div>
-            {/* Timeslots & events */}
-            <div
-              className="relative flex"
-              onPointerUp={handleGlobalPointerUp}
-              style={{ touchAction: "none" }}
-            >
-              {/* Now-line */}
+            <div className="relative flex" onMouseUp={handleGlobalMouseUp}>
+              {/* Now line */}
               {(() => {
                 const idx = gridDates.findIndex(
                   (d) => d.toDateString() === now.toDateString()
@@ -515,8 +567,7 @@ export const CustomCalendar: React.FC = () => {
                   />
                 );
               })()}
-
-              {/* Hour labels */}
+              {/* Time labels */}
               <div className="flex flex-col w-11 items-end pr-1 border-r bg-brand-bg text-[12px]">
                 {HOURS.map((h) => (
                   <div
@@ -527,8 +578,7 @@ export const CustomCalendar: React.FC = () => {
                   </div>
                 ))}
               </div>
-
-              {/* Slots grid */}
+              {/* Slots & events */}
               <div
                 ref={eventsRef}
                 className="relative flex-1"
@@ -543,26 +593,36 @@ export const CustomCalendar: React.FC = () => {
                       key={`${col}-${row}`}
                       ref={row === 0 && col === 0 ? slotRef : undefined}
                       className="h-[20px] border-t border-l border-gray-100"
-                      style={{ touchAction: "none" }}
-                      onPointerDown={() =>
-                        handleSlotPointerDown(d, slot.hour, slot.minute)
+                      onMouseDown={() =>
+                        handleSlotMouseDown(d, slot.hour, slot.minute)
                       }
-                      onPointerMove={(e) =>
-                        handleSlotPointerMove(
+                      onMouseEnter={(e) =>
+                        handleSlotMouseEnter(
                           d,
                           slot.hour,
                           slot.minute,
                           e.buttons
                         )
                       }
-                      onPointerUp={() =>
-                        handleSlotPointerUp(d, slot.hour, slot.minute)
+                      onMouseUp={() =>
+                        handleSlotMouseUp(d, slot.hour, slot.minute)
                       }
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        handleSlotMouseDown(d, slot.hour, slot.minute);
+                      }}
+                      onTouchMove={(e) => {
+                        e.preventDefault();
+                        handleSlotMouseEnter(d, slot.hour, slot.minute, 1);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        handleSlotMouseUp(d, slot.hour, slot.minute);
+                      }}
                     />
                   ))
                 )}
-
-                {/* Preview while dragging */}
+                {/* Preview on drag */}
                 {previewSpan && (
                   <motion.div
                     className="absolute opacity-60 pointer-events-none z-25"
@@ -594,54 +654,46 @@ export const CustomCalendar: React.FC = () => {
                     />
                   </motion.div>
                 )}
-
                 {/* Positioned events */}
-                {positioned.map((evt) => {
-                  const width = colWidth / evt.colCount;
-                  const leftOffset = evt.col * width;
-                  return (
-                    <motion.div
-                      key={evt.id}
-                      drag
-                      dragMomentum={false}
-                      onDragEnd={(_, info) => {
-                        const snapped = {
-                          x: Math.round(info.offset.x / colWidth) * colWidth,
-                          y:
-                            Math.round(info.offset.y / slotHeight) * slotHeight,
-                        };
-                        handleDragEnd(evt, snapped);
-                      }}
-                      animate={{
-                        top:
-                          ((evt.startHour - 8) * 2 +
-                            (evt.startMinute ?? 0) / 30) *
-                          slotHeight,
-                        left: evt.dayIndex * colWidth + leftOffset,
-                      }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 300,
-                        damping: 30,
-                      }}
-                      className="absolute z-20 cursor-pointer"
-                      style={{
-                        width: width - 3,
-                        height: evt.duration * 2 * slotHeight,
-                        minHeight: 30,
-                      }}
-                      onClick={() => handleEventClick(evt)}
-                    >
-                      <AppointmentPreviewCard
-                        color={evt.color}
-                        patient={evt.patientName}
-                        service={evt.serviceName}
-                        start={new Date(evt.start)}
-                        end={new Date(evt.end)}
-                      />
-                    </motion.div>
-                  );
-                })}
+                {positioned.map((evt) => (
+                  <motion.div
+                    key={evt.id}
+                    drag
+                    dragMomentum={false}
+                    onDragEnd={(_, info) => {
+                      const snapped = {
+                        x: Math.round(info.offset.x / colWidth) * colWidth,
+                        y: Math.round(info.offset.y / slotHeight) * slotHeight,
+                      };
+                      handleDragEnd(evt, snapped);
+                    }}
+                    animate={{
+                      top:
+                        ((evt.startHour - 8) * 2 +
+                          (evt.startMinute ?? 0) / 30) *
+                        slotHeight,
+                      left:
+                        evt.dayIndex * colWidth +
+                        evt.col * (colWidth / evt.colCount),
+                    }}
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="absolute z-20 cursor-pointer"
+                    style={{
+                      width: colWidth / evt.colCount - 3,
+                      height: evt.duration * 2 * slotHeight,
+                      minHeight: 30,
+                    }}
+                    onClick={() => handleEventClick(evt)}
+                  >
+                    <AppointmentPreviewCard
+                      color={evt.color}
+                      patient={evt.patientName}
+                      service={evt.serviceName}
+                      start={new Date(evt.start)}
+                      end={new Date(evt.end)}
+                    />
+                  </motion.div>
+                ))}
               </div>
             </div>
           </>
