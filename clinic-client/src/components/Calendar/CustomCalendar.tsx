@@ -1,4 +1,3 @@
-// src/components/Calendar/CustomCalendar.tsx
 import React, {
   useState,
   useEffect,
@@ -21,11 +20,13 @@ import {
 } from "../../api/appointmentApi";
 import { ServiceAndEmployeeFilter } from "../CalendarView/ServiceAndEmployeeFilter";
 import { NewAppointmentModal } from "../CalendarView/NewAppointmentModal";
+import { getPatients } from "../../api/patientApi";
 import { AppointmentModal as CalendarAppointmentModal } from "../Modals/AppointmentModal";
 import { AppointmentPreviewCard } from "../Cards/AppointmentPreviewCard";
 import { useEnrichedAppointments } from "../../hooks/useEnrichedAppointments";
+import type { Patient } from "../../types/sharedTypes";
 
-const BRAND_COLORS: string[] = [
+const BRAND_COLORS = [
   "#e2725b",
   "#71e25b",
   "#e2aa5b",
@@ -35,53 +36,62 @@ const BRAND_COLORS: string[] = [
   "#e25bb4",
   "#d75be2",
   "#9f5be2",
-];
+] as const;
 const TODAY_BG = "bg-brand-main/10";
 const BUSY_BG = "bg-brand-main/5";
-
 const VIEW_CONFIG = {
   threeDay: { label: "3 Gün", days: 3 },
   timeGridWeek: { label: "Hafta", days: 7 },
   month: { label: "Ay", days: 0 },
-};
+} as const;
 
 function toDateTimeLocal(d: Date) {
   const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
 }
 
-function assignColumns(events: any[]) {
+function assignColumns(events: { start: string; end: string }[]) {
   const sorted = [...events].sort(
     (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
   );
-  const result: any[] = [];
-  for (const ev of sorted) {
+  const result: ((typeof sorted)[0] & { col: number; colCount: number })[] = [];
+  sorted.forEach((evt) => {
     const overlaps = sorted.filter(
       (o) =>
         !(
-          new Date(o.end) <= new Date(ev.start) ||
-          new Date(o.start) >= new Date(ev.end)
+          new Date(o.end) <= new Date(evt.start) ||
+          new Date(o.start) >= new Date(evt.end)
         )
     );
     const used = new Set<number>();
-    for (const o of overlaps) {
-      if (o.col !== undefined) used.add(o.col);
-    }
+    overlaps.forEach((o) => {
+      const r = result.find((r) => r.start === o.start && r.end === o.end);
+      if (r && r.col !== undefined) used.add(r.col);
+    });
     let col = 0;
     while (used.has(col)) col++;
-    ev.col = col;
-    ev.colCount = overlaps.length;
-    result.push(ev);
-  }
+    result.push({ ...evt, col, colCount: overlaps.length });
+  });
   return result;
 }
 
 export const CustomCalendar: React.FC = () => {
   const { idToken, companyId, user } = useAuth();
   const currentEmail = user?.email ?? "";
-  const isOwner = true;
+  const isOwner = user?.role === "owner";
+
+  // Patients
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState("");
+  useEffect(() => {
+    if (!idToken || !companyId) return;
+    getPatients(idToken, companyId).then(setPatients).catch(console.error);
+  }, [idToken, companyId]);
+
+  // Enriched data
   const { appointments, employees, services } = useEnrichedAppointments(
     idToken!,
     companyId!
@@ -97,21 +107,29 @@ export const CustomCalendar: React.FC = () => {
       })),
     [services]
   );
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
-  const [selectedService, setSelectedService] = useState<string>("");
+
+  // Filters
+  const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [selectedService, setSelectedService] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
+
+  // Navigation
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendarView, setCalendarView] =
     useState<keyof typeof VIEW_CONFIG>("threeDay");
+
+  // Layout refs
   const slotRef = useRef<HTMLDivElement>(null);
   const eventsRef = useRef<HTMLDivElement>(null);
   const [slotHeight, setSlotHeight] = useState(20);
   const [colWidth, setColWidth] = useState(0);
-  const [dragStart, setDragStart] = useState<{
+
+  // Drag-create state
+  const [dragStart, setDragStart] = useState<null | {
     day: Date;
     hour: number;
     minute: number;
-  } | null>(null);
+  }>(null);
   const [previewSpan, setPreviewSpan] = useState<null | {
     start: Date;
     end: Date;
@@ -120,17 +138,22 @@ export const CustomCalendar: React.FC = () => {
     start: Date;
     end: Date;
   }>(null);
+
+  // Modal
   const [modalEvent, setModalEvent] = useState<any | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [now, setNow] = useState(new Date());
+
   useEffect(() => {
-    const iv = setInterval(() => setNow(new Date()), 60_000);
+    const iv = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(iv);
   }, []);
+
   useEffect(() => {
     const measure = () => {
-      if (slotRef.current) {
-        const h = slotRef.current.getBoundingClientRect().height;
+      const el = slotRef.current;
+      if (el) {
+        const h = el.getBoundingClientRect().height;
         if (h > 10) setSlotHeight(h);
       }
     };
@@ -138,34 +161,44 @@ export const CustomCalendar: React.FC = () => {
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, []);
+
   useEffect(() => {
     const measure = () => {
-      if (!eventsRef.current) return;
-      const days =
-        calendarView === "month" ? 7 : VIEW_CONFIG[calendarView].days;
-      const w = eventsRef.current.getBoundingClientRect().width;
-      setColWidth(w / days);
+      const el = eventsRef.current;
+      if (el) {
+        const days =
+          calendarView === "month" ? 7 : VIEW_CONFIG[calendarView].days;
+        const w = el.getBoundingClientRect().width;
+        setColWidth(w / days);
+      }
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, [calendarView, currentDate]);
 
-  // MONTHLY GRID
+  // HOURS and SLOTS definitions
+  const HOURS = Array.from({ length: 15 }, (_, i) => 8 + i);
+  const SLOTS = Array.from({ length: 28 }, (_, i) => ({
+    hour: 8 + Math.floor(i / 2),
+    minute: (i % 2) * 30,
+  }));
+
+  // Grid dates
   const gridDates = useMemo(() => {
+    const base = new Date(currentDate);
     if (calendarView === "month") {
-      const y = currentDate.getFullYear();
-      const m = currentDate.getMonth();
+      const y = base.getFullYear();
+      const m = base.getMonth();
       const first = new Date(y, m, 1);
       const firstDay = first.getDay();
-      const start = new Date(y, m, 1 - firstDay); // Start from Sunday
+      const start = new Date(y, m, 1 - firstDay);
       return Array.from({ length: 42 }, (_, i) => {
         const d = new Date(start);
         d.setDate(start.getDate() + i);
         return d;
       });
     }
-    const base = new Date(currentDate);
     base.setHours(0, 0, 0, 0);
     if (calendarView === "timeGridWeek") {
       const diff = (base.getDay() + 6) % 7;
@@ -178,7 +211,7 @@ export const CustomCalendar: React.FC = () => {
     });
   }, [currentDate, calendarView]);
 
-  // FILTER & COLOR
+  // Filter & color
   const coloredAppointments = useMemo(() => {
     const nowMs = Date.now();
     return appointments
@@ -187,26 +220,24 @@ export const CustomCalendar: React.FC = () => {
           (!selectedEmployee || evt.employeeEmail === selectedEmployee) &&
           (!selectedService || evt.serviceId === selectedService)
       )
-      .map((evt, idx) => ({
+      .map((evt, i) => ({
         ...evt,
         color:
           nowMs > new Date(evt.end).getTime()
             ? "#bbb"
-            : BRAND_COLORS[idx % BRAND_COLORS.length],
+            : BRAND_COLORS[i % BRAND_COLORS.length],
       }));
   }, [appointments, selectedEmployee, selectedService]);
 
-  // OVERLAP & LAYOUT
+  // Positioned events
   const positioned = useMemo(() => {
     if (calendarView === "month") return [];
     const byDay: Record<number, any[]> = {};
     coloredAppointments.forEach((evt) => {
-      const di = gridDates.findIndex(
+      const idx = gridDates.findIndex(
         (d) => d.toDateString() === new Date(evt.start).toDateString()
       );
-      if (di >= 0) {
-        (byDay[di] ||= []).push({ ...evt, dayIndex: di });
-      }
+      if (idx >= 0) (byDay[idx] ??= []).push({ ...evt, dayIndex: idx });
     });
     return Object.values(byDay).flatMap((group) =>
       assignColumns(group).map((ev) => {
@@ -222,33 +253,24 @@ export const CustomCalendar: React.FC = () => {
     );
   }, [coloredAppointments, gridDates, calendarView]);
 
-  // NAVIGATION
-  const handleNav = (dir: "prev" | "today" | "next") => {
+  // Navigation
+  const handleNav = (dir: "prev" | "today" | "next") =>
     setCurrentDate((prev) => {
       if (dir === "today") return new Date();
       const d = new Date(prev);
-      if (calendarView === "month") {
+      if (calendarView === "month")
         d.setMonth(d.getMonth() + (dir === "next" ? 1 : -1));
-      } else {
+      else
         d.setDate(
           prev.getDate() +
             (dir === "next"
               ? VIEW_CONFIG[calendarView].days
               : -VIEW_CONFIG[calendarView].days)
         );
-      }
       return d;
     });
-  };
 
-  // SLOTS (FOR WEEK/3DAY)
-  const HOURS = Array.from({ length: 15 }, (_, i) => 8 + i);
-  const SLOTS = Array.from({ length: 28 }, (_, i) => ({
-    hour: 8 + Math.floor(i / 2),
-    minute: (i % 2) * 30,
-  }));
-
-  // DRAG CREATE HANDLERS
+  // Drag-create handlers
   const handleSlotMouseDown = (day: Date, hour: number, minute: number) => {
     setDragStart({ day, hour, minute });
     setPreviewSpan(null);
@@ -285,57 +307,12 @@ export const CustomCalendar: React.FC = () => {
     setDragStart(null);
   };
 
-  // MODAL
-  const [startStr, setStartStr] = useState("");
-  const [endStr, setEndStr] = useState("");
-  useEffect(() => {
-    if (!createSpan) {
-      setStartStr("");
-      setEndStr("");
-    } else {
-      setStartStr(toDateTimeLocal(createSpan.start));
-      setEndStr(toDateTimeLocal(createSpan.end));
-    }
-  }, [createSpan]);
-  const handleCreate = async (sISO: string, eISO: string, empEmail: string) => {
-    if (!createSpan || !selectedEmployee || !selectedService) {
-      alert("Lütfen tüm alanları seçin.");
-      return;
-    }
-    try {
-      await createAppointment(
-        idToken!,
-        companyId!,
-        "",
-        empEmail,
-        selectedService,
-        sISO,
-        eISO
-      );
-      setCreateSpan(null);
-    } catch (e: any) {
-      alert(e.message || "Oluşturulamadı.");
-    }
-  };
-
-  // APPOINTMENT MODALS
-  const handleEventClick = useCallback(
-    async (evt: any) => {
-      setModalLoading(true);
-      try {
-        const detail = await getAppointmentById(idToken!, companyId!, evt.id);
-        setModalEvent(detail);
-      } catch {
-        alert("Yükleme hatası");
-      } finally {
-        setModalLoading(false);
-      }
-    },
-    [idToken, companyId]
-  );
+  // Handle drag-end reposition
   const handleDragEnd = useCallback(
     async (evt: any, off: { x: number; y: number }) => {
       if (!eventsRef.current) return;
+      const days =
+        calendarView === "month" ? 7 : VIEW_CONFIG[calendarView].days;
       const newDay = Math.round((evt.dayIndex * colWidth + off.x) / colWidth);
       const hrOff = Math.round((evt.startHour - 8) * 2 + off.y / slotHeight);
       const newHr = 8 + Math.floor(hrOff / 2);
@@ -352,46 +329,105 @@ export const CustomCalendar: React.FC = () => {
         en.toISOString()
       );
     },
-    [colWidth, slotHeight, gridDates, idToken, companyId]
+    [colWidth, slotHeight, gridDates, idToken, companyId, calendarView]
   );
-  const handleUpdate = async (
-    id: string,
-    changes: { start: string; end: string; serviceId?: string }
-  ) => {
-    await updateAppointment(
-      idToken!,
-      companyId!,
-      id,
-      changes.start,
-      changes.end,
-      changes.serviceId
-    );
-    setModalEvent(null);
-  };
-  const handleCancel = async (id: string) => {
-    await deleteAppointment(idToken!, companyId!, id);
-    setModalEvent(null);
-  };
 
-  // BUSY LOGIC FOR MONTH
+  // Create appointment callback
+  const handleCreateAppointment = useCallback(
+    async (sISO: string, eISO: string, empEmail: string) => {
+      if (
+        !createSpan ||
+        !selectedEmployee ||
+        !selectedService ||
+        !selectedPatient
+      ) {
+        alert("Lütfen tüm alanları seçin.");
+        return;
+      }
+      try {
+        await createAppointment(
+          idToken!,
+          companyId!,
+          selectedPatient,
+          empEmail,
+          selectedService,
+          sISO,
+          eISO
+        );
+        setCreateSpan(null);
+      } catch (e: any) {
+        alert(e.message || "Oluşturulamadı.");
+      }
+    },
+    [
+      createSpan,
+      selectedEmployee,
+      selectedService,
+      selectedPatient,
+      idToken,
+      companyId,
+    ]
+  );
+
+  // Event click
+  const handleEventClick = useCallback(
+    async (evt: any) => {
+      setModalLoading(true);
+      try {
+        const detail = await getAppointmentById(idToken!, companyId!, evt.id);
+        setModalEvent(detail);
+      } catch {
+        alert("Yükleme hatası");
+      } finally {
+        setModalLoading(false);
+      }
+    },
+    [idToken, companyId]
+  );
+
+  // Update & cancel
+  const handleUpdate = useCallback(
+    async (
+      id: string,
+      changes: { start: string; end: string; serviceId?: string }
+    ) => {
+      await updateAppointment(
+        idToken!,
+        companyId!,
+        id,
+        changes.start,
+        changes.end,
+        changes.serviceId
+      );
+      setModalEvent(null);
+    },
+    [idToken, companyId]
+  );
+  const handleCancel = useCallback(
+    async (id: string) => {
+      await deleteAppointment(idToken!, companyId!, id);
+      setModalEvent(null);
+    },
+    [idToken, companyId]
+  );
+
+  // Monthly stats
   const monthlyDayStats = useMemo(() => {
-    if (calendarView !== "month") return {};
+    if (calendarView !== "month") return {} as Record<string, any[]>;
     const counts: Record<string, any[]> = {};
     coloredAppointments.forEach((appt) => {
-      const dayStr = new Date(appt.start).toDateString();
-      counts[dayStr] = counts[dayStr] || [];
-      counts[dayStr].push(appt);
+      const d = new Date(appt.start).toDateString();
+      counts[d] = counts[d] ?? [];
+      counts[d].push(appt);
     });
     return counts;
   }, [coloredAppointments, calendarView]);
 
-  // CLICK MONTH-DAY: Switch to 3-day view starting that day
-  const handleMonthDayClick = (date: Date) => {
+  const handleMonthDayClick = useCallback((date: Date) => {
     setCalendarView("threeDay");
     setCurrentDate(date);
-  };
+  }, []);
 
-  // RENDER
   return (
     <div className="flex flex-col h-full w-full bg-brand-bg rounded-t-xl shadow-md">
       <ServiceAndEmployeeFilter
@@ -403,7 +439,6 @@ export const CustomCalendar: React.FC = () => {
         open={filterOpen}
         onClose={() => setFilterOpen(false)}
       />
-
       {/* Navigation */}
       <div className="flex items-center px-4 py-2 sticky top-0 bg-brand-bg z-20 gap-2 border-b">
         <button
@@ -704,31 +739,31 @@ export const CustomCalendar: React.FC = () => {
       <NewAppointmentModal
         show={!!createSpan}
         onClose={() => setCreateSpan(null)}
-        patients={[]}
-        employees={employees}
+        patients={patients}
+        employees={employees.map((e) => ({ email: e.email, name: e.name }))}
+        appointments={appointments}
         services={serviceOptions}
         isOwner={isOwner}
         currentEmail={currentEmail}
-        selectedPatient=""
-        setSelectedPatient={() => {}}
+        selectedPatient={selectedPatient}
+        setSelectedPatient={setSelectedPatient}
         selectedEmployee={selectedEmployee}
         setSelectedEmployee={setSelectedEmployee}
         selectedService={selectedService}
         setSelectedService={setSelectedService}
-        startStr={startStr}
-        setStartStr={setStartStr}
-        endStr={endStr}
-        setEndStr={setEndStr}
-        onSubmit={handleCreate}
+        startStr={createSpan ? toDateTimeLocal(createSpan.start) : ""}
+        setStartStr={() => {}}
+        endStr={createSpan ? toDateTimeLocal(createSpan.end) : ""}
+        setEndStr={() => {}}
+        onSubmit={handleCreateAppointment}
         onAddPatient={() => {}}
       />
 
-      {/* Edit/view modal */}
       {modalEvent && (
         <CalendarAppointmentModal
           event={modalEvent}
           services={serviceOptions}
-          employees={employees}
+          employees={employees.map((e) => ({ email: e.email, name: e.name }))}
           onClose={() => setModalEvent(null)}
           onCancel={() => modalEvent && handleCancel(modalEvent.id)}
           onUpdate={handleUpdate}
