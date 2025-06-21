@@ -72,13 +72,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
           className="fixed inset-0 bg-black/40 z-40"
           aria-label="Kapat"
           onClick={onClose}
-          style={{
-            outline: "none",
-            border: "none",
-            padding: 0,
-            margin: 0,
-            background: "transparent",
-          }}
+          style={{ outline: "none", border: "none", padding: 0, margin: 0 }}
         />
       )}
       <div
@@ -96,7 +90,9 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
             ×
           </button>
         </div>
-        <div className="p-4 space-y-6 overflow-y-auto h-full">
+
+        {/* Changed here: no vertical scrolling, overflow spills off screen */}
+        <div className="p-4 space-y-6 overflow-y-visible">
           <div>
             <h3 className="mb-2 text-sm font-medium text-gray-700">Çalışan</h3>
             <div className="space-y-2">
@@ -131,6 +127,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
               ))}
             </div>
           </div>
+
           <div>
             <h3 className="mb-2 text-sm font-medium text-gray-700">Hizmet</h3>
             <div className="space-y-2">
@@ -159,6 +156,7 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
               ))}
             </div>
           </div>
+
           <div>
             <h3 className="mb-2 text-sm font-medium text-gray-700">Grup</h3>
             <div className="space-y-2">
