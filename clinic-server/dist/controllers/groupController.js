@@ -32,9 +32,25 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removePatientFromGroup = exports.addPatientToGroup = exports.deleteGroup = exports.updateGroup = exports.getGroupById = exports.createGroup = exports.listGroups = void 0;
+exports.createGroupAppointment = exports.listGroupAppointments = exports.removePatientFromGroup = exports.addPatientToGroup = exports.deleteGroup = exports.updateGroup = exports.getGroupById = exports.createGroup = exports.listGroups = void 0;
+const mongoose_1 = require("mongoose");
 const groupService = __importStar(require("../services/groupService"));
+const Appointment_1 = __importDefault(require("../models/Appointment"));
+const Group_1 = __importDefault(require("../models/Group"));
+const http_errors_1 = __importDefault(require("http-errors"));
+// Helper for safe ObjectId conversion
+function safeObjectId(val) {
+    if (typeof val === "string" && val.length === 24)
+        return new mongoose_1.Types.ObjectId(val);
+    return undefined;
+}
+/**
+ * GET /company/:companyId/clinics/:clinicId/groups
+ */
 const listGroups = async (req, res, next) => {
     try {
         const { companyId, clinicId } = req.params;
@@ -46,8 +62,10 @@ const listGroups = async (req, res, next) => {
     }
 };
 exports.listGroups = listGroups;
+/**
+ * POST /company/:companyId/clinics/:clinicId/groups
+ */
 const createGroup = async (req, res, next) => {
-    console.log("req.user:", req.user);
     try {
         const { companyId, clinicId } = req.params;
         const user = req.user;
@@ -59,6 +77,9 @@ const createGroup = async (req, res, next) => {
     }
 };
 exports.createGroup = createGroup;
+/**
+ * GET /company/:companyId/clinics/:clinicId/groups/:groupId
+ */
 const getGroupById = async (req, res, next) => {
     try {
         const { companyId, clinicId, groupId } = req.params;
@@ -70,6 +91,9 @@ const getGroupById = async (req, res, next) => {
     }
 };
 exports.getGroupById = getGroupById;
+/**
+ * PATCH /company/:companyId/clinics/:clinicId/groups/:groupId
+ */
 const updateGroup = async (req, res, next) => {
     try {
         const { companyId, clinicId, groupId } = req.params;
@@ -81,6 +105,9 @@ const updateGroup = async (req, res, next) => {
     }
 };
 exports.updateGroup = updateGroup;
+/**
+ * DELETE /company/:companyId/clinics/:clinicId/groups/:groupId
+ */
 const deleteGroup = async (req, res, next) => {
     try {
         const { companyId, clinicId, groupId } = req.params;
@@ -92,6 +119,9 @@ const deleteGroup = async (req, res, next) => {
     }
 };
 exports.deleteGroup = deleteGroup;
+/**
+ * POST /company/:companyId/clinics/:clinicId/groups/:groupId/patients
+ */
 const addPatientToGroup = async (req, res, next) => {
     try {
         const { companyId, clinicId, groupId } = req.params;
@@ -104,6 +134,9 @@ const addPatientToGroup = async (req, res, next) => {
     }
 };
 exports.addPatientToGroup = addPatientToGroup;
+/**
+ * DELETE /company/:companyId/clinics/:clinicId/groups/:groupId/patients/:patientId
+ */
 const removePatientFromGroup = async (req, res, next) => {
     try {
         const { companyId, clinicId, groupId, patientId } = req.params;
@@ -115,3 +148,69 @@ const removePatientFromGroup = async (req, res, next) => {
     }
 };
 exports.removePatientFromGroup = removePatientFromGroup;
+/**
+ * GET /company/:companyId/clinics/:clinicId/groups/:groupId/appointments
+ */
+const listGroupAppointments = async (req, res, next) => {
+    try {
+        const { companyId, clinicId, groupId } = req.params;
+        const appts = await Appointment_1.default.find({
+            companyId: safeObjectId(companyId),
+            clinicId: safeObjectId(clinicId),
+            groupId: safeObjectId(groupId),
+        })
+            .lean()
+            .exec();
+        res.status(200).json(appts);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.listGroupAppointments = listGroupAppointments;
+/**
+ * POST /company/:companyId/clinics/:clinicId/groups/:groupId/appointments
+ * Body: { start, end, employeeId, serviceId }
+ */
+const createGroupAppointment = async (req, res, next) => {
+    try {
+        const { companyId, clinicId, groupId } = req.params;
+        const user = req.user;
+        const { start, end, employeeId, serviceId } = req.body;
+        // Validate
+        if (!start || !end || !employeeId || !serviceId || !groupId)
+            throw (0, http_errors_1.default)(400, "start, end, employeeId, serviceId, and groupId are required.");
+        // Validate ObjectIds
+        if (![companyId, clinicId, groupId, employeeId, serviceId].every(mongoose_1.Types.ObjectId.isValid))
+            throw (0, http_errors_1.default)(400, "Invalid ObjectId(s)");
+        // Optionally: check if employee, service, and group exist!
+        // Optionally: check overlap, credit, etc, if your business rules require it.
+        const doc = {
+            companyId: new mongoose_1.Types.ObjectId(companyId),
+            clinicId: new mongoose_1.Types.ObjectId(clinicId),
+            groupId: new mongoose_1.Types.ObjectId(groupId),
+            employeeId: new mongoose_1.Types.ObjectId(employeeId),
+            serviceId: new mongoose_1.Types.ObjectId(serviceId),
+            appointmentType: "group",
+            start: new Date(start),
+            end: new Date(end),
+            status: "scheduled",
+            createdBy: mongoose_1.Types.ObjectId.isValid(user.uid)
+                ? new mongoose_1.Types.ObjectId(user.uid)
+                : undefined, // or store as string if using Firebase UIDs!
+        };
+        // Remove undefined for createdBy if not a MongoId
+        if (!doc.createdBy)
+            delete doc.createdBy;
+        const appt = await Appointment_1.default.create(doc);
+        // Link appointment to Group's appointment array
+        await Group_1.default.findByIdAndUpdate(groupId, {
+            $addToSet: { appointments: appt._id },
+        }).exec();
+        res.status(201).json(appt);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.createGroupAppointment = createGroupAppointment;

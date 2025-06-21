@@ -1,77 +1,79 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteService = exports.updateService = exports.createService = exports.listServices = void 0;
-const svcService = __importStar(require("../services/serviceService"));
+const Service_1 = __importDefault(require("../models/Service"));
+const Clinic_1 = __importDefault(require("../models/Clinic"));
+/**
+ * GET  /company/:companyId/clinics/:clinicId/services
+ */
 const listServices = async (req, res, next) => {
     try {
         const { companyId, clinicId } = req.params;
-        const services = await svcService.listServices(companyId, clinicId);
-        res.status(200).json(services);
+        const services = await Service_1.default.find({ companyId, clinicId }).exec();
+        res.json(services);
     }
     catch (err) {
         next(err);
     }
 };
 exports.listServices = listServices;
+/**
+ * POST /company/:companyId/clinics/:clinicId/services
+ */
 const createService = async (req, res, next) => {
     try {
         const { companyId, clinicId } = req.params;
-        const created = await svcService.createService(companyId, clinicId, req.body);
-        res.status(201).json(created);
+        const { serviceName, servicePrice, serviceDuration } = req.body;
+        const svc = new Service_1.default({
+            companyId,
+            clinicId,
+            serviceName,
+            servicePrice,
+            serviceDuration,
+        });
+        await svc.save();
+        // push into clinic.services
+        await Clinic_1.default.findByIdAndUpdate(clinicId, {
+            $addToSet: { services: svc._id },
+        }).exec();
+        res.status(201).json(svc);
     }
     catch (err) {
         next(err);
     }
 };
 exports.createService = createService;
+/**
+ * PATCH  /company/:companyId/clinics/:clinicId/services/:serviceId
+ */
 const updateService = async (req, res, next) => {
     try {
-        const { companyId, clinicId, serviceId } = req.params;
-        const updated = await svcService.updateService(companyId, clinicId, serviceId, req.body);
-        res.status(200).json(updated);
+        const { serviceId } = req.params;
+        const updates = req.body;
+        const svc = await Service_1.default.findByIdAndUpdate(serviceId, updates, {
+            new: true,
+        }).exec();
+        // **send back the updated document**
+        res.json(svc);
     }
     catch (err) {
         next(err);
     }
 };
 exports.updateService = updateService;
+/**
+ * DELETE /company/:companyId/clinics/:clinicId/services/:serviceId
+ */
 const deleteService = async (req, res, next) => {
     try {
-        const { companyId, clinicId, serviceId } = req.params;
-        await svcService.deleteService(companyId, clinicId, serviceId);
+        const { clinicId, serviceId } = req.params;
+        await Service_1.default.findByIdAndDelete(serviceId).exec();
+        await Clinic_1.default.findByIdAndUpdate(clinicId, {
+            $pull: { services: serviceId },
+        }).exec();
         res.sendStatus(204);
     }
     catch (err) {

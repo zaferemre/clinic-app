@@ -49,7 +49,7 @@ export const FloatingActionButton = ({
             <UserPlusIcon className="h-5 w-5" /> Müşteri
           </button>
           <button
-            className="flex items-center px-4 py-2 bg-brand-purple text-white rounded-full shadow gap-2"
+            className="flex items-center px-4 py-2 bg-brand-main-300 text-white rounded-full shadow gap-2"
             onClick={() => {
               onAddGroup();
               setOpen(false);

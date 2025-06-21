@@ -53,10 +53,14 @@ async function removeEmployeeByEmail(companyId, email) {
 async function deleteEmployeeByEmail(email) {
     await Employee_1.default.deleteMany({ email });
 }
-async function listEmployees(companyId) {
-    return Employee_1.default.find({
+async function listEmployees(companyId, clinicId) {
+    const filter = {
         companyId: new mongoose_1.default.Types.ObjectId(companyId),
-    }).exec();
+    };
+    if (clinicId) {
+        filter.clinicId = new mongoose_1.default.Types.ObjectId(clinicId);
+    }
+    return Employee_1.default.find(filter).exec();
 }
 async function updateEmployee(employeeId, updates) {
     return Employee_1.default.findByIdAndUpdate(employeeId, updates, { new: true }).exec();

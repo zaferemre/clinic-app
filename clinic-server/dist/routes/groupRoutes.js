@@ -46,4 +46,7 @@ router.patch("/:groupId", groupCtrl.updateGroup);
 router.delete("/:groupId", groupCtrl.deleteGroup);
 router.post("/:groupId/patients", groupCtrl.addPatientToGroup);
 router.delete("/:groupId/patients/:patientId", groupCtrl.removePatientFromGroup);
+// list / create appointments for one group:
+router.get("/:groupId/appointments", groupCtrl.listGroupAppointments);
+router.post("/:groupId/appointments", groupCtrl.createGroupAppointment);
 exports.default = router;

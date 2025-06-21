@@ -1,3 +1,4 @@
+// src/components/Cards/PatientCard/PatientCard.tsx
 import React, { useState, useEffect } from "react";
 import {
   PencilIcon,
@@ -38,30 +39,25 @@ const PatientCard: React.FC<PatientCardProps> = ({
     { id: string; start: string; status: string; employeeEmail: string }[]
   >([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-
   const [showCallModal, setShowCallModal] = useState(false);
   const [callNote, setCallNote] = useState("");
   const [sendingCall, setSendingCall] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  // Defensive: Handle ObjectId or string in group.patients and patient._id
   function isIdEqual(a: any, b: any) {
     return a?.toString?.() === b?.toString?.();
   }
 
-  // Groups this patient is in
   const myGroups = groups.filter(
     (g) =>
       Array.isArray(g.patients) &&
       g.patients.some((pid) => isIdEqual(pid, patient._id))
   );
 
-  // Last payment
   const lastPayment = patient.paymentHistory?.length
     ? patient.paymentHistory[patient.paymentHistory.length - 1].method
     : "Yok";
 
-  // Activity summary
   const activityCount = pastAppointments.length;
   const lastAppointment = activityCount
     ? new Date(
@@ -71,7 +67,6 @@ const PatientCard: React.FC<PatientCardProps> = ({
       ).toLocaleDateString("tr-TR")
     : "Yok";
 
-  // Format createdAt as readable string
   const createdAtString = patient.createdAt
     ? new Date(patient.createdAt).toLocaleString("tr-TR", {
         dateStyle: "short",
@@ -79,8 +74,8 @@ const PatientCard: React.FC<PatientCardProps> = ({
       })
     : "";
 
+  // Fetch past appointments on mount
   useEffect(() => {
-    if (!isExpanded) return;
     let cancelled = false;
     const load = async () => {
       if (!idToken || !selectedCompanyId || !selectedClinicId) return;
@@ -112,8 +107,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line
-  }, [isExpanded, idToken, selectedCompanyId, selectedClinicId, patient._id]);
+  }, [idToken, selectedCompanyId, selectedClinicId, patient._id]);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -156,48 +150,58 @@ const PatientCard: React.FC<PatientCardProps> = ({
     }
   };
 
-  // Compact view: only show name, credit, activity, last randevu, last payment, expand chevron
+  // Determine pill styles
+  const pillBase = "rounded px-2 py-0.5 text-xs";
+  const creditStyle = "bg-brand-main-50 text-brand-main-700";
+  const activityStyle =
+    activityCount > 0 ? "bg-warn/10 text-warn" : "bg-error/10 text-error";
+  const apptStyle =
+    lastAppointment !== "Yok"
+      ? "bg-success/10 text-success"
+      : "bg-error/10 text-error";
+  const paymentStyle =
+    lastPayment !== "Yok"
+      ? "bg-brand-main-50 text-brand-main-700"
+      : "bg-error/10 text-error";
+
   return (
     <div
-      className={`bg-white rounded-2xl p-4 mb-3 shadow transition ${
-        isExpanded ? "ring-2 ring-brand-main" : ""
+      className={`bg-white rounded-2xl p-4 mb-3 shadow transition focus-within:ring-2 focus-within:ring-brand-main${
+        isExpanded ? " ring-2 ring-brand-main" : ""
       }`}
       onClick={() => onToggleExpand(patient._id)}
       tabIndex={0}
       role="button"
-      onKeyDown={(e) => {
-        if (e.key === "Enter") onToggleExpand(patient._id);
-      }}
+      onKeyDown={(e) => e.key === "Enter" && onToggleExpand(patient._id)}
     >
-      {/* Collapsed core info */}
+      {/* Core Info */}
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold">{patient.name}</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {patient.name}
+            </h3>
             {patient.age && (
-              <span className="text-xs text-brand-gray-400">
-                {patient.age} yaş
-              </span>
+              <span className="text-xs text-gray-500">{patient.age} yaş</span>
             )}
           </div>
-          <div className="flex flex-wrap gap-2 mt-1 text-xs">
-            <span className="bg-brand-orange/10 rounded px-2 py-0.5">
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className={`${pillBase} ${creditStyle}`}>
               Kredi: {patient.credit}
             </span>
-            <span className="bg-brand-red/10 rounded px-2 py-0.5">
+            <span className={`${pillBase} ${activityStyle}`}>
               Aktivite: {activityCount} randevu
             </span>
-            <span className="bg-brand-green/10 rounded px-2 py-0.5">
+            <span className={`${pillBase} ${apptStyle}`}>
               Son Randevu: {lastAppointment}
             </span>
-            <span className="bg-brand-green/10 rounded px-2 py-0.5">
+            <span className={`${pillBase} ${paymentStyle}`}>
               Ödeme: {lastPayment}
             </span>
           </div>
         </div>
-        {/* Expand/collapse */}
         <button
-          className="ml-2 text-brand-main focus:outline-none"
+          className="ml-4 text-gray-500 hover:text-brand-main focus:outline-none"
           onClick={(e) => {
             e.stopPropagation();
             onToggleExpand(patient._id);
@@ -212,46 +216,45 @@ const PatientCard: React.FC<PatientCardProps> = ({
         </button>
       </div>
 
-      {/* Show note below if present */}
+      {/* Note */}
       {patient.note && (
-        <div className="mb-2 mt-2 text-xs text-brand-gray-500 italic">
+        <div className="mt-3 text-sm text-gray-500 italic">
           “{patient.note}”
         </div>
       )}
 
-      {/* Expanded details */}
+      {/* Expanded Details */}
       {isExpanded && (
-        <div className="mt-3 space-y-2 text-sm">
-          {/* Action buttons */}
-          <div className="flex gap-2 mb-2 justify-center">
+        <div className="mt-4 space-y-4 text-sm text-gray-700">
+          <div className="flex gap-3 justify-center">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setShowEditModal(true);
               }}
-              className="p-2 rounded-full bg-brand-green/20 hover:bg-brand-green/40"
+              className="p-2 rounded-full bg-brand-main-50 hover:bg-brand-main-100 text-brand-main transition"
             >
-              <PencilIcon className="w-5 h-5 text-brand-green" />
+              <PencilIcon className="w-5 h-5" />
             </button>
             <button
               onClick={handleCallClick}
-              className="p-2 rounded-full bg-brand-main/10 hover:bg-brand-main/20"
+              className="p-2 rounded-full bg-brand-main-50 hover:bg-brand-main-100 text-brand-main transition"
             >
-              <PhoneIcon className="w-5 h-5 text-brand-main" />
+              <PhoneIcon className="w-5 h-5" />
             </button>
             <button
               onClick={handleDelete}
-              className="p-2 rounded-full bg-brand-red/20 hover:bg-brand-red/40"
+              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-red-500 transition"
             >
-              <TrashIcon className="w-5 h-5 text-brand-red" />
+              <TrashIcon className="w-5 h-5" />
             </button>
           </div>
           <div>
-            <span className="font-semibold">Gruplar:</span>
+            <span className="font-medium text-gray-900">Gruplar:</span>
             <GroupPreviewList groups={myGroups} />
           </div>
           <div>
-            <span className="font-semibold">Hizmetler:</span>
+            <span className="font-medium text-gray-900">Hizmetler:</span>
             {patient.services?.length ? (
               <ul className="ml-4 list-disc">
                 {patient.services.map((s, i) => (
@@ -262,28 +265,30 @@ const PatientCard: React.FC<PatientCardProps> = ({
                 ))}
               </ul>
             ) : (
-              <span className="ml-2 text-brand-gray-400">Yok</span>
+              <span className="ml-2 text-gray-500">Yok</span>
             )}
           </div>
           <div>
-            <span className="font-semibold">Ödeme Geçmişi:</span>
+            <span className="font-medium text-gray-900">Ödeme Geçmişi:</span>
             {patient.paymentHistory?.length ? (
               <ul className="ml-4 list-disc">
                 {patient.paymentHistory.map((ph, i) => (
                   <li key={i}>
-                    {new Date(ph.date).toLocaleDateString()} - {ph.method}{" "}
-                    {ph.note && `(${ph.note})`}
+                    {new Date(ph.date).toLocaleDateString()} - {ph.method}
+                    {ph.note && ` (${ph.note})`}
                   </li>
                 ))}
               </ul>
             ) : (
-              <span className="ml-2 text-brand-gray-400">Yok</span>
+              <span className="ml-2 text-gray-500">Yok</span>
             )}
           </div>
           <div>
-            <span className="font-semibold">Geçmiş Randevular:</span>
+            <span className="font-medium text-gray-900">
+              Geçmiş Randevular:
+            </span>
             {loadingHistory ? (
-              <span className="ml-2 text-brand-gray-400">Yükleniyor...</span>
+              <span className="ml-2 text-gray-500">Yükleniyor...</span>
             ) : pastAppointments.length ? (
               <ul className="ml-4 list-disc">
                 {pastAppointments.map((a, i) => (
@@ -294,13 +299,12 @@ const PatientCard: React.FC<PatientCardProps> = ({
                 ))}
               </ul>
             ) : (
-              <span className="ml-2 text-brand-gray-400">Yok</span>
+              <span className="ml-2 text-gray-500">Yok</span>
             )}
           </div>
-          {/* Created at */}
           <div>
-            <span className="font-semibold">Kayıt Tarihi:</span>
-            <span className="ml-2">{createdAtString}</span>
+            <span className="font-medium text-gray-900">Kayıt Tarihi:</span>
+            <span className="ml-2 text-gray-600">{createdAtString}</span>
           </div>
         </div>
       )}
@@ -312,28 +316,30 @@ const PatientCard: React.FC<PatientCardProps> = ({
           onClick={() => setShowCallModal(false)}
         >
           <div
-            className="bg-white rounded-xl p-6 w-80 max-w-full mx-4"
+            className="bg-white rounded-lg p-6 w-80 max-w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h4 className="text-lg font-semibold mb-3">Çağrı Notu Girin</h4>
+            <h4 className="text-lg font-semibold mb-3 text-gray-900">
+              Çağrı Notu Girin
+            </h4>
             <textarea
               rows={4}
               value={callNote}
               onChange={(e) => setCallNote(e.target.value)}
-              className="w-full border rounded-md p-2 mb-4 focus:ring-2 focus:ring-blue-200"
+              className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:ring-2 focus:ring-brand-main focus:border-brand-main"
               placeholder="Notunuzu buraya yazın..."
             />
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => setShowCallModal(false)}
-                className="px-4 py-2 bg-gray-200 rounded-md"
+                className="px-4 py-2 bg-gray-200 rounded-md text-gray-700 hover:bg-gray-300"
               >
                 İptal
               </button>
               <button
                 onClick={handleConfirmCall}
                 disabled={sendingCall}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md"
+                className="px-4 py-2 bg-brand-main text-white rounded-md hover:bg-brand-main-600 disabled:opacity-50"
               >
                 {sendingCall ? "Kaydediliyor..." : "Kaydet & Çağrı"}
               </button>
@@ -342,7 +348,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
         </div>
       )}
 
-      {/* Edit modal */}
+      {/* Edit Modal */}
       <EditPatientModal
         open={showEditModal}
         onClose={() => setShowEditModal(false)}

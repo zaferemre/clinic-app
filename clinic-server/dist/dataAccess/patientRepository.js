@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.findById = void 0;
 exports.listPatients = listPatients;
 exports.createPatient = createPatient;
 exports.findPatientById = findPatientById;
@@ -26,7 +27,7 @@ async function createPatient(doc) {
 }
 async function findPatientById(companyId, clinicId, patientId) {
     return Patient_1.default.findOne({
-        _id: patientId,
+        _id: new mongoose_1.Types.ObjectId(patientId),
         companyId: new mongoose_1.Types.ObjectId(companyId),
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
     });
@@ -56,3 +57,4 @@ async function removeGroupFromPatients(patientIds, groupId) {
 async function removeGroupFromAllPatients(groupId) {
     return Patient_1.default.updateMany({ groups: groupId }, { $pull: { groups: groupId } });
 }
+exports.findById = findPatientById;

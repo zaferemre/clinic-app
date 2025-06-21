@@ -37,7 +37,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const apptCtrl = __importStar(require("../controllers/appointmentController"));
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
-const router = (0, express_1.Router)();
+const router = (0, express_1.Router)({ mergeParams: true });
 router.use(verifyFirebaseToken_1.verifyFirebaseToken);
 router.get("/", apptCtrl.getAppointments);
 router.get("/:appointmentId", apptCtrl.getAppointmentById);

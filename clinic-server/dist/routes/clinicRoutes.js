@@ -37,8 +37,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const clinicCtrl = __importStar(require("../controllers/clinicController"));
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
+const authorizeCompanyAccess_1 = require("../middlewares/authorizeCompanyAccess");
 const router = (0, express_1.Router)({ mergeParams: true });
+// all clinic routes require a valid token and company access
 router.use(verifyFirebaseToken_1.verifyFirebaseToken);
+router.use(authorizeCompanyAccess_1.authorizeCompanyAccess);
 router.get("/", clinicCtrl.listClinics);
 router.post("/", clinicCtrl.createClinic);
 router.get("/:clinicId", clinicCtrl.getClinicById);

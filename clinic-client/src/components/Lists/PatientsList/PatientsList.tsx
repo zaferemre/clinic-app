@@ -67,17 +67,22 @@ export const PatientsList: React.FC<PatientsListProps> = ({
       p.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
     )
     .filter((p) => {
-      const latest =
+      const latestPayment =
         p.paymentHistory.length > 0
           ? p.paymentHistory[p.paymentHistory.length - 1].method
           : "Unpaid";
-      if (filterMode === 1) return latest === "Unpaid";
-      if (filterMode === 2) return p.credit < 3;
-      if (filterMode === 3) return p.status === "inactive";
-      return true;
+      switch (filterMode) {
+        case 1:
+          return latestPayment === "Unpaid";
+        case 2:
+          return p.credit < 3;
+        case 3:
+          return p.status === "inactive";
+        default:
+          return true;
+      }
     });
 
-  // Extracted handler to reduce nesting
   const handleDeletePatient = (patientId: string) => {
     setPatients((prev) => {
       const next = prev.filter((p) => p._id !== patientId);
@@ -88,33 +93,33 @@ export const PatientsList: React.FC<PatientsListProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Filter controls */}
       <div className="px-4 space-y-3">
-        <div className="overflow-x-auto pb-2">
-          <div className="flex gap-2 min-w-max">
-            {filterButtons.map((btn) => (
-              <button
-                key={btn.key}
-                className={`px-5 py-1.5 rounded-full whitespace-nowrap text-sm font-medium shadow transition
-                  ${
-                    filterMode === btn.key
-                      ? "bg-brand-main text-white"
-                      : "bg-brand-gray-100 text-brand-main hover:bg-brand-gray-200"
-                  }`}
-                onClick={() => setFilterMode(btn.key as 0 | 1 | 2 | 3)}
-              >
-                {btn.label}
-              </button>
-            ))}
-          </div>
+        <div className="flex justify-center flex-wrap gap-2 w-full pb-2">
+          {filterButtons.map((btn) => (
+            <button
+              key={btn.key}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition whitespace-nowrap
+                ${
+                  filterMode === btn.key
+                    ? "bg-brand-main text-white border border-brand-main"
+                    : "bg-brand-main-50 text-brand-main hover:bg-brand-main-100"
+                }`}
+              onClick={() => setFilterMode(btn.key as 0 | 1 | 2 | 3)}
+            >
+              {btn.label}
+            </button>
+          ))}
         </div>
         <input
           type="text"
           placeholder="Hasta adı ara..."
-          className="w-full border border-brand-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-main"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
+      {/* Patient list */}
       <div className="px-4">
         {filteredPatients.map((pat) => (
           <PatientCard

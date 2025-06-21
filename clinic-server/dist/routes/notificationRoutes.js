@@ -36,7 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // src/routes/notificationRoutes.ts
 const express_1 = require("express");
 const notifCtrl = __importStar(require("../controllers/notificationController"));
-const router = (0, express_1.Router)();
+const router = (0, express_1.Router)({ mergeParams: true });
 router.get("/", notifCtrl.getNotifications);
 router.patch("/:notificationId/done", notifCtrl.markNotificationDone);
 exports.default = router;

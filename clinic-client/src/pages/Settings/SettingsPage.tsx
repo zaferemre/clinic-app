@@ -17,7 +17,7 @@ import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 import { PatientSettingsModal } from "../../components/Modals/PatientSettingsModal";
 import { PatientSettings } from "../../types/sharedTypes";
 import { isElevatedRole } from "../../utils/role";
-import { GreetingHeader } from "../../components/GreetingHeader/GreetingHeader";
+import GreetingHeader from "../../components/GreetingHeader/GreetingHeader";
 
 const DEFAULT_PATIENT_SETTINGS: PatientSettings = {
   showCredit: true,
@@ -28,13 +28,7 @@ const DEFAULT_PATIENT_SETTINGS: PatientSettings = {
 };
 
 const SettingsPage: React.FC = () => {
-  const {
-    signOut,
-    selectedClinicId,
-    selectedClinicName,
-    selectedCompanyName,
-    user,
-  } = useAuth();
+  const { signOut, selectedClinicId, selectedClinicName, user } = useAuth();
   const navigate = useNavigate();
   const base = `/clinics/${selectedClinicId}/settings`;
 
@@ -101,9 +95,7 @@ const SettingsPage: React.FC = () => {
     <div className="min-h-screen bg-brand-gray-100 flex flex-col pb-16">
       <div className="px-4 pt-4  bg-transparent">
         <GreetingHeader
-          userName={user?.name ?? ""}
           userAvatarUrl={user?.imageUrl}
-          companyName={selectedCompanyName ?? ""}
           clinicName={selectedClinicName ?? ""}
           pageTitle="Ayarlar"
           showBackButton={true}

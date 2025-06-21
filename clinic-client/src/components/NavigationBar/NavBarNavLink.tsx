@@ -30,7 +30,7 @@ const NavBarNavLink: React.FC<Props> = ({ to, icon, label, badge }) => {
       {({ isActive }) => (
         <div
           className={`flex items-center justify-center h-11 rounded-full px-2 ${
-            isActive ? "bg-white text-brand-main font-bold" : "text-white"
+            isActive ? "bg-brand-main text-white font-bold" : "text-brand-main"
           } transition`}
         >
           <Icon className="h-6 w-6" />

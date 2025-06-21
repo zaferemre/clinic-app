@@ -8,11 +8,9 @@ exports.findAppointmentById = findAppointmentById;
 exports.createAppointment = createAppointment;
 exports.updateAppointmentById = updateAppointmentById;
 exports.deleteAppointmentById = deleteAppointmentById;
-exports.ensureUserIsEmployee = ensureUserIsEmployee;
 exports.findOverlap = findOverlap;
 const Appointment_1 = __importDefault(require("../models/Appointment"));
 const mongoose_1 = require("mongoose");
-// Filter object can be {} or with fields (employeeId, patientId, groupId)
 function listAppointments(companyId, clinicId, filter = {}) {
     return Appointment_1.default.find({
         companyId: new mongoose_1.Types.ObjectId(companyId),
@@ -27,7 +25,8 @@ function findAppointmentById(companyId, clinicId, appointmentId) {
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
     }).exec();
 }
-function createAppointment(doc) {
+function createAppointment(doc // or: AppointmentCreationAttrs if you want strong typing
+) {
     return Appointment_1.default.create(doc);
 }
 function updateAppointmentById(appointmentId, updates) {
@@ -38,16 +37,14 @@ function updateAppointmentById(appointmentId, updates) {
 function deleteAppointmentById(appointmentId) {
     return Appointment_1.default.findByIdAndDelete(appointmentId).exec();
 }
-async function ensureUserIsEmployee(companyId, employeeId) {
-    // Implement your employee check logic here (companyId + employeeId)
-    // If not found, throw an error
-    return;
-}
-async function findOverlap(companyId, employeeId, start, end) {
-    // Find if an overlapping appointment exists
+function findOverlap(companyId, employeeId, start, end) {
     return Appointment_1.default.findOne({
         companyId: new mongoose_1.Types.ObjectId(companyId),
         employeeId: new mongoose_1.Types.ObjectId(employeeId),
-        $or: [{ start: { $lt: end }, end: { $gt: start } }],
+        $or: [
+            { start: { $lt: end, $gte: start } },
+            { end: { $gt: start, $lte: end } },
+            { start: { $lte: start }, end: { $gte: end } },
+        ],
     }).exec();
 }

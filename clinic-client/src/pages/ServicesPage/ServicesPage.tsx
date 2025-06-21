@@ -7,7 +7,7 @@ import type { ServiceInfo } from "../../types/sharedTypes";
 import { ServicesList } from "../../components/ServicesList/ServicesList";
 import { ServiceModal } from "../../components/Modals/ServiceModal/ServiceModal";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
-import { GreetingHeader } from "../../components/GreetingHeader/GreetingHeader";
+import GreetingHeader from "../../components/GreetingHeader/GreetingHeader";
 import { WrenchScrewdriverIcon } from "@heroicons/react/24/outline";
 
 export const ServicesPage: React.FC = () => {
@@ -82,9 +82,7 @@ export const ServicesPage: React.FC = () => {
     <div className="p-4 min-h-screen bg-brand-gray-100 flex flex-col pb-16">
       {/* Unified Header */}
       <GreetingHeader
-        userName={user?.name || ""}
         userAvatarUrl={user?.imageUrl || ""}
-        companyName={selectedCompanyName || ""}
         clinicName={selectedClinicName || ""}
         pageTitle="Hizmetler"
         showBackButton={true}

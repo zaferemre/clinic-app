@@ -1,3 +1,4 @@
+// src/pages/Dashboard/Dashboard.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -12,14 +13,17 @@ import {
   ChatBubbleLeftRightIcon,
   BuildingStorefrontIcon,
   CogIcon,
+  UserCircleIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { useDashboardData } from "../../hooks/useDashboardData";
 
 export const Dashboard: React.FC = () => {
-  const { selectedClinicId } = useAuth();
+  const navigate = useNavigate();
+  const { selectedClinicId, user } = useAuth();
   const { patientCount, todayAppointments, unreadAlerts, services } =
     useDashboardData();
-  const navigate = useNavigate();
+
   const go = (path: string) => navigate(`/clinics/${selectedClinicId}${path}`);
 
   const cards = [
@@ -75,8 +79,32 @@ export const Dashboard: React.FC = () => {
     <div className="flex flex-col h-screen bg-brand-gray-100 pb-16">
       <div className="flex-1 overflow-auto p-4 space-y-6">
         <DashboardHeader />
+
+        {/* Profile Card */}
+        <button
+          onClick={() => navigate(`/clinics/${selectedClinicId}/settings/user`)}
+          className="
+            w-full flex items-center p-4 bg-white rounded-2xl
+            shadow-sm border border-gray-200 hover:shadow-md
+            transition-shadow group
+          "
+        >
+          <UserCircleIcon className="h-10 w-10 text-brand-main flex-shrink-0" />
+          <div className="ml-4 flex-1 text-left">
+            <div className="text-lg font-semibold text-gray-800">
+              {user?.name}
+            </div>
+            <div className="text-sm text-gray-500">
+              Profil ve hesap ayarları
+            </div>
+          </div>
+          <ChevronRightIcon className="h-5 w-5 text-gray-400 transition-transform group-hover:translate-x-1" />
+        </button>
+
+        {/* Dashboard Cards */}
         <DashboardCardsGrid cards={cards} />
       </div>
+
       <NavigationBar />
     </div>
   );

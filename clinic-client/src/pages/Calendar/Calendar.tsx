@@ -3,7 +3,7 @@ import React from "react";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 import { useAuth } from "../../contexts/AuthContext";
 import CustomCalendar from "../../components/Calendar/CustomCalendar";
-import { GreetingHeader } from "../../components/GreetingHeader/GreetingHeader";
+import GreetingHeader from "../../components/GreetingHeader/GreetingHeader";
 
 const CalendarPage: React.FC = () => {
   const {
@@ -33,18 +33,16 @@ const CalendarPage: React.FC = () => {
      bg-brand-gray-100 "
     >
       {/* Unified Page header */}
-      <div className="px-4 pt-4 ">
+      <div className="px-4 pt-4  pb-2">
         <GreetingHeader
-          userName={user?.name || ""}
           userAvatarUrl={user?.imageUrl || ""}
-          companyName={selectedCompanyName || ""}
           clinicName={selectedClinicName || ""}
           pageTitle="Takvim"
           showBackButton={true}
         />
       </div>
       {/* Calendar itself */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto ">
         <CustomCalendar />
       </div>
 

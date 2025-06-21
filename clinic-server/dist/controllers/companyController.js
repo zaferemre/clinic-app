@@ -36,7 +36,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.joinClinic = exports.joinByCode = exports.deleteUserAccount = exports.leaveCompany = exports.listEmployees = exports.deleteCompany = exports.updateCompany = exports.getCompanyById = exports.listCompanies = exports.createCompany = void 0;
+exports.listCompanies = exports.joinClinic = exports.joinByCode = exports.deleteUserAccount = exports.leaveCompany = exports.listEmployees = exports.deleteCompany = exports.updateCompany = exports.getCompanyById = exports.createCompany = void 0;
 const http_errors_1 = __importDefault(require("http-errors"));
 const companyService = __importStar(require("../services/companyService"));
 const employeeService = __importStar(require("../services/employeeService"));
@@ -64,17 +64,6 @@ const createCompany = async (req, res, next) => {
     }
 };
 exports.createCompany = createCompany;
-const listCompanies = async (req, res, next) => {
-    try {
-        const user = req.user;
-        const companies = await companyService.listCompanies(user);
-        res.status(200).json(companies);
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.listCompanies = listCompanies;
 const getCompanyById = async (req, res, next) => {
     try {
         const companyId = req.params.companyId;
@@ -180,3 +169,15 @@ const joinClinic = async (req, res, next) => {
     }
 };
 exports.joinClinic = joinClinic;
+const listCompanies = async (req, res, next) => {
+    try {
+        const user = req.user;
+        // Use new service (covers both owner and employee)
+        const companies = await companyService.listCompanies(user);
+        res.status(200).json(companies);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.listCompanies = listCompanies;

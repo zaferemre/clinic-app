@@ -63,9 +63,10 @@ const createClinic = async (req, res, next) => {
             name,
         });
         if (exists) {
-            return res
+            res
                 .status(400)
                 .json({ message: "A clinic with this name already exists." });
+            return;
         }
         const clinic = await clinicService.createClinic(companyId, {
             name,

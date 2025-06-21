@@ -4,7 +4,7 @@ const mongoose_1 = require("mongoose");
 const ServiceSchema = new mongoose_1.Schema({
     companyId: {
         type: mongoose_1.Schema.Types.ObjectId,
-        ref: "company",
+        ref: "Company",
         required: true,
     },
     clinicId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Clinic", required: true },

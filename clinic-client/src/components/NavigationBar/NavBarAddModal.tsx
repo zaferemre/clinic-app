@@ -35,7 +35,7 @@ const NavBarAddModal: React.FC<Props> = ({
           setActiveModal("randevu");
           setShowAddModal(false);
         }}
-        className="w-full py-3 bg-brand-yellow text-white rounded-xl"
+        className="w-full py-3 bg-brand-main text-white rounded-xl"
       >
         Randevu Ekle
       </button>
@@ -44,7 +44,7 @@ const NavBarAddModal: React.FC<Props> = ({
           setActiveModal("service");
           setShowAddModal(false);
         }}
-        className="w-full py-3 bg-brand-lime text-white rounded-xl"
+        className="w-full py-3 bg-brand-main text-white rounded-xl"
       >
         Hizmet Ekle
       </button>

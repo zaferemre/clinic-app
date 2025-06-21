@@ -1,3 +1,4 @@
+// src/components/Modals/AppModal.tsx
 import React, { useEffect, useRef } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
@@ -13,7 +14,7 @@ const AppModal: React.FC<ModalProps> = ({ open, onClose, title, children }) => {
 
   // Close on outside click & Escape
   useEffect(() => {
-    function handle(e: MouseEvent) {
+    function handleClickOutside(e: MouseEvent) {
       if (open && ref.current && !ref.current.contains(e.target as Node)) {
         onClose();
       }
@@ -22,11 +23,11 @@ const AppModal: React.FC<ModalProps> = ({ open, onClose, title, children }) => {
       if (e.key === "Escape") onClose();
     }
     if (open) {
-      window.addEventListener("mousedown", handle);
+      window.addEventListener("mousedown", handleClickOutside);
       window.addEventListener("keydown", handleEscape);
     }
     return () => {
-      window.removeEventListener("mousedown", handle);
+      window.removeEventListener("mousedown", handleClickOutside);
       window.removeEventListener("keydown", handleEscape);
     };
   }, [open, onClose]);
@@ -34,35 +35,59 @@ const AppModal: React.FC<ModalProps> = ({ open, onClose, title, children }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40">
+    <div
+      className="
+        fixed inset-0 z-50 flex items-end md:items-center justify-center
+        bg-black/50 backdrop-filter backdrop-blur-md
+      "
+    >
       <div
         ref={ref}
-        className="w-full md:max-w-xl bg-white rounded-t-3xl md:rounded-2xl shadow-2xl p-6 pt-2 max-h-[96vh] overflow-y-auto relative animate-slide-up"
+        className="
+          w-full px-6 pt-8 pb-6 md:px-8 md:pt-10 md:pb-8
+          bg-white rounded-t-3xl md:rounded-2xl shadow-xl
+          max-h-[90vh] overflow-y-auto relative
+          animate-pop-in
+        "
       >
+        {/* Close button */}
         <button
-          className="absolute top-4 right-4 text-gray-400 hover:text-red-400 bg-white/60 backdrop-blur p-2 rounded-xl shadow"
           onClick={onClose}
           aria-label="Kapat"
+          className="
+            absolute top-4 right-4 p-2 rounded-full bg-white/70
+            backdrop-filter backdrop-blur-sm shadow hover:scale-110
+            transition-transform duration-200
+          "
         >
-          <XMarkIcon className="w-6 h-6" />
+          <XMarkIcon className="w-6 h-6 text-gray-600" />
         </button>
+
+        {/* Title */}
         {title && (
-          <div className="text-2xl mt-3 font-bold mb-6 text-center">
-            {title}
+          <div className="mb-4 text-center">
+            <h2 className="text-2xl font-semibold text-gray-800">{title}</h2>
+            <div className="mt-1 h-1 w-12 bg-brand-main mx-auto rounded-full" />
           </div>
         )}
-        {children}
+
+        {/* Content */}
+        <div className="space-y-4">{children}</div>
       </div>
+
+      {/* Animations */}
       <style>{`
-          @keyframes slide-up {
-            from { transform: translateY(100%);}
-            to { transform: translateY(0);}
-          }
-          .animate-slide-up {
-            animation: slide-up 0.25s cubic-bezier(.4,0,.2,1);
-          }
-        `}</style>
+        @keyframes pop-in {
+          0%   { transform: scale(0.9); opacity: 0; }
+          60%  { transform: scale(1.02); opacity: 1; }
+          100% { transform: scale(1); }
+        }
+        .animate-pop-in {
+          animation: pop-in 0.25s cubic-bezier(.4,0,.2,1);
+        }
+      `}</style>
     </div>
   );
 };
+
 export default AppModal;

@@ -1,3 +1,4 @@
+// src/components/Lists/PatientPreviewCard.tsx
 import React from "react";
 import { UserIcon } from "@heroicons/react/24/outline";
 import type { Patient } from "../../types/sharedTypes";
@@ -10,39 +11,38 @@ interface PatientPreviewCardProps {
 
 const PatientPreviewCard: React.FC<PatientPreviewCardProps> = ({
   patient,
-  selected,
+  selected = false,
   onSelect,
 }) => {
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition shadow-sm hover:shadow-lg hover:bg-brand-main/10
+      className={`flex items-center w-full px-4 py-3 rounded-lg border transition shadow-sm hover:shadow-lg focus:outline-none
         ${
           selected
-            ? "bg-brand-main/10 border-brand-main"
-            : "bg-white border-brand-gray-200"
+            ? "border-brand-main bg-brand-main-50"
+            : "border-gray-200 bg-white hover:bg-gray-50"
         }`}
-      style={{ minHeight: 56 }}
     >
-      <div className="bg-brand-main/10 rounded-full p-2">
-        <UserIcon className="h-6 w-6 text-brand-main" />
+      <div className="flex-shrink-0 p-2 bg-brand-main-50 rounded-full">
+        <UserIcon className="h-6 w-6 text-brand-main-500" />
       </div>
-      <div className="flex-1 text-left">
-        <div className="text-base font-semibold text-brand-black truncate">
+
+      <div className="flex-1 text-left ml-3">
+        <div className="text-base font-medium text-gray-900 truncate">
           {patient.name}
         </div>
-        <div className="text-xs text-brand-gray-500">
-          {patient.phone || "—"}
+        <div className="text-sm text-gray-500 truncate">
+          {patient.phone ?? "—"}
         </div>
       </div>
-      <div className="flex flex-col items-end">
-        {typeof patient.credit === "number" && (
-          <span className="text-xs px-2 py-1 bg-brand-lime/30 rounded-xl font-semibold text-brand-green">
-            Kredi: {patient.credit}
-          </span>
-        )}
-      </div>
+
+      {typeof patient.credit === "number" && (
+        <span className="ml-3 text-xs font-semibold bg-success bg-opacity-20 text-success px-2 py-1 rounded-full">
+          Kredi {patient.credit}
+        </span>
+      )}
     </button>
   );
 };

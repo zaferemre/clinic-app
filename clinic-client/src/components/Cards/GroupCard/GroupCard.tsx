@@ -83,7 +83,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
             <span className="font-bold text-lg text-brand-main">
               {group.name}
             </span>
-            <span className="ml-1 text-xs bg-brand-gray-200 rounded-full px-2 py-0.5">
+            <span className="ml-1 text-xs bg-gray-200 rounded-full px-2 py-0.5">
               {groupPatients.length}/{group.maxSize}
             </span>
           </div>
@@ -91,18 +91,18 @@ const GroupCard: React.FC<GroupCardProps> = ({
             <span
               className={`rounded px-2 py-1 ${
                 group.status === "active"
-                  ? "bg-brand-green/10 text-brand-green"
-                  : "bg-brand-gray-200 text-brand-gray-500"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-gray-200 text-gray-500"
               }`}
             >
               Durum: {group.status}
             </span>
-            <span className="bg-brand-orange/10 rounded px-2 py-1">
+            <span className="bg-brand-main-50 rounded px-2 py-1">
               Kredi: {group.credit}
             </span>
           </div>
           {extraInfo.map((f) => (
-            <div key={f.label} className="text-xs mt-1 text-brand-gray-500">
+            <div key={f.label} className="text-xs mt-1 text-gray-500">
               <b>{f.label}:</b> {f.value}
             </div>
           ))}
@@ -113,11 +113,11 @@ const GroupCard: React.FC<GroupCardProps> = ({
               e.stopPropagation();
               setShowEdit(true);
             }}
-            className="p-2 rounded-full bg-brand-green/10 hover:bg-brand-green/20"
+            className="p-2 rounded-full bg-green-50 hover:bg-green-100"
             aria-label="Edit group"
             tabIndex={0}
           >
-            <PencilIcon className="w-5 h-5 text-brand-green" />
+            <PencilIcon className="w-5 h-5 text-green-600" />
           </button>
           <button
             className="mt-1"

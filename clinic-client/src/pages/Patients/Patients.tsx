@@ -7,12 +7,12 @@ import CreateGroupForm from "../../components/Forms/CreateGroupForm";
 import { PatientsList } from "../../components/Lists/PatientsList/PatientsList";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 import GroupsList from "../../components/Lists/GroupList/GroupList";
-import { GreetingHeader } from "../../components/GreetingHeader/GreetingHeader";
+import GreetingHeader from "../../components/GreetingHeader/GreetingHeader";
 import { Group, Patient } from "../../types/sharedTypes";
 
 // --- Empty State components ---
 const EmptyPatients = ({ onAdd }: { onAdd: () => void }) => (
-  <div className="mx-4 flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl shadow mb-8">
+  <div className="mx-4 flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl mb-8">
     <UserPlusIcon className="w-16 h-16 text-brand-main mb-4" />
     <div className="text-lg font-semibold text-brand-gray-700 mb-2">
       Henüz hiç müşteri eklenmemiş.
@@ -22,7 +22,7 @@ const EmptyPatients = ({ onAdd }: { onAdd: () => void }) => (
     </div>
     <button
       onClick={onAdd}
-      className="mt-2 bg-brand-main text-white px-5 py-2 rounded-xl shadow font-semibold hover:bg-brand-red-300 transition"
+      className="mt-2 bg-brand-main text-white px-5 py-2 rounded-xl  font-semibold hover:bg-brand-red-300 transition"
     >
       + Müşteri Ekle
     </button>
@@ -30,7 +30,7 @@ const EmptyPatients = ({ onAdd }: { onAdd: () => void }) => (
 );
 
 const EmptyGroups = ({ onAdd }: { onAdd: () => void }) => (
-  <div className="mx-4 flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl shadow mb-8">
+  <div className="mx-4 flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl  mb-8">
     <UserGroupIcon className="w-16 h-16 text-brand-main mb-4" />
     <div className="text-lg font-semibold text-brand-gray-700 mb-2">
       Henüz hiç grup eklenmemiş.
@@ -40,7 +40,7 @@ const EmptyGroups = ({ onAdd }: { onAdd: () => void }) => (
     </div>
     <button
       onClick={onAdd}
-      className="mt-2 bg-brand-main text-white px-5 py-2 rounded-xl shadow font-semibold hover:bg-brand-red-300 transition"
+      className="mt-2 bg-brand-main text-white px-5 py-2 rounded-xl  font-semibold hover:bg-brand-red-300 transition"
     >
       + Grup Oluştur
     </button>
@@ -85,9 +85,7 @@ const PatientsPage: React.FC = () => {
       {/* Unified Header */}
       <div className="px-4 pt-4">
         <GreetingHeader
-          userName={user?.name || ""}
           userAvatarUrl={user?.imageUrl || ""}
-          companyName={selectedCompanyName || ""}
           clinicName={selectedClinicName || ""}
           pageTitle={tabName}
           showBackButton={true}
@@ -100,8 +98,8 @@ const PatientsPage: React.FC = () => {
           <button
             className={
               tab === "patients"
-                ? "flex-1 py-2 rounded-full bg-brand-main text-white text-base font-bold shadow"
-                : "flex-1 py-2 rounded-full bg-white text-brand-main text-base font-bold shadow border border-brand-main"
+                ? "flex-1 py-2 rounded-full bg-brand-main text-white text-base font-bold "
+                : "flex-1 py-2 rounded-full bg-white text-brand-main text-base font-bold  border border-brand-main"
             }
             onClick={() => setTab("patients")}
           >
@@ -110,8 +108,8 @@ const PatientsPage: React.FC = () => {
           <button
             className={
               tab === "groups"
-                ? "flex-1 py-2 rounded-full bg-brand-main text-white text-base font-bold shadow"
-                : "flex-1 py-2 rounded-full bg-white text-brand-main text-base font-bold shadow border border-brand-main"
+                ? "flex-1 py-2 rounded-full bg-brand-main text-white text-base font-bold "
+                : "flex-1 py-2 rounded-full bg-white text-brand-main text-base font-bold  border border-brand-main"
             }
             onClick={() => setTab("groups")}
           >
@@ -162,7 +160,7 @@ const PatientsPage: React.FC = () => {
                   setShowModal("patient");
                   setFabOpen(false);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-brand-main text-white rounded-xl shadow-lg font-bold hover:bg-brand-red transition"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-main text-white rounded-xl  font-bold hover:bg-brand-red transition"
               >
                 <UserPlusIcon className="h-7" /> Müşteri Ekle
               </button>
@@ -171,14 +169,14 @@ const PatientsPage: React.FC = () => {
                   setShowModal("group");
                   setFabOpen(false);
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-brand-purple text-white rounded-xl shadow-lg font-bold hover:bg-brand-fuchsia transition"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-purple text-white rounded-xl  font-bold hover:bg-brand-fuchsia transition"
               >
                 <UserGroupIcon className="h-7" /> Grup Oluştur
               </button>
             </div>
           )}
           <button
-            className="w-14 h-14 rounded-full bg-brand-main shadow-xl flex items-center justify-center text-white hover:bg-brand-red transition text-3xl"
+            className="w-14 h-14 rounded-full bg-brand-main flex items-center justify-center text-white hover:bg-brand-red transition text-3xl"
             onClick={() => setFabOpen((o) => !o)}
             aria-label="Yeni ekle"
           >

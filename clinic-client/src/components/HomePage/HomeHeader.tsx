@@ -1,18 +1,20 @@
 import React from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { GreetingHeader } from "../GreetingHeader/GreetingHeader";
+import GreetingHeader from "../GreetingHeader/GreetingHeader";
+import Greetings from "../GreetingHeader/Greetings";
 
 const HomeHeader: React.FC = () => {
-  const { user, selectedCompanyName, selectedClinicName } = useAuth();
+  const { user, selectedClinicName } = useAuth();
   return (
-    <GreetingHeader
-      userName={user?.name ?? ""}
-      userAvatarUrl={user?.imageUrl ?? ""}
-      companyName={selectedCompanyName ?? ""}
-      clinicName={selectedClinicName ?? ""}
-      pageTitle="Ana Sayfa"
-      showBackButton={true}
-    />
+    <>
+      <GreetingHeader
+        userAvatarUrl={user?.imageUrl ?? ""}
+        clinicName={selectedClinicName ?? ""}
+        pageTitle="Ana Sayfa"
+        showBackButton={true}
+      />
+      <Greetings userName={user?.name ?? ""} />
+    </>
   );
 };
 

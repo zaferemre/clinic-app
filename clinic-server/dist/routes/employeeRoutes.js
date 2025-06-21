@@ -37,7 +37,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
 const empCtrl = __importStar(require("../controllers/employeeController"));
-const router = (0, express_1.Router)();
+const router = (0, express_1.Router)({ mergeParams: true });
 router.use(verifyFirebaseToken_1.verifyFirebaseToken);
 router.get("/", empCtrl.listEmployees);
 router.post("/", empCtrl.addEmployee);

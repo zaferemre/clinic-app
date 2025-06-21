@@ -96,7 +96,9 @@ const EditEmployeeModal: React.FC<Props> = ({
                 onChange={(e) =>
                   setHours((h) =>
                     h.map((x, i) =>
-                      i === idx ? { ...x, day: e.target.value as any } : x
+                      i === idx
+                        ? { ...x, day: e.target.value as WorkingHour["day"] }
+                        : x
                     )
                   )
                 }

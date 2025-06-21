@@ -37,19 +37,26 @@ exports.listRoles = listRoles;
 exports.addRole = addRole;
 exports.updateRole = updateRole;
 exports.deleteRole = deleteRole;
-// services/roleService.ts
 const repoRole = __importStar(require("../dataAccess/roleRepository"));
 const mongoose_1 = require("mongoose");
-async function listRoles(companyId) {
-    return repoRole.listRoles(companyId);
+async function listRoles(companyId, clinicId) {
+    return repoRole.listRoles(companyId, clinicId);
 }
-async function addRole(companyId, data) {
-    const doc = { companyId: new mongoose_1.Types.ObjectId(companyId), ...data };
+async function addRole(companyId, clinicId, data) {
+    const doc = {
+        companyId: new mongoose_1.Types.ObjectId(companyId),
+        clinicId: new mongoose_1.Types.ObjectId(clinicId),
+        name: data.name,
+        createdBy: data.createdBy ? new mongoose_1.Types.ObjectId(data.createdBy) : undefined,
+        isDefault: false,
+    };
     return repoRole.createRole(doc);
 }
-async function updateRole(companyId, roleId, updates) {
+async function updateRole(companyId, clinicId, roleId, updates) {
+    // Optional: verify role belongs to this company+clinic before updating
     return repoRole.updateRoleById(roleId, updates);
 }
-async function deleteRole(companyId, roleId) {
+async function deleteRole(companyId, clinicId, roleId) {
+    // Optional: verify role belongs to this company+clinic before deleting
     return repoRole.deleteRoleById(roleId);
 }

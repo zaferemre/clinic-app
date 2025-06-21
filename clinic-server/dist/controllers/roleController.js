@@ -37,8 +37,8 @@ exports.deleteRole = exports.updateRole = exports.addRole = exports.listRoles = 
 const roleService = __importStar(require("../services/roleService"));
 const listRoles = async (req, res, next) => {
     try {
-        const companyId = req.params.companyId;
-        const roles = await roleService.listRoles(companyId);
+        const { companyId, clinicId } = req.params;
+        const roles = await roleService.listRoles(companyId, clinicId);
         res.status(200).json(roles);
     }
     catch (err) {
@@ -48,8 +48,8 @@ const listRoles = async (req, res, next) => {
 exports.listRoles = listRoles;
 const addRole = async (req, res, next) => {
     try {
-        const companyId = req.params.companyId;
-        const created = await roleService.addRole(companyId, req.body);
+        const { companyId, clinicId } = req.params;
+        const created = await roleService.addRole(companyId, clinicId, req.body);
         res.status(201).json(created);
     }
     catch (err) {
@@ -59,8 +59,8 @@ const addRole = async (req, res, next) => {
 exports.addRole = addRole;
 const updateRole = async (req, res, next) => {
     try {
-        const { companyId, roleId } = req.params;
-        const updated = await roleService.updateRole(companyId, roleId, req.body);
+        const { companyId, clinicId, roleId } = req.params;
+        const updated = await roleService.updateRole(companyId, clinicId, roleId, req.body);
         res.status(200).json(updated);
     }
     catch (err) {
@@ -70,8 +70,8 @@ const updateRole = async (req, res, next) => {
 exports.updateRole = updateRole;
 const deleteRole = async (req, res, next) => {
     try {
-        const { companyId, roleId } = req.params;
-        await roleService.deleteRole(companyId, roleId);
+        const { companyId, clinicId, roleId } = req.params;
+        await roleService.deleteRole(companyId, clinicId, roleId);
         res.sendStatus(204);
     }
     catch (err) {

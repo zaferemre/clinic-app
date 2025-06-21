@@ -1,5 +1,6 @@
-// src/pages/Home/Home.tsx
+/* src/pages/Home.tsx */
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useHomeData } from "../../hooks/useHomeData";
 import { useTodaysAppointments } from "../../hooks/useTodaysAppointments";
@@ -11,19 +12,13 @@ import { HomeUpcomingAppointments } from "../../components/HomePage/HomeUpcoming
 import HomeModals, {
   HomeModalType,
 } from "../../components/HomePage/HomeModals";
-import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
+import NavigationBar from "../../components/NavigationBar/NavigationBar";
+import NextAppointmentCard from "../../components/Cards/NextAppointmentCard";
 
 const Home: React.FC = () => {
-  const {
-    idToken,
-    selectedCompanyId,
+  const navigate = useNavigate();
+  const { idToken, selectedCompanyId, selectedClinicId, user } = useAuth();
 
-    selectedClinicId,
-
-    user,
-  } = useAuth();
-
-  // allow our null business IDs
   const {
     patients,
     services,
@@ -31,23 +26,17 @@ const Home: React.FC = () => {
     groups,
     loading: homeLoading,
     error: homeError,
-    unreadCount = 0,
+    unreadCount,
+
     refresh: refreshHomeData,
-  } = useHomeData(
-    idToken ?? undefined,
-    selectedCompanyId ?? undefined,
-    selectedClinicId ?? undefined,
-    []
+  } = useHomeData(idToken!, selectedCompanyId!, selectedClinicId!, []);
+
+  const { appointments, employees: allEmployees } = useTodaysAppointments(
+    idToken!,
+    selectedCompanyId!,
+    selectedClinicId!
   );
 
-  const { appointments: todaysAppointments, employees: allEmployees } =
-    useTodaysAppointments(
-      idToken ?? "",
-      selectedCompanyId ?? "",
-      selectedClinicId ?? ""
-    );
-
-  // track which modal is open
   const [activeModal, setActiveModal] = useState<HomeModalType>(null);
 
   if (!idToken || !selectedCompanyId || !selectedClinicId || !user) {
@@ -59,28 +48,47 @@ const Home: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 pb-16">
-      <div className="flex-1 overflow-auto px-4 py-4 space-y-4">
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      <main className="flex-1 px-4 pt-6 pb-16 space-y-6">
+        {/* Header */}
         <HomeHeader />
 
+        {/* Top Section: Notifications + Next Appointment */}
+        <div className="space-y-4">
+          <NextAppointmentCard
+            appointments={appointments.map((a) => ({
+              ...a,
+              patientName: a.patientName!,
+            }))}
+            onAddAppointment={() => setActiveModal("addAppointment")}
+            onAppointmentClick={() => navigate("calendar")}
+          />
+        </div>
+
+        {/* Navigation Tiles */}
         <HomeNavSection unreadCount={unreadCount} />
 
+        {/* Quick Action Buttons */}
         <HomeQuickActions
           onAddPatient={() => setActiveModal("addPatient")}
           onAddAppointment={() => setActiveModal("addAppointment")}
           onAddService={() => setActiveModal("addService")}
         />
 
+        {/* Today's Appointments List */}
         <HomeUpcomingAppointments
-          appointments={todaysAppointments}
-          user={{ email: user.email, role: user.role ?? "" }}
+          appointments={appointments}
+          user={{ email: user.email, role: user.role }}
           employees={allEmployees}
         />
 
-        {homeLoading && <div>Yükleniyor…</div>}
-        {homeError && <div className="text-red-600">{homeError}</div>}
-      </div>
+        {homeLoading && <div className="text-center py-4">Yükleniyor…</div>}
+        {homeError && (
+          <div className="text-center py-4 text-red-600">{homeError}</div>
+        )}
+      </main>
 
+      {/* Modals */}
       <HomeModals
         activeModal={activeModal}
         closeModal={() => setActiveModal(null)}
@@ -95,24 +103,25 @@ const Home: React.FC = () => {
         groups={groups}
         isOwner={user.role === "owner"}
         currentUserId={user.email}
-        currentUserName={user.name ?? ""}
-        selectedPatient={""}
+        currentUserName={user.name}
+        selectedPatient=""
         setSelectedPatient={() => {}}
-        selectedEmployee={""}
+        selectedEmployee=""
         setSelectedEmployee={() => {}}
-        selectedService={""}
+        selectedService=""
         setSelectedService={() => {}}
-        selectedGroup={""}
+        selectedGroup=""
         setSelectedGroup={() => {}}
-        startStr={""}
+        startStr=""
         setStartStr={() => {}}
-        endStr={""}
+        endStr=""
         setEndStr={() => {}}
         onSubmitIndividual={() => {}}
         onSubmitGroup={() => {}}
         onSubmitCustom={() => {}}
       />
 
+      {/* Bottom Navigation */}
       <NavigationBar />
     </div>
   );

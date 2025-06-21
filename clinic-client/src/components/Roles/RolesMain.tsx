@@ -11,7 +11,7 @@ import RolesInfoBox from "./RolesInfoBox";
 import EmptyRoles from "./EmptyRoles";
 import RoleList from "./RoleList";
 import RoleModal from "../Modals/RoleModal";
-import { GreetingHeader } from "../GreetingHeader/GreetingHeader";
+import GreetingHeader from "../GreetingHeader/GreetingHeader";
 import { Role } from "../../types/sharedTypes";
 import { NavigationBar } from "../NavigationBar/NavigationBar";
 
@@ -119,9 +119,7 @@ const RolesMain: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-brand-gray-100 pb-20">
       <div className="px-4 pt-4">
         <GreetingHeader
-          userName={user?.name || ""}
           userAvatarUrl={user?.imageUrl || ""}
-          companyName={selectedCompanyName}
           clinicName={selectedClinicName}
           pageTitle="Roller"
           showBackButton={true}

@@ -12,8 +12,6 @@ interface NavCard {
   label: string;
   icon: React.ReactNode;
   route: string;
-  bg: string;
-  text: string;
 }
 
 interface HomeNavGridProps {
@@ -24,60 +22,64 @@ export const HomeNavGrid: React.FC<HomeNavGridProps> = ({ unreadCount }) => {
   const navigate = useNavigate();
   const { selectedClinicId } = useAuth();
 
-  // Update routes to include /clinics/:selectedClinicId/
   const cards: NavCard[] = [
     {
       label: "Müşteriler",
-      icon: <UsersIcon className="h-8 w-8" />,
+      icon: <UsersIcon className="h-7 w-7" />,
       route: `/clinics/${selectedClinicId}/patients`,
-      bg: "bg-brand-green/20",
-      text: "text-green-600",
     },
     {
       label: "Panel",
-      icon: <BuildingOffice2Icon className="h-8 w-8" />,
+      icon: <BuildingOffice2Icon className="h-7 w-7" />,
       route: `/clinics/${selectedClinicId}/dashboard`,
-      bg: "bg-brand-yellow/20",
-      text: "text-brand-main",
     },
     {
       label: "Takvim",
-      icon: <CalendarIcon className="h-8 w-8" />,
+      icon: <CalendarIcon className="h-7 w-7" />,
       route: `/clinics/${selectedClinicId}/calendar`,
-      bg: "bg-brand-fuchsia/20",
-      text: "text-brand-fuchsia",
     },
     {
       label: "Bildirimler",
-      icon: <BellIcon className="h-8 w-8" />,
+      icon: <BellIcon className="h-7 w-7" />,
       route: `/clinics/${selectedClinicId}/notifications`,
-      bg: "bg-brand-red/20",
-      text: "text-brand-red",
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 p-2">
+    <div className="grid grid-cols-2 gap-3">
       {cards.map((card) => (
         <button
           key={card.label}
           onClick={() => navigate(card.route)}
           className={`
-            relative
-            ${card.bg}
-            rounded-xl shadow
-            aspect-square
+            group relative bg-white
+            rounded-2xl shadow-md
+            p-4
             flex flex-col items-center justify-center
-            hover:bg-brand-main/20 active:bg-brand-main/30 transition
-            focus:outline-none
+            transition-all duration-150
+            hover:shadow-lg hover:scale-[1.04]
+            active:scale-95
+            focus:outline-none focus:ring-2 focus:ring-brand-main-100
           `}
         >
-          {/* Show a red dot for unread notifications */}
+          {/* Notification badge */}
           {card.label === "Bildirimler" && unreadCount > 0 && (
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+            <span className="absolute top-3 right-3 h-3 w-3 rounded-full bg-brand-main-500 ring-2 ring-white shadow" />
           )}
-          <div className={`${card.text}`}>{card.icon}</div>
-          <span className={`mt-2 text-base font-semibold ${card.text}`}>
+          <div
+            className={`
+              flex items-center justify-center 
+             text-black
+              rounded-full
+              h-12 w-12
+             
+              group-hover:ring-2 group-hover:ring-brand-main-100
+              transition
+            `}
+          >
+            {card.icon}
+          </div>
+          <span className="text-base font-semibold text-black">
             {card.label}
           </span>
         </button>

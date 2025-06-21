@@ -9,6 +9,7 @@ exports.findCompanyByJoinCode = findCompanyByJoinCode;
 exports.listCompaniesByOwner = listCompaniesByOwner;
 exports.updateCompanyById = updateCompanyById;
 exports.deleteCompanyById = deleteCompanyById;
+exports.listCompaniesForUser = listCompaniesForUser;
 const Company_1 = __importDefault(require("../models/Company"));
 const Appointment_1 = __importDefault(require("../models/Appointment"));
 const Patient_1 = __importDefault(require("../models/Patient"));
@@ -18,6 +19,7 @@ const Message_1 = __importDefault(require("../models/Message"));
 const Service_1 = __importDefault(require("../models/Service"));
 const Role_1 = __importDefault(require("../models/Role"));
 const Clinic_1 = __importDefault(require("../models/Clinic"));
+const Employee_1 = __importDefault(require("../models/Employee"));
 async function createCompany(doc) {
     return Company_1.default.create(doc);
 }
@@ -45,4 +47,33 @@ async function deleteCompanyById(id) {
         Clinic_1.default.deleteMany({ companyId: id }).exec(),
         Company_1.default.findByIdAndDelete(id).exec(),
     ]);
+}
+/**
+ * Returns all companies where user is owner or employee (by email).
+ */
+async function listCompaniesForUser(user) {
+    // 1. Owned companies
+    const ownedCompanies = await Company_1.default.find({ ownerUserId: user.uid });
+    // 2. Employees with this email
+    const employees = await Employee_1.default.find({ email: user.email });
+    const clinicIds = employees.map((emp) => emp.clinicId);
+    // 3. Clinics where user is an employee
+    const clinics = await Clinic_1.default.find({ _id: { $in: clinicIds } });
+    const companyIdsFromClinics = clinics.map((clinic) => clinic.companyId instanceof Object
+        ? clinic.companyId.toString()
+        : clinic.companyId);
+    // 4. Companies by those IDs
+    const memberCompanies = await Company_1.default.find({
+        _id: { $in: companyIdsFromClinics },
+    });
+    // 5. Merge, dedupe by _id
+    const allCompanies = [
+        ...ownedCompanies,
+        ...memberCompanies.filter((mc) => !ownedCompanies.some((oc) => oc._id &&
+            typeof oc._id === "object" &&
+            "equals" in oc._id &&
+            typeof oc._id.equals === "function" &&
+            oc._id.equals(mc._id))),
+    ];
+    return allCompanies;
 }

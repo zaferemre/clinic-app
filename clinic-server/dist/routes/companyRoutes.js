@@ -38,22 +38,21 @@ const companyController = __importStar(require("../controllers/companyController
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
 const authorizeCompanyAccess_1 = require("../middlewares/authorizeCompanyAccess");
 const router = (0, express_1.Router)();
-// Always require auth for these endpoints
+// 1) auth middleware for *all* company routes
 router.use(verifyFirebaseToken_1.verifyFirebaseToken);
-// -- Public/entry routes (NO authorizeCompanyAccess here) --
-router.post("/join", companyController.joinByCode); // POST /company/join
-router.post("/:companyId/clinics/:clinicId/join", companyController.joinClinic); // POST /company/:companyId/clinics/:clinicId/join
-// -- Everything after this REQUIRES company membership --
-router.use(authorizeCompanyAccess_1.authorizeCompanyAccess);
-// Company CRUD
+// 2) public/before-membership routes
+router.post("/join", companyController.joinByCode);
+router.post("/:companyId/clinics/:clinicId/join", companyController.joinClinic);
 router.post("/", companyController.createCompany);
 router.get("/", companyController.listCompanies);
 router.get("/:companyId", companyController.getCompanyById);
+// this one doesn’t include a companyId, so leave it here:
+router.delete("/user", companyController.deleteUserAccount);
+// 3) everything below now requires a real :companyId
+router.use("/:companyId", authorizeCompanyAccess_1.authorizeCompanyAccess);
+// Company-scoped actions
 router.patch("/:companyId", companyController.updateCompany);
 router.delete("/:companyId", companyController.deleteCompany);
-// Company-level employees
 router.get("/:companyId/employees", companyController.listEmployees);
-// Leave, delete user
 router.post("/:companyId/leave", companyController.leaveCompany);
-router.delete("/user", companyController.deleteUserAccount);
 exports.default = router;

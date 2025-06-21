@@ -1,4 +1,3 @@
-// src/components/UpcomingAppointments/UpcomingAppointments.tsx
 import React from "react";
 import type { CardAppointment, CardEmployee } from "../../types/sharedTypes";
 import { AppointmentPreviewCard } from "../Cards/AppointmentPreviewCard";
@@ -10,15 +9,12 @@ interface UpcomingAppointmentsProps {
 }
 
 const PALETTE = [
-  "#71e25b",
-  "#a9e25b",
-  "#e1e25b",
-  "#e2aa5b",
-  "#e2725b",
-  "#e25b7c",
-  "#e25bb4",
-  "#d75be2",
-  "#9f5be2",
+  "#f3c0b1", // brand-main-200
+  "#eea28d", // brand-main-300
+  "#ea866e", // brand-main-400
+  "#e2725b", // brand-main-500
+  "#ce684f", // brand-main-600
+  "#b65947", // brand-main-700
 ];
 
 export const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({
@@ -47,16 +43,20 @@ export const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({
 
   if (apptsToShow.length === 0) {
     return (
-      <div>
-        <h3 className="text-lg font-bold text-black mb-2">Günün Randevuları</h3>
-        <div className="text-sm text-gray-400">Bugün için randevu yok.</div>
+      <div className="mb-4">
+        <h3 className="text-lg font-bold text-brand-main-700 ">
+          Günün Randevuları
+        </h3>
+        <div className="text-sm text-gray-400 text-center py-4 bg-brand-main-50 rounded-xl">
+          Bugün için randevu yok.
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <h3 className="text-lg font-bold text-black mb-2">Günün Randevuları</h3>
+    <div className="mb-4">
+      <h3 className="text-lg font-bold text-black mb-2 ">Günün Randevuları</h3>
       {rows.map(([email, appts], idx) => {
         if (!appts.length) return null;
         const emp: CardEmployee =
@@ -65,25 +65,24 @@ export const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({
 
         return (
           <div key={email} className="mb-6">
-            <div className="flex items-center mb-2 gap-2 pl-2">
+            <div className="flex items-center gap-2 pl-2 mb-2">
               {emp.avatarUrl ? (
                 <img
                   src={emp.avatarUrl}
                   alt={emp.name}
-                  className="w-7 h-7 rounded-full object-cover"
+                  className="w-8 h-8 rounded-full border-2 border-brand-main-200  object-cover"
                 />
               ) : (
-                <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center font-bold text-black">
+                <div className="w-8 h-8 rounded-full border-2 border-brand-main-100 bg-brand-main-50 flex items-center justify-center font-bold text-brand-main-600 shadow">
                   {(emp.name || email).slice(0, 2).toUpperCase()}
                 </div>
               )}
               <span className="font-semibold text-black">{emp.name}</span>
-              <span className="ml-2 inline-block bg-gray-200 text-black text-xs font-semibold px-2 py-0.5 rounded-full">
+              <span className="ml-2 inline-block bg-brand-main-100 text-brand-main-600 text-xs font-semibold px-2 py-0.5 rounded-full">
                 {appts.length}
               </span>
             </div>
-
-            <div className="flex gap-3 overflow-x-auto pb-2">
+            <div className="flex gap-4 overflow-x-auto pb-1">
               {appts.map((appt) => (
                 <div
                   key={appt.id}

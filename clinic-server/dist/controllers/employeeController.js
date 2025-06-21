@@ -35,10 +35,11 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteEmployee = exports.updateEmployee = exports.addEmployee = exports.listEmployees = void 0;
 const employeeService = __importStar(require("../services/employeeService"));
+// --- LIST EMPLOYEES IN A CLINIC ---
 const listEmployees = async (req, res, next) => {
     try {
-        const { companyId } = req.params;
-        const employees = await employeeService.listEmployees(companyId);
+        const { companyId, clinicId } = req.params;
+        const employees = await employeeService.listEmployees(companyId, clinicId);
         res.status(200).json(employees);
     }
     catch (err) {

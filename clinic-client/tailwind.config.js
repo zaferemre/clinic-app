@@ -5,41 +5,40 @@ module.exports = {
     extend: {
       // === APP BRAND COLOR PALETTE ===
       colors: {
-        // Main brand color (primary action, highlights)
-        "brand-main": "#e2725b", // main orange-red
-        "brand-bg": "#ffffff", // main background
+        // Core brand
+        "brand-main": "#e2725b",
 
-        // Palette spectrum (change these for a new look)
-        "brand-green": "#71e25b", // vibrant green
-        "brand-lime": "#a9e25b", // yellow-green
-        "brand-yellow": "#e1e25b", // yellow
-        "brand-orange": "#e2aa5b", // orange
-        "brand-red": "#e2725b", // orange-red (same as main)
-        "brand-pink": "#e25b7c", // pinkish
-        "brand-fuchsia": "#e25bb4", // fuchsia
-        "brand-purple": "#d75be2", // purple
-        "brand-violet": "#9f5be2", // violet
+        // Tint: very light (backgrounds, hover, disabled)
+        "brand-main-50": "#fdf5f2",
+        "brand-main-100": "#fae3da",
+        "brand-main-200": "#f3c0b1",
 
-        // For semantic usage, reference these in your app:
-        accent: "#e2725b", // main accent (for buttons etc)
-        "accent-bg": "#fff", // card, modal, and general backgrounds
+        // Soft accent (cards, highlights, input focus)
+        "brand-main-300": "#eea28d",
+        "brand-main-400": "#ea866e",
 
-        // Optional: old palette fallback for quick replace
-        // Remove if not needed
-        "brand-gray": {
-          100: "#F3F4F6",
-          200: "#E5E7EB",
-          300: "#D1D5DB",
-          400: "#9CA3AF",
-          500: "#6B7280",
-          600: "#4B5563",
-          700: "#374151",
-        },
+        // Main accent (buttons, primary)
+        "brand-main-500": "#e2725b",
 
-        // Utility/semantic status colors
-        warn: "#e2aa5b", // orange in palette for warnings
-        error: "#e2725b", // same as accent, customize as needed
-        success: "#71e25b", // green for success messages
+        // Deep shades (active, pressed, borders, text)
+        "brand-main-600": "#ce684f",
+        "brand-main-700": "#b65947",
+
+        // Status colors (all in same hue)
+        success: "#72e2ad", // (optional, a bit of green for contrast, or use a tint of main)
+        warn: "#ffb977", // (optional, or use brand-main-300)
+        error: "#e2725b", // just the main
+        accent: "#e2725b",
+        "accent-bg": "#fff",
+        // Neutral grays for backgrounds/cards/inputs
+        "gray-50": "#FAFAFA",
+        "gray-100": "#F3F4F6",
+        "gray-200": "#E5E7EB",
+        "gray-300": "#D1D5DB",
+        "gray-400": "#9CA3AF",
+        "gray-500": "#6B7280",
+        "gray-600": "#4B5563",
+        "gray-700": "#374151",
       },
 
       fontFamily: {

@@ -8,13 +8,12 @@ import { NotificationInfo } from "../../types/sharedTypes";
 import { useAuth } from "../../contexts/AuthContext";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 import { PhoneIcon, CheckIcon } from "@heroicons/react/24/outline";
-import { GreetingHeader } from "../../components/GreetingHeader/GreetingHeader";
+import GreetingHeader from "../../components/GreetingHeader/GreetingHeader";
 
 const NotificationsPage: React.FC = () => {
   const {
     idToken,
     selectedCompanyId,
-    selectedCompanyName,
     selectedClinicId,
     selectedClinicName,
     user,
@@ -92,9 +91,7 @@ const NotificationsPage: React.FC = () => {
     <div className="flex flex-col h-screen bg-brand-gray-100 pb-16 px-4 pt-4">
       {/* --- Replace header with GreetingHeader --- */}
       <GreetingHeader
-        userName={user?.name || ""}
         userAvatarUrl={user?.imageUrl || ""}
-        companyName={selectedCompanyName || ""}
         clinicName={selectedClinicName || ""}
         pageTitle="Bildirimler"
         showBackButton={true}

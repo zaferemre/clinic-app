@@ -32,9 +32,14 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deletePatient = exports.flagPatientCall = exports.getPatientAppointments = exports.recordPayment = exports.updatePatient = exports.getPatientById = exports.listPatients = exports.createPatient = void 0;
 const patientService = __importStar(require("../services/patientService"));
+const mongoose_1 = __importDefault(require("mongoose"));
+const Employee_1 = __importDefault(require("../models/Employee"));
 const createPatient = async (req, res, next) => {
     try {
         const { companyId, clinicId } = req.params;
@@ -79,7 +84,6 @@ const updatePatient = async (req, res, next) => {
     }
 };
 exports.updatePatient = updatePatient;
-// **Removed the extra `user.uid`**—your service only takes 4 args
 const recordPayment = async (req, res, next) => {
     try {
         const { companyId, clinicId, patientId } = req.params;
@@ -105,8 +109,20 @@ exports.getPatientAppointments = getPatientAppointments;
 const flagPatientCall = async (req, res, next) => {
     try {
         const { companyId, clinicId, patientId } = req.params;
-        const user = req.user;
-        const notif = await patientService.flagPatientCall(companyId, clinicId, patientId, req.body.note ?? "", user.uid);
+        const { note } = req.body;
+        const firebaseUid = req.user?.uid;
+        const emp = await Employee_1.default.findOne({
+            userId: firebaseUid,
+            companyId: new mongoose_1.default.Types.ObjectId(companyId),
+            clinicId: new mongoose_1.default.Types.ObjectId(clinicId),
+        }).exec();
+        if (!emp) {
+            res
+                .status(404)
+                .json({ error: "Employee not found for current user and clinic" });
+            return;
+        }
+        const notif = await patientService.flagPatientCall(companyId, clinicId, patientId, note, emp._id.toString());
         res.status(201).json(notif);
     }
     catch (err) {

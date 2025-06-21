@@ -37,7 +37,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCompany = createCompany;
-exports.listCompanies = listCompanies;
 exports.getCompany = getCompany;
 exports.getCompanyByJoinCode = getCompanyByJoinCode;
 exports.updateCompany = updateCompany;
@@ -46,6 +45,7 @@ exports.joinCompany = joinCompany;
 exports.joinByCode = joinByCode;
 exports.leaveCompany = leaveCompany;
 exports.deleteUserAccount = deleteUserAccount;
+exports.listCompanies = listCompanies;
 const uuid_1 = require("uuid");
 const http_errors_1 = __importDefault(require("http-errors"));
 const repo = __importStar(require("../dataAccess/companyRepository"));
@@ -53,7 +53,6 @@ const clinicService = __importStar(require("./clinicService"));
 const employeeService = __importStar(require("./employeeService"));
 const Company_1 = __importDefault(require("../models/Company"));
 const firebase_admin_1 = __importDefault(require("firebase-admin"));
-// CREATE COMPANY (+ default clinic + owner as employee)
 async function createCompany(user, data) {
     if (!data.name)
         throw (0, http_errors_1.default)(400, "Company name is required");
@@ -75,26 +74,7 @@ async function createCompany(user, data) {
         websiteUrl: data.websiteUrl ?? "",
         socialLinks: data.socialLinks ?? {},
     });
-    const companyId = company._id.toString();
-    // Create default main clinic
-    const clinic = await clinicService.createClinic(companyId, {
-        name: `${data.name} Main Clinic`,
-        address: { province: "", district: "" },
-        phoneNumber: "",
-        workingHours: [],
-        services: [],
-    });
-    // Add owner as first employee in main clinic
-    await employeeService.addEmployee(companyId, clinic._id.toString(), {
-        email: user.email,
-        name: user.name ?? "",
-        role: "owner",
-        pictureUrl: user.picture ?? "",
-    }, user.uid);
     return company;
-}
-async function listCompanies(user) {
-    return repo.listCompaniesByOwner(user.uid);
 }
 async function getCompany(companyId) {
     const company = await repo.findCompanyById(companyId);
@@ -177,4 +157,7 @@ async function deleteUserAccount(user) {
     await Company_1.default.updateMany({}, { $pull: { "employees.email": user.email } }).exec();
     await employeeService.deleteEmployeeByEmail(user.email);
     await firebase_admin_1.default.auth().deleteUser(user.uid);
+}
+async function listCompanies(user) {
+    return repo.listCompaniesForUser({ uid: user.uid, email: user.email });
 }

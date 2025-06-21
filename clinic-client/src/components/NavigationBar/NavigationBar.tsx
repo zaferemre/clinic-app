@@ -145,25 +145,37 @@ export const NavigationBar: React.FC = () => {
   return (
     <>
       <div className="fixed bottom-3 left-3 right-3 flex justify-center z-30 pointer-events-none">
-        <nav className="bg-brand-main rounded-full flex justify-between items-center h-14 px-2 shadow-xl pointer-events-auto w-[min(98vw,410px)] mx-auto transition">
-          <NavBarNavLink to={clinicPath("")} icon="home" label="Home" />
-          <NavBarNavLink
-            to={clinicPath("/dashboard")}
-            icon="dashboard"
-            label="Panel"
-          />
-          <NavBarAddButton onClick={() => setShowAddModal(true)} />
-          <NavBarNavLink
-            to={clinicPath("/calendar")}
-            icon="calendar"
-            label="Takvim"
-          />
-          <NavBarNavLink
-            to={clinicPath("/notifications")}
-            icon="notifications"
-            label="Çağrı"
-            badge={<NavBarNotificationBadge unreadCount={unreadCount} />}
-          />
+        <nav className="bg-white rounded-full flex justify-between items-center h-14 px-2 shadow-xl pointer-events-auto w-[min(98vw,410px)] mx-auto transition">
+          {/* Each NavLink gets flex-1 for equal width */}
+          <div className="flex flex-1 items-center justify-center">
+            <NavBarNavLink to={clinicPath("")} icon="home" label="Home" />
+          </div>
+          <div className="flex flex-1 items-center justify-center">
+            <NavBarNavLink
+              to={clinicPath("/dashboard")}
+              icon="dashboard"
+              label="Panel"
+            />
+          </div>
+          {/* AddButton: fixed size, no flex-grow, centered */}
+          <div className="flex items-center justify-center w-16 relative -mt-8 z-10">
+            <NavBarAddButton onClick={() => setShowAddModal(true)} />
+          </div>
+          <div className="flex flex-1 items-center justify-center">
+            <NavBarNavLink
+              to={clinicPath("/calendar")}
+              icon="calendar"
+              label="Takvim"
+            />
+          </div>
+          <div className="flex flex-1 items-center justify-center">
+            <NavBarNavLink
+              to={clinicPath("/notifications")}
+              icon="notifications"
+              label="Çağrı"
+              badge={<NavBarNotificationBadge unreadCount={unreadCount} />}
+            />
+          </div>
         </nav>
       </div>
 
