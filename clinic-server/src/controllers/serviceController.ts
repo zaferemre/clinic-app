@@ -1,57 +1,104 @@
+// src/controllers/serviceController.ts
 import { Request, Response, NextFunction } from "express";
-import * as svcService from "../services/serviceService";
+import Service, { ServiceDocument } from "../models/Service";
+import Clinic from "../models/Clinic";
+import { UpdateQuery } from "mongoose";
 
-export const getServices = async (
-  req: Request,
+/**
+ * GET  /company/:companyId/clinics/:clinicId/services
+ */
+export const listServices = async (
+  req: Request<{ companyId: string; clinicId: string }>,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const list = await svcService.getServices(req.params.companyId);
-    res.json(list);
+    const { companyId, clinicId } = req.params;
+    const services = await Service.find({ companyId, clinicId }).exec();
+    res.json(services);
   } catch (err) {
     next(err);
   }
 };
 
+/**
+ * POST /company/:companyId/clinics/:clinicId/services
+ */
 export const createService = async (
-  req: Request,
+  req: Request<{ companyId: string; clinicId: string }>,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const s = await svcService.createService(req.params.companyId, req.body);
-    res.status(201).json(s);
+    const { companyId, clinicId } = req.params;
+    const { serviceName, servicePrice, serviceDuration } = req.body;
+
+    const svc = new Service({
+      companyId,
+      clinicId,
+      serviceName,
+      servicePrice,
+      serviceDuration,
+    });
+    await svc.save();
+
+    // push into clinic.services
+    await Clinic.findByIdAndUpdate(clinicId, {
+      $addToSet: { services: svc._id },
+    }).exec();
+
+    res.status(201).json(svc);
   } catch (err) {
     next(err);
   }
 };
 
+/**
+ * PATCH  /company/:companyId/clinics/:clinicId/services/:serviceId
+ */
 export const updateService = async (
-  req: Request,
+  req: Request<
+    { companyId: string; clinicId: string; serviceId: string },
+    ServiceDocument,
+    Partial<
+      Pick<ServiceDocument, "serviceName" | "servicePrice" | "serviceDuration">
+    >
+  >,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const s = await svcService.updateService(
-      req.params.companyId,
-      req.params.serviceId,
-      req.body
-    );
-    res.json(s);
+    const { serviceId } = req.params;
+    const updates = req.body as UpdateQuery<ServiceDocument>;
+
+    const svc = await Service.findByIdAndUpdate(serviceId, updates, {
+      new: true,
+    }).exec();
+
+    // **send back the updated document**
+    res.json(svc);
   } catch (err) {
     next(err);
   }
 };
 
+/**
+ * DELETE /company/:companyId/clinics/:clinicId/services/:serviceId
+ */
 export const deleteService = async (
-  req: Request,
+  req: Request<{ clinicId: string; serviceId: string }>,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    await svcService.deleteService(req.params.companyId, req.params.serviceId);
-    res.status(204).send();
+    const { clinicId, serviceId } = req.params;
+
+    await Service.findByIdAndDelete(serviceId).exec();
+    await Clinic.findByIdAndUpdate(clinicId, {
+      $pull: { services: serviceId },
+    }).exec();
+
+    res.sendStatus(204);
   } catch (err) {
     next(err);
   }

@@ -14,7 +14,7 @@ export interface AppointmentCardProps {
   employee: Employee;
   start: string;
   end: string;
-  status: "scheduled" | "done" | "cancelled" | string;
+  status: "scheduled" | "done" | "cancelled" | "other";
 }
 
 function formatTime(iso: string) {
@@ -39,6 +39,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export const AppointmentCard: React.FC<AppointmentCardProps> = ({
+  id,
   patientName,
   serviceName,
   serviceDuration,
@@ -55,6 +56,7 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
     <div
       className="flex items-center gap-3 bg-white shadow-md rounded-xl px-3 py-2 border-l-2 border-l-brand-main hover:shadow-md transition-all cursor-pointer"
       style={{ minHeight: 58, maxWidth: 320 }}
+      data-id={id}
     >
       {/* Details */}
       <div className="flex-1 min-w-0 flex flex-col">

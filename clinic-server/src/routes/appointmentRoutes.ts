@@ -1,24 +1,15 @@
-import express from "express";
+// src/routes/appointmentRoutes.ts
+import { Router } from "express";
+import * as apptCtrl from "../controllers/appointmentController";
 import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
-import { authorizeCompanyAccess } from "../middlewares/authorizeCompanyAccess";
-import {
-  getAppointments,
-  getAppointmentById,
-  createAppointment,
-  updateAppointment,
-  deleteAppointment,
-} from "../controllers/appointmentController";
 
-const router = express.Router();
+const router = Router({ mergeParams: true });
+router.use(verifyFirebaseToken);
 
-// require token + access for any :companyId
-router.use("/:companyId", verifyFirebaseToken, authorizeCompanyAccess);
-
-router.get("/:companyId/appointments", getAppointments);
-router.get("/:companyId/appointments/:appointmentId", getAppointmentById);
-router.post("/:companyId/appointments", createAppointment);
-router.put("/:companyId/appointments/:appointmentId", updateAppointment);
-router.patch("/:companyId/appointments/:appointmentId", updateAppointment);
-router.delete("/:companyId/appointments/:appointmentId", deleteAppointment);
+router.get("/", apptCtrl.getAppointments);
+router.get("/:appointmentId", apptCtrl.getAppointmentById);
+router.post("/", apptCtrl.createAppointment);
+router.patch("/:appointmentId", apptCtrl.updateAppointment);
+router.delete("/:appointmentId", apptCtrl.deleteAppointment);
 
 export default router;

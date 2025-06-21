@@ -37,8 +37,9 @@ exports.deleteEmployee = exports.updateEmployee = exports.addEmployee = exports.
 const employeeService = __importStar(require("../services/employeeService"));
 const listEmployees = async (req, res, next) => {
     try {
-        const list = await employeeService.listEmployees(req.params.companyId);
-        res.status(200).json(list);
+        const { companyId } = req.params;
+        const employees = await employeeService.listEmployees(companyId);
+        res.status(200).json(employees);
     }
     catch (err) {
         next(err);
@@ -47,8 +48,10 @@ const listEmployees = async (req, res, next) => {
 exports.listEmployees = listEmployees;
 const addEmployee = async (req, res, next) => {
     try {
-        const e = await employeeService.addEmployee(req.params.companyId, req.body);
-        res.status(201).json(e);
+        const { companyId, clinicId } = req.params;
+        const user = req.user;
+        const created = await employeeService.addEmployee(companyId, clinicId, req.body, user.uid);
+        res.status(201).json(created);
     }
     catch (err) {
         next(err);
@@ -57,8 +60,10 @@ const addEmployee = async (req, res, next) => {
 exports.addEmployee = addEmployee;
 const updateEmployee = async (req, res, next) => {
     try {
-        const e = await employeeService.updateEmployee(req.params.companyId, req.params.employeeId, req.body);
-        res.status(200).json(e);
+        const { employeeId } = req.params;
+        // If you want to check companyId/clinicId, add logic here!
+        const updated = await employeeService.updateEmployee(employeeId, req.body);
+        res.status(200).json(updated);
     }
     catch (err) {
         next(err);
@@ -67,8 +72,10 @@ const updateEmployee = async (req, res, next) => {
 exports.updateEmployee = updateEmployee;
 const deleteEmployee = async (req, res, next) => {
     try {
-        await employeeService.deleteEmployee(req.params.companyId, req.params.employeeId);
-        res.status(200).json({ success: true });
+        const { employeeId } = req.params;
+        // If you want to check companyId/clinicId, add logic here!
+        await employeeService.deleteEmployee(employeeId);
+        res.sendStatus(204);
     }
     catch (err) {
         next(err);

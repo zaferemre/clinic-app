@@ -1,121 +1,86 @@
+// src/api/appointmentApi.ts
 import { CalendarEvent } from "../types/sharedTypes";
 import { request } from "./apiClient";
 
-/**
- * Fetch all appointments for a company, with optional filters.
- */
 export function getAppointments(
   token: string,
   companyId: string,
-  employeeEmail?: string,
-  serviceId?: string
+  clinicId: string,
+  filters?: { employeeId?: string; patientId?: string; groupId?: string }
 ): Promise<CalendarEvent[]> {
   const params: string[] = [];
-  if (employeeEmail)
-    params.push(`employeeEmail=${encodeURIComponent(employeeEmail)}`);
-  if (serviceId) params.push(`serviceId=${encodeURIComponent(serviceId)}`);
+  if (filters?.employeeId)
+    params.push(`employeeId=${encodeURIComponent(filters.employeeId)}`);
+  if (filters?.patientId)
+    params.push(`patientId=${encodeURIComponent(filters.patientId)}`);
+  if (filters?.groupId)
+    params.push(`groupId=${encodeURIComponent(filters.groupId)}`);
   const qs = params.length ? `?${params.join("&")}` : "";
-  return request<CalendarEvent[]>(`/company/${companyId}/appointments${qs}`, {
-    token,
-  });
-}
-
-/**
- * Fetch a single appointment by its ID.
- */
-export function getAppointmentById(
-  token: string,
-  companyId: string,
-  appointmentId: string
-): Promise<CalendarEvent> {
-  return request<CalendarEvent>(
-    `/company/${companyId}/appointments/${appointmentId}`,
+  return request<CalendarEvent[]>(
+    `/company/${companyId}/clinics/${clinicId}/appointments${qs}`,
     { token }
   );
 }
 
-/**
- * Create a new appointment.
- * Accepts all required parameters individually.
- */
-export function createAppointment(
+export function getAppointmentById(
   token: string,
   companyId: string,
-  patientId: string,
-  employeeEmail: string,
-  serviceId: string,
-  start: string,
-  end: string
+  clinicId: string,
+  appointmentId: string
 ): Promise<CalendarEvent> {
-  return request<CalendarEvent>(`/company/${companyId}/appointments`, {
-    method: "POST",
-    token,
-    body: { patientId, employeeEmail, serviceId, start, end },
-  });
-}
-
-/**
- * Update an existing appointment.
- */
-export function updateAppointment(
-  token: string,
-  companyId: string,
-  appointmentId: string,
-  start: string,
-  end: string,
-  serviceId?: string,
-  employeeEmail?: string
-): Promise<CalendarEvent> {
-  const body: {
-    start: string;
-    end: string;
-    serviceId?: string;
-    employeeEmail?: string;
-  } = { start, end };
-  if (serviceId) body.serviceId = serviceId;
-  if (employeeEmail) body.employeeEmail = employeeEmail;
-
   return request<CalendarEvent>(
-    `/company/${companyId}/appointments/${appointmentId}`,
-    {
-      method: "PATCH",
-      token,
-      body,
-    }
+    `/company/${companyId}/clinics/${clinicId}/appointments/${appointmentId}`,
+    { token }
   );
 }
 
-/**
- * Delete an appointment by ID.
- */
+export function createAppointment(
+  token: string,
+  companyId: string,
+  clinicId: string,
+  payload: {
+    patientId?: string;
+    groupId?: string;
+    employeeId: string;
+    serviceId: string;
+    start: string;
+    end: string;
+    appointmentType: "individual" | "group";
+  }
+): Promise<CalendarEvent> {
+  return request<CalendarEvent>(
+    `/company/${companyId}/clinics/${clinicId}/appointments`,
+    { method: "POST", token, body: payload }
+  );
+}
+
+export function updateAppointment(
+  token: string,
+  companyId: string,
+  clinicId: string,
+  appointmentId: string,
+  updates: Partial<{
+    start: string;
+    end: string;
+    serviceId: string;
+    employeeId: string;
+    groupId?: string | null;
+  }>
+): Promise<CalendarEvent> {
+  return request<CalendarEvent>(
+    `/company/${companyId}/clinics/${clinicId}/appointments/${appointmentId}`,
+    { method: "PATCH", token, body: updates }
+  );
+}
+
 export function deleteAppointment(
   token: string,
   companyId: string,
+  clinicId: string,
   appointmentId: string
 ): Promise<void> {
-  return request(`/company/${companyId}/appointments/${appointmentId}`, {
-    method: "DELETE",
-    token,
-  });
-}
-
-/**
- * Fetch past appointments for a specific patient.
- */
-export function getPatientAppointments(
-  token: string,
-  companyId: string,
-  patientId: string
-): Promise<
-  {
-    id: string;
-    start: string;
-    end: string;
-    status: string;
-    employeeEmail: string;
-  }[]
-> {
-  return request(`/company/${companyId}/patients/${patientId}/appointments`, {
-    token,
-  });
+  return request(
+    `/company/${companyId}/clinics/${clinicId}/appointments/${appointmentId}`,
+    { method: "DELETE", token }
+  );
 }

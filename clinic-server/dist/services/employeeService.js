@@ -1,52 +1,66 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listEmployees = listEmployees;
 exports.addEmployee = addEmployee;
+exports.removeEmployeeByEmail = removeEmployeeByEmail;
+exports.deleteEmployeeByEmail = deleteEmployeeByEmail;
+exports.listEmployees = listEmployees;
 exports.updateEmployee = updateEmployee;
 exports.deleteEmployee = deleteEmployee;
-const repo = __importStar(require("../dataAccess/employeeRepository"));
-function listEmployees(companyId) {
-    return repo.findByCompany(companyId);
+const Employee_1 = __importDefault(require("../models/Employee"));
+const mongoose_1 = __importDefault(require("mongoose"));
+// Add or update an employee
+async function addEmployee(companyId, clinicId, data, userId) {
+    let emp = await Employee_1.default.findOne({
+        companyId: new mongoose_1.default.Types.ObjectId(companyId),
+        email: data.email,
+    });
+    if (!emp) {
+        emp = new Employee_1.default({
+            companyId: new mongoose_1.default.Types.ObjectId(companyId),
+            clinicId: new mongoose_1.default.Types.ObjectId(clinicId),
+            userId,
+            email: data.email,
+            name: data.name,
+            role: data.role || "other",
+            pictureUrl: data.pictureUrl || "",
+            services: [],
+            workingHours: [],
+            isActive: true,
+        });
+        await emp.save();
+    }
+    else {
+        emp.clinicId = new mongoose_1.default.Types.ObjectId(clinicId);
+        if (data.name)
+            emp.name = data.name;
+        if (data.role)
+            emp.role = data.role;
+        if (data.pictureUrl)
+            emp.pictureUrl = data.pictureUrl;
+        await emp.save();
+    }
+    return emp;
 }
-function addEmployee(companyId, dto) {
-    return repo.addEmployee(companyId, dto);
+async function removeEmployeeByEmail(companyId, email) {
+    await Employee_1.default.deleteOne({
+        companyId: new mongoose_1.default.Types.ObjectId(companyId),
+        email,
+    });
 }
-function updateEmployee(companyId, employeeId, updates) {
-    return repo.updateEmployee(companyId, employeeId, updates);
+async function deleteEmployeeByEmail(email) {
+    await Employee_1.default.deleteMany({ email });
 }
-function deleteEmployee(companyId, employeeId) {
-    return repo.deleteEmployee(companyId, employeeId);
+async function listEmployees(companyId) {
+    return Employee_1.default.find({
+        companyId: new mongoose_1.default.Types.ObjectId(companyId),
+    }).exec();
+}
+async function updateEmployee(employeeId, updates) {
+    return Employee_1.default.findByIdAndUpdate(employeeId, updates, { new: true }).exec();
+}
+async function deleteEmployee(employeeId) {
+    return Employee_1.default.findByIdAndDelete(employeeId).exec();
 }

@@ -1,13 +1,14 @@
 // src/types/express/index.d.ts
-import "express";
+import { IUser } from "../thirdParty/firebaseAdminService";
+import { CompanyDocument } from "../models/Company";
+import { ClinicDocument } from "../models/Clinic";
 
-declare module "express" {
-  interface Request {
-    user?: {
-      uid: string;
-      email: string;
-      [key: string]: any;
-    };
-    clinic?: any;
+declare global {
+  namespace Express {
+    interface Request {
+      user?: IUser;
+      company?: CompanyDocument;
+      clinic?: ClinicDocument;
+    }
   }
 }

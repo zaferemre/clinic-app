@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   UsersIcon,
   BuildingOffice2Icon,
@@ -21,37 +22,40 @@ interface HomeNavGridProps {
 
 export const HomeNavGrid: React.FC<HomeNavGridProps> = ({ unreadCount }) => {
   const navigate = useNavigate();
+  const { selectedClinicId } = useAuth();
 
+  // Update routes to include /clinics/:selectedClinicId/
   const cards: NavCard[] = [
     {
-      label: "Hastalar",
+      label: "Müşteriler",
       icon: <UsersIcon className="h-8 w-8" />,
-      route: "/patients",
+      route: `/clinics/${selectedClinicId}/patients`,
       bg: "bg-brand-green/20",
       text: "text-green-600",
     },
     {
       label: "Panel",
       icon: <BuildingOffice2Icon className="h-8 w-8" />,
-      route: "/dashboard",
+      route: `/clinics/${selectedClinicId}/dashboard`,
       bg: "bg-brand-yellow/20",
       text: "text-brand-main",
     },
     {
       label: "Takvim",
       icon: <CalendarIcon className="h-8 w-8" />,
-      route: "/calendar",
+      route: `/clinics/${selectedClinicId}/calendar`,
       bg: "bg-brand-fuchsia/20",
       text: "text-brand-fuchsia",
     },
     {
       label: "Bildirimler",
       icon: <BellIcon className="h-8 w-8" />,
-      route: "/notifications",
+      route: `/clinics/${selectedClinicId}/notifications`,
       bg: "bg-brand-red/20",
       text: "text-brand-red",
     },
   ];
+
   return (
     <div className="grid grid-cols-2 gap-3 p-2">
       {cards.map((card) => (

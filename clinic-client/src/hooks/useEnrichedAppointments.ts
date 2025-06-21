@@ -1,132 +1,86 @@
-import { useEffect, useState } from "react";
+// src/hooks/useEnrichedAppointments.ts
+import { useState, useEffect, useCallback } from "react";
 import { getAppointments } from "../api/appointmentApi";
-import { getPatients } from "../api/patientApi";
-import { getEmployees } from "../api/employeeApi";
+import { listEmployees } from "../api/employeeApi";
 import { getServices } from "../api/servicesApi";
+import { getPatients } from "../api/patientApi";
+import { listGroups } from "../api/groupApi";
+import type {
+  Appointment,
+  EnrichedAppointment,
+  EmployeeInfo,
+  ServiceInfo,
+  Group,
+  Patient,
+} from "../types/sharedTypes";
 
-import type { Patient, ServiceInfo } from "../types/sharedTypes";
-
-// ——— 1) FullCalendar event shape as returned by your API
-interface RawFCEvent {
-  id: string;
-  title: string;
-  start: string;
-  end: string;
-  extendedProps: {
-    patientId: string;
-    serviceId: string;
-    employeeEmail: string;
-    status?: string;
-  };
-  color?: string;
+interface Result {
+  appointments: EnrichedAppointment[];
+  employees: EmployeeInfo[];
+  services: ServiceInfo[];
+  refetch: () => Promise<void>;
 }
 
-// ——— 2) Card types for your UI
-export interface CardEmployee {
-  email: string;
-  name: string;
-  avatarUrl?: string;
-  role?: string;
-}
-
-export interface CardAppointment {
-  id: string;
-  patientName: string;
-  serviceName: string;
-  serviceDuration?: number;
-  employee: CardEmployee;
-  employeeEmail: string;
-  serviceId: string;
-  start: string;
-  end: string;
-  status: string;
-}
-
-export function useEnrichedAppointments(idToken: string, companyId: string) {
-  const [appointments, setAppointments] = useState<CardAppointment[]>([]);
-  const [employees, setEmployees] = useState<CardEmployee[]>([]);
+export function useEnrichedAppointments(
+  token: string,
+  companyId: string,
+  clinicId: string
+): Result {
+  const [appointments, setAppointments] = useState<EnrichedAppointment[]>([]);
+  const [employees, setEmployees] = useState<EmployeeInfo[]>([]);
   const [services, setServices] = useState<ServiceInfo[]>([]);
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!idToken || !companyId) {
-        setAppointments([]);
-        setEmployees([]);
-        setServices([]);
-        return;
-      }
-
-      // 3) fetch raw FC events, patients, employees, services
-      const [rawEvents, patients, empList, svcList] = await Promise.all([
-        getAppointments(idToken, companyId) as Promise<RawFCEvent[]>,
-        getPatients(idToken, companyId),
-        getEmployees(idToken, companyId),
-        getServices(idToken, companyId),
+  const fetchAll = useCallback(async () => {
+    if (!token || !companyId || !clinicId) return;
+    try {
+      const [rawAppointments, emps, srvs, pats, grps] = await Promise.all([
+        getAppointments(token, companyId, clinicId),
+        listEmployees(token, companyId, clinicId),
+        getServices(token, companyId, clinicId),
+        getPatients(token, companyId, clinicId),
+        listGroups(token, companyId, clinicId),
       ]);
 
-      // 4) build lookup maps
-      const patById: Record<string, Patient> = Object.fromEntries(
-        patients.map((p) => [String(p._id), p])
+      setEmployees(emps);
+      setServices(srvs);
+
+      const patientMap = new Map<string, Patient>(pats.map((p) => [p._id, p]));
+      const employeeMap = new Map<string, EmployeeInfo>(
+        emps.map((e) => [e._id!, e])
+      );
+      const serviceMap = new Map<string, ServiceInfo>(
+        srvs.map((s) => [s._id!, s])
+      );
+      const groupMap = new Map<string, Group>(grps.map((g) => [g._id, g]));
+
+      const enriched: EnrichedAppointment[] = rawAppointments.map(
+        (a: Appointment) => ({
+          ...a,
+          patientName: a.patientId
+            ? patientMap.get(a.patientId)?.name
+            : undefined,
+          employeeName: a.employeeId
+            ? employeeMap.get(a.employeeId)?.name
+            : undefined,
+          employeeEmail: a.employeeId
+            ? employeeMap.get(a.employeeId)?.email
+            : undefined,
+          serviceName: a.serviceId
+            ? serviceMap.get(a.serviceId)?.serviceName
+            : undefined,
+          groupName: a.groupId ? groupMap.get(a.groupId)?.name : undefined,
+        })
       );
 
-      const empByEmail: Record<string, CardEmployee> = {};
-      const empCards: CardEmployee[] = empList.map((e) => {
-        const card: CardEmployee = {
-          email: e.email ?? "",
-          name: e.name ?? "Çalışan",
-          avatarUrl: e.pictureUrl,
-          role: e.role,
-        };
-        empByEmail[card.email] = card;
-        return card;
-      });
-
-      const svcById: Record<string, ServiceInfo> = Object.fromEntries(
-        svcList.map((s) => [String(s._id), s])
-      );
-
-      // 5) enrich and map to CardAppointment
-      const cards: CardAppointment[] = rawEvents.map((ev) => {
-        const id = ev.id;
-        const patientId = ev.extendedProps.patientId;
-        const serviceId = ev.extendedProps.serviceId;
-        const employeeEmail = ev.extendedProps.employeeEmail;
-        const status = ev.extendedProps.status ?? "";
-
-        // patientName fallback to FC title
-        const patientName = patById[patientId]?.name ?? ev.title ?? "Hasta";
-
-        const svcInfo = svcById[serviceId];
-        const serviceName = svcInfo?.serviceName ?? "Hizmet";
-        const serviceDuration = svcInfo?.serviceDuration;
-
-        const employee = empByEmail[employeeEmail] ?? {
-          email: employeeEmail,
-          name: "Çalışan",
-          role: "",
-        };
-
-        return {
-          id,
-          patientName,
-          serviceName,
-          serviceDuration,
-          employee,
-          employeeEmail,
-          serviceId,
-          start: ev.start,
-          end: ev.end,
-          status,
-        };
-      });
-
-      setAppointments(cards);
-      setEmployees(empCards);
-      setServices(svcList);
+      setAppointments(enriched);
+    } catch (err) {
+      console.error("Failed to fetch enriched appointments:", err);
     }
+  }, [token, companyId, clinicId]);
 
-    fetchData().catch(console.error);
-  }, [idToken, companyId]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
-  return { appointments, employees, services };
+  return { appointments, employees, services, refetch: fetchAll };
 }

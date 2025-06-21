@@ -1,43 +1,59 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
+const express_1 = require("express");
+const companyController = __importStar(require("../controllers/companyController"));
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
 const authorizeCompanyAccess_1 = require("../middlewares/authorizeCompanyAccess");
-const companyController_1 = require("../controllers/companyController");
-const roleController_1 = require("../controllers/roleController");
-const router = express_1.default.Router();
-// all routes need a valid Firebase token
+const router = (0, express_1.Router)();
+// Always require auth for these endpoints
 router.use(verifyFirebaseToken_1.verifyFirebaseToken);
-// Public (token-only) endpoints
-router.post("/", companyController_1.createCompany);
-router.post("/:companyId/join", companyController_1.joinCompany);
-router.post("/:companyId/leave", companyController_1.leaveCompany);
-// everything under /:companyId now also needs company access
-router.use("/:companyId", authorizeCompanyAccess_1.authorizeCompanyAccess);
-// Basic company ops
-router.get("/", companyController_1.getCompany);
-router.get("/:companyId", companyController_1.getCompany);
-router.patch("/:companyId", companyController_1.updateCompany);
-router.delete("/:companyId", companyController_1.deleteCompany);
-// Employee management
-router.post("/:companyId/employees", companyController_1.addEmployee);
-router.get("/:companyId/employees", companyController_1.listEmployees);
-router.patch("/:companyId/employees/:employeeId", companyController_1.updateEmployee);
-router.delete("/:companyId/employees/:employeeId", companyController_1.deleteEmployee);
-// Scheduling
-router.get("/:companyId/schedule/:employeeId", companyController_1.getEmployeeSchedule);
-// Owner‐only settings
-router.patch("/:companyId/working-hours", companyController_1.updateWorkingHours);
-router.patch("/:companyId/services", companyController_1.updateServices);
-router.get("/:companyId/services", companyController_1.getServices);
-// Role management
-router.get("/:companyId/roles", roleController_1.listRoles);
-router.post("/:companyId/roles", roleController_1.addRole);
-router.patch("/:companyId/roles", roleController_1.updateRole);
-router.delete("/:companyId/roles/:role", roleController_1.deleteRole);
-// Delete current user account
-router.delete("/user", companyController_1.deleteUserAccount);
+// -- Public/entry routes (NO authorizeCompanyAccess here) --
+router.post("/join", companyController.joinByCode); // POST /company/join
+router.post("/:companyId/clinics/:clinicId/join", companyController.joinClinic); // POST /company/:companyId/clinics/:clinicId/join
+// -- Everything after this REQUIRES company membership --
+router.use(authorizeCompanyAccess_1.authorizeCompanyAccess);
+// Company CRUD
+router.post("/", companyController.createCompany);
+router.get("/", companyController.listCompanies);
+router.get("/:companyId", companyController.getCompanyById);
+router.patch("/:companyId", companyController.updateCompany);
+router.delete("/:companyId", companyController.deleteCompany);
+// Company-level employees
+router.get("/:companyId/employees", companyController.listEmployees);
+// Leave, delete user
+router.post("/:companyId/leave", companyController.leaveCompany);
+router.delete("/user", companyController.deleteUserAccount);
 exports.default = router;

@@ -3,16 +3,22 @@ import { RequestHandler } from "express";
 import Company from "../models/Company";
 import admin from "firebase-admin";
 
+// DELETE /company/user
 export const deleteUserAccount: RequestHandler = async (req, res, next) => {
   try {
-    const email = req.user!.email;
-    // Remove them from every company’s employee list
-    await Company.updateMany({}, { $pull: { employees: { email } } });
-    // If you’re using Firebase Auth, also delete the user record:
-    if (req.user!.uid) {
-      await admin.auth().deleteUser(req.user!.uid);
-    }
-    res.json({ success: true });
+    const email = (req.user as any).email as string;
+    const uid = (req.user as any).uid as string;
+
+    // Remove from all companies
+    await Company.updateMany(
+      { employees: email },
+      { $pull: { employees: email } }
+    );
+
+    // Delete from Firebase
+    await admin.auth().deleteUser(uid);
+
+    res.sendStatus(204);
   } catch (err) {
     next(err);
   }

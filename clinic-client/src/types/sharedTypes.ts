@@ -1,40 +1,30 @@
 // src/types/sharedTypes.ts
 
-export interface ServiceInfo {
-  _id?: string;
-  serviceName: string;
-  servicePrice: number;
-  serviceKapora: number; // deposit
-  serviceDuration: number; // in minutes
+// ─── CLINIC ────────────────────────────────────────────────────────────────
+export interface Clinic {
+  _id: string;
+  name: string;
+  address?: {
+    province: string;
+    district: string;
+    town: string;
+    neighborhood: string;
+  };
+  companyId: string;
+  workingHours: WorkingHour[];
+  phoneNumber?: string;
+  websiteUrl?: string;
+  services: ServiceInfo[];
+  employees: EmployeeInfo[];
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface WorkingHour {
-  day:
-    | "Monday"
-    | "Tuesday"
-    | "Wednesday"
-    | "Thursday"
-    | "Friday"
-    | "Saturday"
-    | "Sunday";
-  open: string; // "09:00"
-  close: string; // "18:00"
-}
-
-export interface EmployeeInfo {
-  _id?: string;
-  email: string;
-  name?: string;
-  role?: string; // company-defined roles
-  pictureUrl?: string;
-  services?: string[]; // Array of ServiceInfo._id
-  workingHours?: WorkingHour[];
-  companyId?: string;
-}
-
+// ─── COMPANY ───────────────────────────────────────────────────────────────
 export interface Company {
   _id: string;
   name: string;
+  ownerUserId: string;
   ownerName: string;
   ownerEmail: string;
   ownerImageUrl?: string;
@@ -45,39 +35,89 @@ export interface Company {
     town: string;
     neighborhood: string;
   };
+  socialLinks?: {
+    instagram?: string;
+    facebook?: string;
+    whatsapp?: string;
+  };
   phoneNumber?: string;
   googleUrl?: string;
   websiteUrl?: string;
   companyImgUrl?: string;
-  location?: {
-    type: "Point";
-    coordinates: [number, number];
-  };
-  workingHours: WorkingHour[]; // ← working hours for the entire company
+  location?: { type: "Point"; coordinates: [number, number] };
+  clinics: Clinic[];
+  workingHours: WorkingHour[];
   services: ServiceInfo[];
   employees: EmployeeInfo[];
-  roles: string[]; // dynamic role list
-  createdAt: Date;
-  updatedAt: Date;
+  roles: string[];
+  joinCode: string;
   isPaid?: boolean;
-  subscription?: {
+  subscription: {
+    plan: "free" | "basic" | "pro" | "enterprise";
     status: "active" | "trialing" | "canceled";
     provider: "iyzico" | "manual" | "other";
-    nextBillingDate?: Date;
+    nextBillingDate?: string;
+    allowedFeatures: string[];
+    maxClinics: number;
   };
+  settings?: {
+    allowPublicBooking?: boolean;
+    inactivityThresholdDays?: number;
+    [key: string]: unknown;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
+// ─── SERVICE ────────────────────────────────────────────────────────────────
+export interface ServiceInfo {
+  _id?: string;
+  serviceName: string;
+  servicePrice: number;
+  serviceDuration: number;
+  companyId?: string;
+  clinicId?: string;
+}
+
+// ─── WORKING HOUR ──────────────────────────────────────────────────────────
+export interface WorkingHour {
+  day:
+    | "Monday"
+    | "Tuesday"
+    | "Wednesday"
+    | "Thursday"
+    | "Friday"
+    | "Saturday"
+    | "Sunday";
+  open: string;
+  close: string;
+}
+
+// ─── EMPLOYEE ───────────────────────────────────────────────────────────────
+export interface EmployeeInfo {
+  _id?: string;
+  email: string;
+  name?: string;
+  role?: string;
+  pictureUrl?: string;
+  services?: string[];
+  workingHours?: WorkingHour[];
+  companyId?: string;
+  clinicId?: string;
+}
+
+// ─── PATIENT ────────────────────────────────────────────────────────────────
 export interface Patient {
+  status: string;
+  createdAt: any;
   _id: string;
+  companyId: string;
+  clinicId: string;
   name: string;
   age?: number;
   phone?: string;
   credit: number;
-  services: {
-    name: string;
-    pointsLeft?: number;
-    sessionsTaken?: number;
-  }[];
+  services: { name: string; pointsLeft?: number; sessionsTaken?: number }[];
   paymentHistory: {
     date: string;
     method: "Havale" | "Card" | "Cash" | "Unpaid";
@@ -87,33 +127,70 @@ export interface Patient {
   note?: string;
 }
 
-export interface CalendarEvent {
+// ─── GROUP ──────────────────────────────────────────────────────────────────
+export interface Group {
+  _id: string;
+  companyId: string;
+  clinicId: string;
+  name: string;
+  patients: string[];
+  employees: string[];
+  size: number;
+  maxSize: number;
+  note?: string;
+  credit: number;
+  status: "active" | "inactive" | string;
+  groupType: string;
+  appointments: Appointment[];
+  createdBy: string;
+  customFields?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── APPOINTMENT ────────────────────────────────────────────────────────────
+export interface Appointment {
   id: string;
-  title: string;
+  patientId?: string;
+  groupId?: string;
+  employeeId: string;
+  serviceId: string;
+  clinicId: string;
   start: string;
   end: string;
+  appointmentType: "individual" | "group";
+  status: "scheduled" | "done" | "cancelled" | "no-show";
+  [key: string]: any;
+}
 
-  extendedProps: {
-    employeeId?: string;
-    employeeEmail?: string;
-    serviceId?: string;
-    patientId?: string;
-  };
+export type CalendarEvent = Appointment;
+
+export interface EnrichedAppointment extends Appointment {
+  patientName?: string;
+  employeeName?: string;
+  employeeEmail?: string;
+  serviceName?: string;
+  groupName?: string;
   color?: string;
 }
 
+// ─── NOTIFICATION ───────────────────────────────────────────────────────────
 export interface NotificationInfo {
   id: string;
-  patientId: { _id: string; name: string };
+  companyId: string;
+  clinicId: string;
+  patientId: string;
   patientName: string;
   createdAt: string;
-  isCalled: boolean;
+  status: "pending" | "done";
   note?: string;
 }
 
+// ─── MESSAGE ────────────────────────────────────────────────────────────────
 export interface IMessage {
   _id: string;
   companyId: string;
+  clinicId?: string;
   patientId?: string;
   text: string;
   scheduledFor: string;
@@ -123,6 +200,7 @@ export interface IMessage {
   updatedAt: string;
 }
 
+// ─── PATIENT SETTINGS ───────────────────────────────────────────────────────
 export interface PatientSettings {
   showCredit: boolean;
   showPaymentStatus: boolean;
@@ -130,19 +208,54 @@ export interface PatientSettings {
   showServicePointBalance: boolean;
   showNotes: boolean;
 }
-export interface Appointment {
-  _id: string;
-  patientId: string;
-  patientName: string;
-  employeeEmail: string;
-  serviceId: string;
-  start: string | { $date: string };
-  end: string | { $date: string };
-  status: "scheduled" | "done" | "cancelled" | string;
-  extendedProps?: {
-    employeeEmail?: string;
-    serviceId?: string;
-    patientId?: string; // added for better type safety
-    patientName?: string; // optional, for convenience
+
+export type CreateClinicPayload = {
+  name: string;
+  address: {
+    province: string;
+    district: string;
+    town?: string;
+    neighborhood?: string;
   };
+  phoneNumber: string;
+  location: { type: "Point"; coordinates: number[] };
+  workingHours: WorkingHour[];
+  services: string[];
+};
+
+// ─── ROLE ────────────────────────────────────────────────────────────────
+export interface Role {
+  _id: string;
+  name: string;
+  createdBy: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── CARD TYPES FOR TODAY ─────────────────────────────────────────────────────
+// ─── CARD TYPES FOR TODAY ─────────────────────────────────────────────────────
+export interface CardEmployee {
+  email: string;
+  name: string;
+  avatarUrl?: string;
+  role?: string;
+}
+
+export interface CardAppointment {
+  id: string;
+  patientName?: string; // for individual appointments
+  groupName?: string; // for group appointments
+  serviceName: string;
+  serviceDuration?: number; // in minutes
+  employee: CardEmployee;
+  employeeEmail: string;
+  extendedProps?: {
+    patientId?: string;
+    serviceId?: string;
+    employeeEmail?: string;
+  };
+  start: string; // ISO-string
+  end: string; // ISO-string
+  status: string; // e.g. “scheduled”, “done”
 }

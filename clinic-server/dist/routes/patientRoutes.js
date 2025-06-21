@@ -1,23 +1,50 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
+// src/routes/patientRoutes.ts
+const express_1 = require("express");
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
-const authorizeCompanyAccess_1 = require("../middlewares/authorizeCompanyAccess");
-const patientController_1 = require("../controllers/patientController");
-const router = express_1.default.Router();
-// protect all /:companyId routes
-router.use("/:companyId", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess);
-// Create & list
-router.post("/:companyId/patients", patientController_1.createPatient);
-router.get("/:companyId/patients", patientController_1.getPatients);
-// ← single‐patient GET
-router.get("/:companyId/patients/:patientId", patientController_1.getPatientById);
-router.patch("/:companyId/patients/:patientId", patientController_1.updatePatient);
-router.patch("/:companyId/patients/:patientId/payment", patientController_1.recordPayment);
-router.patch("/:companyId/patients/:patientId/flag-call", patientController_1.flagPatientCall);
-router.get("/:companyId/patients/:patientId/appointments", patientController_1.getPatientAppointments);
-router.delete("/:companyId/patients/:patientId", patientController_1.deletePatient);
+const patientCtrl = __importStar(require("../controllers/patientController"));
+const router = (0, express_1.Router)({ mergeParams: true });
+router.use(verifyFirebaseToken_1.verifyFirebaseToken);
+router.post("/", patientCtrl.createPatient);
+router.get("/", patientCtrl.listPatients);
+router.get("/:patientId", patientCtrl.getPatientById);
+router.patch("/:patientId", patientCtrl.updatePatient);
+router.post("/:patientId/payments", patientCtrl.recordPayment);
+router.get("/:patientId/appointments", patientCtrl.getPatientAppointments);
+router.post("/:patientId/call-flag", patientCtrl.flagPatientCall);
+router.delete("/:patientId", patientCtrl.deletePatient);
 exports.default = router;

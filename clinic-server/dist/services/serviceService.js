@@ -33,20 +33,27 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getServices = getServices;
+exports.listServices = listServices;
 exports.createService = createService;
 exports.updateService = updateService;
 exports.deleteService = deleteService;
-const repo = __importStar(require("../dataAccess/serviceRepository"));
-function getServices(companyId) {
-    return repo.findServices(companyId);
+// services/serviceService.ts
+const repoSvc = __importStar(require("../dataAccess/serviceRepository"));
+const mongoose_1 = require("mongoose");
+async function listServices(companyId, clinicId) {
+    return repoSvc.listServices(companyId, clinicId);
 }
-function createService(companyId, dto) {
-    return repo.addService(companyId, dto);
+async function createService(companyId, clinicId, data) {
+    const doc = {
+        companyId: new mongoose_1.Types.ObjectId(companyId),
+        clinicId: new mongoose_1.Types.ObjectId(clinicId),
+        ...data,
+    };
+    return repoSvc.createService(doc);
 }
-function updateService(companyId, serviceId, updates) {
-    return repo.updateService(companyId, serviceId, updates);
+async function updateService(companyId, clinicId, serviceId, updates) {
+    return repoSvc.updateServiceById(serviceId, updates);
 }
-function deleteService(companyId, serviceId) {
-    return repo.deleteService(companyId, serviceId);
+async function deleteService(companyId, clinicId, serviceId) {
+    return repoSvc.deleteServiceById(serviceId);
 }

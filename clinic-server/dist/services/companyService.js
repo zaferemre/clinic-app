@@ -32,137 +32,149 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCompany = createCompany;
+exports.listCompanies = listCompanies;
 exports.getCompany = getCompany;
+exports.getCompanyByJoinCode = getCompanyByJoinCode;
 exports.updateCompany = updateCompany;
 exports.deleteCompany = deleteCompany;
-exports.listEmployees = listEmployees;
-exports.addEmployee = addEmployee;
-exports.updateEmployee = updateEmployee;
-exports.deleteEmployee = deleteEmployee;
 exports.joinCompany = joinCompany;
+exports.joinByCode = joinByCode;
 exports.leaveCompany = leaveCompany;
-exports.getEmployeeSchedule = getEmployeeSchedule;
-exports.updateWorkingHours = updateWorkingHours;
-exports.updateServices = updateServices;
-exports.getServices = getServices;
 exports.deleteUserAccount = deleteUserAccount;
+const uuid_1 = require("uuid");
+const http_errors_1 = __importDefault(require("http-errors"));
 const repo = __importStar(require("../dataAccess/companyRepository"));
-/**
- * Create a new company with the authenticated user as owner.
- */
-function createCompany(user, body) {
-    return repo.create({
+const clinicService = __importStar(require("./clinicService"));
+const employeeService = __importStar(require("./employeeService"));
+const Company_1 = __importDefault(require("../models/Company"));
+const firebase_admin_1 = __importDefault(require("firebase-admin"));
+// CREATE COMPANY (+ default clinic + owner as employee)
+async function createCompany(user, data) {
+    if (!data.name)
+        throw (0, http_errors_1.default)(400, "Company name is required");
+    const company = await repo.createCompany({
+        name: data.name,
+        ownerUserId: user.uid,
+        ownerName: user.name ?? "",
         ownerEmail: user.email,
-        ownerName: user.name || "",
-        ownerImageUrl: user.picture || "",
-        ...body,
-        roles: ["owner", "admin", "manager", "staff"],
-        employees: [
-            {
-                email: user.email,
-                name: user.name,
-                pictureUrl: user.picture,
-                role: "owner",
-            },
-        ],
+        ownerImageUrl: user.picture ?? "",
+        subscription: {
+            plan: "free",
+            status: "trialing",
+            provider: "manual",
+            maxClinics: 1,
+            allowedFeatures: ["basicCalendar"],
+        },
+        joinCode: (0, uuid_1.v4)(),
+        settings: data.settings ?? {},
+        websiteUrl: data.websiteUrl ?? "",
+        socialLinks: data.socialLinks ?? {},
     });
-}
-/**
- * Get the company for the user. If companyId is provided, enforce access check.
- * If companyId is undefined, look up by the authenticated user's email.
- */
-async function getCompany(companyId, user) {
-    let company;
-    if (companyId) {
-        company = await repo.findByIdWithAccessCheck(companyId, user.email);
-    }
-    else {
-        company = await repo.findByEmail(user.email);
-    }
-    if (!company) {
-        const err = new Error("Company not found");
-        err.status = 404;
-        throw err;
-    }
+    const companyId = company._id.toString();
+    // Create default main clinic
+    const clinic = await clinicService.createClinic(companyId, {
+        name: `${data.name} Main Clinic`,
+        address: { province: "", district: "" },
+        phoneNumber: "",
+        workingHours: [],
+        services: [],
+    });
+    // Add owner as first employee in main clinic
+    await employeeService.addEmployee(companyId, clinic._id.toString(), {
+        email: user.email,
+        name: user.name ?? "",
+        role: "owner",
+        pictureUrl: user.picture ?? "",
+    }, user.uid);
     return company;
 }
-/**
- * Update top-level company fields. Only owner may call.
- */
-function updateCompany(companyId, updates, user) {
-    return repo.updateByIdWithOwnerCheck(companyId, user.email, updates);
+async function listCompanies(user) {
+    return repo.listCompaniesByOwner(user.uid);
 }
-/**
- * Delete a company and cascade-remove data. Only owner may call.
- */
+async function getCompany(companyId) {
+    const company = await repo.findCompanyById(companyId);
+    if (!company)
+        throw (0, http_errors_1.default)(404, "Company not found");
+    return company;
+}
+async function getCompanyByJoinCode(joinCode) {
+    return repo.findCompanyByJoinCode(joinCode);
+}
+async function updateCompany(companyId, updates, user) {
+    const existing = await repo.findCompanyById(companyId);
+    if (!existing)
+        throw (0, http_errors_1.default)(404, "Company not found");
+    if (existing.ownerUserId !== user.uid)
+        throw (0, http_errors_1.default)(403, "Only the owner can update this company");
+    const updated = await repo.updateCompanyById(companyId, updates);
+    if (!updated)
+        throw (0, http_errors_1.default)(500, "Failed to update company");
+    return updated;
+}
 async function deleteCompany(companyId, user) {
-    await repo.deleteByIdWithCascade(companyId, user.email);
+    const existing = await repo.findCompanyById(companyId);
+    if (!existing)
+        throw (0, http_errors_1.default)(404, "Company not found");
+    if (existing.ownerUserId !== user.uid)
+        throw (0, http_errors_1.default)(403, "Only the owner can delete this company");
+    await repo.deleteCompanyById(companyId);
 }
-/**
- * List employees (including owner) for a company.
- */
-function listEmployees(companyId) {
-    return repo.listEmployees(companyId);
+async function joinCompany(companyId, joinCode, user) {
+    const company = await repo.findCompanyByJoinCode(joinCode);
+    if (!company ||
+        company._id.toString() !== companyId)
+        throw (0, http_errors_1.default)(400, "Invalid join code");
+    const clinics = await clinicService.listClinics(companyId);
+    if (!clinics.length)
+        throw (0, http_errors_1.default)(500, "No clinic exists to assign new member");
+    await employeeService.addEmployee(companyId, clinics[0]._id.toString(), {
+        email: user.email,
+        name: user.name ?? "",
+        role: "other",
+        pictureUrl: user.picture ?? "",
+    }, user.uid);
+    return company;
 }
-/**
- * Add a new employee record.
- */
-function addEmployee(companyId, dto) {
-    return repo.addEmployee(companyId, dto);
+async function joinByCode(joinCode, user) {
+    const company = await repo.findCompanyByJoinCode(joinCode);
+    if (!company)
+        throw (0, http_errors_1.default)(400, "Invalid join code");
+    const companyId = company._id.toString();
+    const clinics = await clinicService.listClinics(companyId);
+    if (!clinics.length)
+        throw (0, http_errors_1.default)(500, "No clinic exists for company");
+    await employeeService.addEmployee(companyId, clinics[0]._id.toString(), {
+        email: user.email,
+        name: user.name ?? "",
+        role: "other",
+        pictureUrl: user.picture ?? "",
+    }, user.uid);
+    return {
+        companyId,
+        companyName: company.name,
+        clinics: clinics.map((c) => ({
+            _id: c._id.toString(),
+            name: c.name,
+        })),
+        ownerName: company.ownerName,
+    };
 }
-/**
- * Update an existing employee by subdocument ID.
- */
-function updateEmployee(companyId, employeeId, updates) {
-    return repo.updateEmployee(companyId, employeeId, updates);
+async function leaveCompany(companyId, userEmail) {
+    const company = await repo.findCompanyById(companyId);
+    if (!company)
+        throw (0, http_errors_1.default)(404, "Company not found");
+    if (company.ownerEmail === userEmail)
+        throw (0, http_errors_1.default)(400, "Owner cannot leave their own company");
+    await employeeService.removeEmployeeByEmail(companyId, userEmail);
 }
-/**
- * Remove an employee by subdocument ID.
- */
-function deleteEmployee(companyId, employeeId) {
-    return repo.deleteEmployee(companyId, employeeId);
-}
-/**
- * Join a company using a join code. Authenticated user cannot be owner.
- */
-function joinCompany(companyId, joinCode, user) {
-    return repo.joinCompany(companyId, joinCode, user);
-}
-/**
- * Leave a company. Owner cannot leave.
- */
-function leaveCompany(companyId, userEmail) {
-    return repo.leaveCompany(companyId, userEmail);
-}
-/**
- * Get schedule for an employee. Owner can view all; employees only their own.
- */
-function getEmployeeSchedule(companyId, employeeId, requesterEmail) {
-    return repo.getEmployeeSchedule(companyId, employeeId, requesterEmail);
-}
-/**
- * Update the company's working hours. Only owner may call.
- */
-function updateWorkingHours(companyId, workingHours, user) {
-    return repo.updateByIdWithOwnerCheck(companyId, user.email, { workingHours });
-}
-/**
- * Update the company's services. Only owner may call.
- */
-function updateServices(companyId, services, user) {
-    return repo.updateByIdWithOwnerCheck(companyId, user.email, { services });
-}
-/**
- * Fetch the company's services (no ACL required beyond existence).
- */
-function getServices(companyId) {
-    return repo.getServices(companyId);
-}
-/**
- * Delete the current user's account and remove from companies.
- */
-function deleteUserAccount(email, uid) {
-    return repo.deleteUserAccount(email, uid);
+async function deleteUserAccount(user) {
+    // Remove user from all employees in all companies
+    await Company_1.default.updateMany({}, { $pull: { "employees.email": user.email } }).exec();
+    await employeeService.deleteEmployeeByEmail(user.email);
+    await firebase_admin_1.default.auth().deleteUser(user.uid);
 }

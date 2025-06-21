@@ -33,33 +33,35 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deletePatient = exports.markPatientCalled = exports.getNotifications = exports.flagPatientCall = exports.getPatientAppointments = exports.recordPayment = exports.updatePatient = exports.getPatientById = exports.getPatients = exports.createPatient = void 0;
+exports.deletePatient = exports.flagPatientCall = exports.getPatientAppointments = exports.recordPayment = exports.updatePatient = exports.getPatientById = exports.listPatients = exports.createPatient = void 0;
 const patientService = __importStar(require("../services/patientService"));
 const createPatient = async (req, res, next) => {
     try {
-        const pat = await patientService.createPatient(req.params.companyId, req.body);
-        res.status(201).json(pat);
+        const { companyId, clinicId } = req.params;
+        const created = await patientService.createPatient(companyId, clinicId, req.body);
+        res.status(201).json(created);
     }
     catch (err) {
         next(err);
     }
 };
 exports.createPatient = createPatient;
-const getPatients = async (req, res, next) => {
+const listPatients = async (req, res, next) => {
     try {
-        const list = await patientService.getPatients(req.params.companyId);
-        res.status(200).json(list);
+        const { companyId, clinicId } = req.params;
+        const patients = await patientService.getPatients(companyId, clinicId);
+        res.status(200).json(patients);
     }
     catch (err) {
         next(err);
     }
 };
-exports.getPatients = getPatients;
-// ← new handler
+exports.listPatients = listPatients;
 const getPatientById = async (req, res, next) => {
     try {
-        const pat = await patientService.getPatientById(req.params.companyId, req.params.patientId);
-        res.status(200).json(pat);
+        const { companyId, clinicId, patientId } = req.params;
+        const patient = await patientService.getPatientById(companyId, clinicId, patientId);
+        res.status(200).json(patient);
     }
     catch (err) {
         next(err);
@@ -68,7 +70,8 @@ const getPatientById = async (req, res, next) => {
 exports.getPatientById = getPatientById;
 const updatePatient = async (req, res, next) => {
     try {
-        const updated = await patientService.updatePatient(req.params.companyId, req.params.patientId, req.body);
+        const { companyId, clinicId, patientId } = req.params;
+        const updated = await patientService.updatePatient(companyId, clinicId, patientId, req.body);
         res.status(200).json(updated);
     }
     catch (err) {
@@ -76,10 +79,12 @@ const updatePatient = async (req, res, next) => {
     }
 };
 exports.updatePatient = updatePatient;
+// **Removed the extra `user.uid`**—your service only takes 4 args
 const recordPayment = async (req, res, next) => {
     try {
-        const updated = await patientService.recordPayment(req.params.companyId, req.params.patientId, req.body);
-        res.status(200).json(updated);
+        const { companyId, clinicId, patientId } = req.params;
+        const record = await patientService.recordPayment(companyId, clinicId, patientId, req.body);
+        res.status(201).json(record);
     }
     catch (err) {
         next(err);
@@ -88,7 +93,8 @@ const recordPayment = async (req, res, next) => {
 exports.recordPayment = recordPayment;
 const getPatientAppointments = async (req, res, next) => {
     try {
-        const appts = await patientService.getPatientAppointments(req.params.companyId, req.params.patientId);
+        const { companyId, clinicId, patientId } = req.params;
+        const appts = await patientService.getPatientAppointments(companyId, clinicId, patientId);
         res.status(200).json(appts);
     }
     catch (err) {
@@ -98,7 +104,9 @@ const getPatientAppointments = async (req, res, next) => {
 exports.getPatientAppointments = getPatientAppointments;
 const flagPatientCall = async (req, res, next) => {
     try {
-        const notif = await patientService.flagPatientCall(req.params.companyId, req.params.patientId, req.body.note, req.user.email);
+        const { companyId, clinicId, patientId } = req.params;
+        const user = req.user;
+        const notif = await patientService.flagPatientCall(companyId, clinicId, patientId, req.body.note ?? "", user.uid);
         res.status(201).json(notif);
     }
     catch (err) {
@@ -106,30 +114,11 @@ const flagPatientCall = async (req, res, next) => {
     }
 };
 exports.flagPatientCall = flagPatientCall;
-const getNotifications = async (req, res, next) => {
-    try {
-        const list = await patientService.getNotifications(req.params.companyId);
-        res.status(200).json(list);
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.getNotifications = getNotifications;
-const markPatientCalled = async (req, res, next) => {
-    try {
-        await patientService.markPatientCalled(req.params.companyId, req.params.notificationId);
-        res.status(200).json({ message: "Notification marked done" });
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.markPatientCalled = markPatientCalled;
 const deletePatient = async (req, res, next) => {
     try {
-        await patientService.deletePatient(req.params.companyId, req.params.patientId);
-        res.status(204).send();
+        const { companyId, clinicId, patientId } = req.params;
+        await patientService.deletePatient(companyId, clinicId, patientId);
+        res.sendStatus(204);
     }
     catch (err) {
         next(err);

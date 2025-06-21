@@ -1,60 +1,57 @@
-import { Request, Response, NextFunction } from "express";
+import { RequestHandler } from "express";
+import { IUser } from "../thirdParty/firebaseAdminService";
 import * as employeeService from "../services/employeeService";
 
-export const listEmployees = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+// --- LIST EMPLOYEES IN A CLINIC ---
+export const listEmployees: RequestHandler = async (req, res, next) => {
   try {
-    const list = await employeeService.listEmployees(req.params.companyId);
-    res.status(200).json(list);
+    const { companyId, clinicId } = req.params as {
+      companyId: string;
+      clinicId: string;
+    };
+    const employees = await employeeService.listEmployees(companyId, clinicId);
+    res.status(200).json(employees);
   } catch (err) {
     next(err);
   }
 };
 
-export const addEmployee = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const addEmployee: RequestHandler = async (req, res, next) => {
   try {
-    const e = await employeeService.addEmployee(req.params.companyId, req.body);
-    res.status(201).json(e);
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const updateEmployee = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const e = await employeeService.updateEmployee(
-      req.params.companyId,
-      req.params.employeeId,
-      req.body
+    const { companyId, clinicId } = req.params as {
+      companyId: string;
+      clinicId: string;
+    };
+    const user = req.user as IUser;
+    const created = await employeeService.addEmployee(
+      companyId,
+      clinicId,
+      req.body,
+      user.uid
     );
-    res.status(200).json(e);
+    res.status(201).json(created);
   } catch (err) {
     next(err);
   }
 };
 
-export const deleteEmployee = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const updateEmployee: RequestHandler = async (req, res, next) => {
   try {
-    await employeeService.deleteEmployee(
-      req.params.companyId,
-      req.params.employeeId
-    );
-    res.status(200).json({ success: true });
+    const { employeeId } = req.params as { employeeId: string };
+    // If you want to check companyId/clinicId, add logic here!
+    const updated = await employeeService.updateEmployee(employeeId, req.body);
+    res.status(200).json(updated);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteEmployee: RequestHandler = async (req, res, next) => {
+  try {
+    const { employeeId } = req.params as { employeeId: string };
+    // If you want to check companyId/clinicId, add logic here!
+    await employeeService.deleteEmployee(employeeId);
+    res.sendStatus(204);
   } catch (err) {
     next(err);
   }

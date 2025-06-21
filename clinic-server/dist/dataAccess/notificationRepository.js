@@ -3,42 +3,31 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findPendingByCompany = findPendingByCompany;
-exports.create = create;
-exports.markDone = markDone;
-exports.processAllPending = processAllPending;
+exports.createNotification = createNotification;
+exports.listNotifications = listNotifications;
+exports.updateNotificationStatus = updateNotificationStatus;
 const Notification_1 = __importDefault(require("../models/Notification"));
-function findPendingByCompany(companyId) {
-    return Notification_1.default.find({ companyId, type: "call", status: "pending" })
-        .populate("patientId", "name")
-        .exec()
-        .then((list) => list.map((n) => ({
-        id: n._id.toString(),
-        patientId: n.patientId._id.toString(),
-        patientName: n.patientId.name,
-        createdAt: n.createdAt.toISOString(),
-        isCalled: n.status === "done",
-        note: n.note ?? "",
-    })));
+const mongoose_1 = require("mongoose");
+/**
+ * Create a new notification.
+ */
+function createNotification(doc) {
+    return Notification_1.default.create(doc);
 }
-function create(data) {
-    // create a new notification
-    return new Notification_1.default(data).save();
+/**
+ * List all notifications for a given company & clinic.
+ */
+function listNotifications(companyId, clinicId) {
+    return Notification_1.default.find({
+        companyId: new mongoose_1.Types.ObjectId(companyId),
+        clinicId: new mongoose_1.Types.ObjectId(clinicId),
+    })
+        .sort({ createdAt: -1 })
+        .exec();
 }
-function markDone(companyId, notificationId) {
-    return Notification_1.default.findOneAndUpdate({ _id: notificationId, companyId }, { status: "done" }).exec();
-}
-async function processAllPending() {
-    const now = new Date();
-    const pending = await Notification_1.default.find({
-        scheduledFor: { $lte: now },
-        sent: false,
-    }).exec();
-    for (const msg of pending) {
-        // you might delegate to a service here
-        msg.status = "done";
-        msg.sent = true;
-        msg.sentAt = new Date();
-        await msg.save();
-    }
+/**
+ * Update the status of a notification by its ID.
+ */
+function updateNotificationStatus(notificationId, status) {
+    return Notification_1.default.findByIdAndUpdate(notificationId, { status }, { new: true }).exec();
 }

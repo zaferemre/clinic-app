@@ -1,44 +1,50 @@
-import Notification from "../models/Notification";
+import Notification, { NotificationDocument } from "../models/Notification";
+import { Types } from "mongoose";
 
-export function findPendingByCompany(companyId: string) {
-  return Notification.find({ companyId, type: "call", status: "pending" })
-    .populate("patientId", "name")
-    .exec()
-    .then((list) =>
-      list.map((n) => ({
-        id: n._id.toString(),
-        patientId: n.patientId._id.toString(),
-        patientName: n.patientId.name,
-        createdAt: n.createdAt.toISOString(),
-        isCalled: n.status === "done",
-        note: n.note ?? "",
-      }))
-    );
+export interface NotificationCreateInput {
+  companyId: Types.ObjectId;
+  clinicId: Types.ObjectId;
+  patientId: Types.ObjectId;
+  type: NotificationDocument["type"];
+  status: NotificationDocument["status"];
+  note?: string;
+  createdBy: Types.ObjectId;
 }
 
-export function create(data: any) {
-  // create a new notification
-  return new Notification(data).save();
+/**
+ * Create a new notification.
+ */
+export function createNotification(
+  doc: NotificationCreateInput
+): Promise<NotificationDocument> {
+  return Notification.create(doc);
 }
 
-export function markDone(companyId: string, notificationId: string) {
-  return Notification.findOneAndUpdate(
-    { _id: notificationId, companyId },
-    { status: "done" }
+/**
+ * List all notifications for a given company & clinic.
+ */
+export function listNotifications(
+  companyId: string,
+  clinicId: string
+): Promise<NotificationDocument[]> {
+  return Notification.find({
+    companyId: new Types.ObjectId(companyId),
+    clinicId: new Types.ObjectId(clinicId),
+  })
+    .sort({ createdAt: -1 })
+    .exec();
+}
+
+/**
+ * Update the status of a notification by its ID.
+ */
+export function updateNotificationStatus(
+  notificationId: string,
+  status: NotificationDocument["status"]
+): Promise<NotificationDocument | null> {
+  return Notification.findByIdAndUpdate(
+    notificationId,
+    { status },
+    { new: true }
   ).exec();
-}
-
-export async function processAllPending() {
-  const now = new Date();
-  const pending = await Notification.find({
-    scheduledFor: { $lte: now },
-    sent: false,
-  }).exec();
-  for (const msg of pending) {
-    // you might delegate to a service here
-    msg.status = "done";
-    msg.sent = true;
-    msg.sentAt = new Date();
-    await msg.save();
-  }
 }

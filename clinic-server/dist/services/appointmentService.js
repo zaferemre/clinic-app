@@ -32,106 +32,143 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAppointments = getAppointments;
 exports.getAppointmentById = getAppointmentById;
 exports.createAppointment = createAppointment;
 exports.updateAppointment = updateAppointment;
 exports.deleteAppointment = deleteAppointment;
-// src/services/appointmentService.ts
+const mongoose_1 = require("mongoose");
 const repo = __importStar(require("../dataAccess/appointmentRepository"));
 const patientRepo = __importStar(require("../dataAccess/patientRepository"));
-async function getAppointments(companyId) {
-    const appts = await repo.findByCompany(companyId);
-    return appts.map((appt) => ({
-        id: appt._id.toString(),
-        title: appt.patientId?.name ?? "Randevu",
-        start: appt.start,
-        end: appt.end,
-        serviceId: appt.serviceId?.toString() ?? "",
-        extendedProps: {
-            employeeEmail: appt.employeeEmail ?? "",
-            serviceId: appt.serviceId?.toString() ?? "",
-            patientId: appt.patientId?._id?.toString?.() ?? appt.patientId?.toString?.() ?? "",
-        },
-        color: appt.status === "done"
-            ? "#6b7280"
-            : appt.status === "cancelled"
-                ? "#ef4444"
-                : "#3b82f6",
+const http_errors_1 = __importDefault(require("http-errors"));
+// List appointments
+async function getAppointments(companyId, clinicId, filters) {
+    const filterObj = {};
+    if (filters.employeeId)
+        filterObj.employeeId = new mongoose_1.Types.ObjectId(filters.employeeId);
+    if (filters.patientId)
+        filterObj.patientId = new mongoose_1.Types.ObjectId(filters.patientId);
+    if (filters.groupId)
+        filterObj.groupId = new mongoose_1.Types.ObjectId(filters.groupId);
+    const appts = (await repo.listAppointments(companyId, clinicId, filterObj));
+    return appts.map((a) => ({
+        id: a._id.toHexString(),
+        patientId: a.patientId?.toHexString(),
+        groupId: a.groupId?.toHexString(),
+        employeeId: a.employeeId.toHexString(),
+        serviceId: a.serviceId.toHexString(),
+        start: a.start,
+        end: a.end,
+        status: a.status,
+        appointmentType: a.appointmentType,
     }));
 }
-async function getAppointmentById(companyId, appointmentId) {
-    const appt = await repo.findOne(companyId, appointmentId);
-    if (!appt)
-        throw new Error("Appointment not found");
+// Get one appointment
+async function getAppointmentById(companyId, clinicId, appointmentId) {
+    const a = (await repo.findAppointmentById(companyId, clinicId, appointmentId));
+    if (!a)
+        throw (0, http_errors_1.default)(404, "Appointment not found");
     return {
-        id: appt._id.toString(),
-        title: appt.patientId?.name ?? "Randevu",
-        start: appt.start,
-        end: appt.end,
-        serviceId: appt.serviceId?.toString() ?? "",
-        extendedProps: {
-            employeeEmail: appt.employeeEmail ?? "",
-            serviceId: appt.serviceId?.toString() ?? "",
-            patientId: appt.patientId?._id?.toString?.() ?? appt.patientId?.toString?.() ?? "",
-        },
+        id: a._id.toHexString(),
+        patientId: a.patientId?.toHexString(),
+        groupId: a.groupId?.toHexString(),
+        employeeId: a.employeeId.toHexString(),
+        serviceId: a.serviceId.toHexString(),
+        start: a.start,
+        end: a.end,
+        status: a.status,
+        appointmentType: a.appointmentType,
     };
 }
-async function createAppointment(companyId, dto, user) {
-    const { patientId, employeeEmail, serviceId, start, end } = dto;
+// Create appointment
+async function createAppointment(companyId, clinicId, dto, user) {
+    const { patientId, groupId, employeeId, serviceId, start, end, appointmentType, } = dto;
     const newStart = new Date(start), newEnd = new Date(end);
-    if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime())) {
-        throw { status: 400, message: "Invalid datetime" };
+    if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime()))
+        throw (0, http_errors_1.default)(400, "Invalid dates");
+    if (patientId) {
+        const p = await patientRepo.findPatientById(companyId, clinicId, patientId);
+        if (!p)
+            throw (0, http_errors_1.default)(404, "Patient not found");
+        if (p.credit < 1)
+            throw (0, http_errors_1.default)(400, "Insufficient credit");
+        p.credit--;
+        await p.save();
     }
-    // ✅ Pass companyId into findById
-    const patient = await patientRepo.findById(companyId, patientId);
-    if (!patient)
-        throw { status: 404, message: "Patient not found" };
-    if (patient.companyId.toString() !== companyId)
-        throw { status: 403, message: "Patient not in this company" };
-    // owner/employee check
-    await repo.ensureUserIsEmployee(companyId, employeeEmail);
-    if (patient.credit < 1)
-        throw { status: 400, message: "Insufficient credit" };
-    const overlap = await repo.findOverlap(companyId, employeeEmail, newStart, newEnd);
-    if (overlap)
-        throw { status: 409, message: "Timeslot taken" };
-    // debit one credit
-    patient.credit -= 1;
-    await patient.save();
-    return repo.create({
-        companyId,
-        patientId,
-        employeeEmail,
-        serviceId,
+    await repo.ensureUserIsEmployee(companyId, employeeId);
+    const conflict = await repo.findOverlap(companyId, employeeId, newStart, newEnd);
+    if (conflict)
+        throw (0, http_errors_1.default)(409, "Timeslot conflict");
+    const created = await repo.createAppointment({
+        companyId: new mongoose_1.Types.ObjectId(companyId),
+        clinicId: new mongoose_1.Types.ObjectId(clinicId),
+        patientId: patientId ? new mongoose_1.Types.ObjectId(patientId) : undefined,
+        groupId: groupId ? new mongoose_1.Types.ObjectId(groupId) : undefined,
+        employeeId: new mongoose_1.Types.ObjectId(employeeId),
+        serviceId: new mongoose_1.Types.ObjectId(serviceId),
         start: newStart,
         end: newEnd,
         status: "scheduled",
+        appointmentType,
+        createdBy: new mongoose_1.Types.ObjectId(user.uid),
     });
+    return {
+        id: created._id.toHexString(),
+        patientId: created.patientId?.toHexString(),
+        groupId: created.groupId?.toHexString(),
+        employeeId: created.employeeId.toHexString(),
+        serviceId: created.serviceId.toHexString(),
+        start: created.start,
+        end: created.end,
+        status: created.status,
+        appointmentType: created.appointmentType,
+    };
 }
-async function updateAppointment(companyId, appointmentId, dto) {
-    const { start, end, serviceId, employeeEmail } = dto;
-    const newStart = new Date(start), newEnd = new Date(end);
-    if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime())) {
-        throw { status: 400, message: "Invalid datetime" };
+// Update appointment
+async function updateAppointment(companyId, clinicId, appointmentId, dto) {
+    const updates = {};
+    if (dto.start)
+        updates.start = new Date(dto.start);
+    if (dto.end)
+        updates.end = new Date(dto.end);
+    if (dto.serviceId)
+        updates.serviceId = new mongoose_1.Types.ObjectId(dto.serviceId);
+    if (dto.employeeId)
+        updates.employeeId = new mongoose_1.Types.ObjectId(dto.employeeId);
+    if ("groupId" in dto) {
+        updates.groupId = dto.groupId ? new mongoose_1.Types.ObjectId(dto.groupId) : undefined;
+        updates.appointmentType = dto.groupId ? "group" : "individual";
     }
-    return repo.updateById(companyId, appointmentId, {
-        start: newStart,
-        end: newEnd,
-        serviceId,
-        employeeEmail,
-    });
+    const updated = await repo.updateAppointmentById(appointmentId, updates);
+    if (!updated)
+        throw (0, http_errors_1.default)(404, "Appointment not found");
+    return {
+        id: updated._id.toHexString(),
+        patientId: updated.patientId?.toHexString(),
+        groupId: updated.groupId?.toHexString(),
+        employeeId: updated.employeeId.toHexString(),
+        serviceId: updated.serviceId.toHexString(),
+        start: updated.start,
+        end: updated.end,
+        status: updated.status,
+        appointmentType: updated.appointmentType,
+    };
 }
-async function deleteAppointment(companyId, appointmentId) {
-    const appt = await repo.findOne(companyId, appointmentId);
-    if (!appt)
-        throw { status: 404, message: "Appointment not found" };
-    // ✅ Pass companyId into findById here as well
-    const patient = await patientRepo.findById(companyId, appt.patientId.toString());
-    if (patient) {
-        patient.credit += 1;
-        await patient.save();
+// Delete appointment
+async function deleteAppointment(companyId, clinicId, appointmentId) {
+    const a = await repo.findAppointmentById(companyId, clinicId, appointmentId);
+    if (!a)
+        throw (0, http_errors_1.default)(404, "Appointment not found");
+    if (a.patientId) {
+        const p = await patientRepo.findPatientById(companyId, clinicId, a.patientId.toHexString());
+        if (p) {
+            p.credit++;
+            await p.save();
+        }
     }
-    await repo.deleteById(companyId, appointmentId);
+    await repo.deleteAppointmentById(appointmentId);
 }

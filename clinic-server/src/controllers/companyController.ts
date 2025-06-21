@@ -1,52 +1,63 @@
 import { Request, Response, NextFunction } from "express";
-import { IUser } from "../thirdParty/firebaseAdminService";
+import createError from "http-errors";
 import * as companyService from "../services/companyService";
+import * as employeeService from "../services/employeeService";
+import Employee from "../models/Employee";
+import Clinic from "../models/Clinic";
+import mongoose from "mongoose";
+import { IUser } from "../thirdParty/firebaseAdminService";
 
-// POST   /company
+// --- CREATE COMPANY (OWNER FLOW) --- //
 export const createCompany = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const company = await companyService.createCompany(
-      req.user as IUser,
-      req.body
-    );
+    const { name, websiteUrl, socialLinks, settings } = req.body;
+    const user = req.user as IUser;
+    if (!user) throw createError(401, "Unauthorized");
+
+    // Only pass user input fields, service will use user for owner info
+    const company = await companyService.createCompany(user, {
+      name,
+      websiteUrl,
+      socialLinks,
+      settings,
+    });
+
     res.status(201).json(company);
   } catch (err) {
     next(err);
   }
 };
 
-// GET    /company or /company/:companyId
-export const getCompany = async (
+export const getCompanyById = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const dto = await companyService.getCompany(
-      req.params.companyId,
-      req.user as IUser
-    );
-    res.status(200).json(dto);
+    const companyId = req.params.companyId;
+    const company = await companyService.getCompany(companyId);
+    res.status(200).json(company);
   } catch (err) {
     next(err);
   }
 };
 
-// PATCH  /company/:companyId
 export const updateCompany = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
+    const companyId = req.params.companyId;
+    const user = req.user as IUser;
     const updated = await companyService.updateCompany(
-      req.params.companyId,
+      companyId,
       req.body,
-      req.user as IUser
+      user
     );
     res.status(200).json(updated);
   } catch (err) {
@@ -54,181 +65,30 @@ export const updateCompany = async (
   }
 };
 
-// DELETE /company/:companyId
 export const deleteCompany = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    await companyService.deleteCompany(req.params.companyId, req.user as IUser);
-    res.json({ success: true });
+    const companyId = req.params.companyId;
+    const user = req.user as IUser;
+    await companyService.deleteCompany(companyId, user);
+    res.sendStatus(204);
   } catch (err) {
     next(err);
   }
 };
 
-// GET    /company/:companyId/employees
 export const listEmployees = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const list = await companyService.listEmployees(req.params.companyId);
-    res.json(list);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// POST   /company/:companyId/employees
-export const addEmployee = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const e = await companyService.addEmployee(req.params.companyId, req.body);
-    res.status(201).json(e);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// PATCH  /company/:companyId/employees/:employeeId
-export const updateEmployee = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const e = await companyService.updateEmployee(
-      req.params.companyId,
-      req.params.employeeId,
-      req.body
-    );
-    res.json(e);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// DELETE /company/:companyId/employees/:employeeId
-export const deleteEmployee = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    await companyService.deleteEmployee(
-      req.params.companyId,
-      req.params.employeeId
-    );
-    res.json({ success: true });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// POST   /company/:companyId/join
-export const joinCompany = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const info = await companyService.joinCompany(
-      req.params.companyId,
-      req.body.joinCode,
-      req.user as IUser
-    );
-    res.json(info);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// GET    /company/:companyId/schedule/:employeeId
-export const getEmployeeSchedule = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const sched = await companyService.getEmployeeSchedule(
-      req.params.companyId,
-      req.params.employeeId,
-      (req.user as IUser).email
-    );
-    res.json(sched);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// PATCH  /company/:companyId/working-hours
-export const updateWorkingHours = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const wh = await companyService.updateWorkingHours(
-      req.params.companyId,
-      req.body.workingHours,
-      req.user as IUser
-    );
-    res.json(wh);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// PATCH  /company/:companyId/services
-export const updateServices = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const svcs = await companyService.updateServices(
-      req.params.companyId,
-      req.body.services,
-      req.user as IUser
-    );
-    res.json(svcs);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// GET    /company/:companyId/services
-export const getServices = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const svcs = await companyService.getServices(req.params.companyId);
-    res.json(svcs);
-  } catch (err) {
-    next(err);
-  }
-};
-
-// DELETE /company/user
-export const deleteUserAccount = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    await companyService.deleteUserAccount(
-      (req.user as any).email,
-      (req.user as any).uid
-    );
-    res.json({ success: true });
+    const companyId = req.params.companyId;
+    const employees = await employeeService.listEmployees(companyId);
+    res.status(200).json(employees);
   } catch (err) {
     next(err);
   }
@@ -240,11 +100,81 @@ export const leaveCompany = async (
   next: NextFunction
 ) => {
   try {
-    const userEmail = req.user?.email!;
-    const { companyId } = req.params;
+    const companyId = req.params.companyId;
+    const user = req.user as IUser;
+    await companyService.leaveCompany(companyId, user.email!);
+    res.sendStatus(204);
+  } catch (err) {
+    next(err);
+  }
+};
 
-    const result = await companyService.leaveCompany(companyId, userEmail);
+export const deleteUserAccount = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = req.user as IUser;
+    await companyService.deleteUserAccount(user);
+    res.sendStatus(204);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const joinByCode = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { joinCode } = req.body as { joinCode: string };
+    if (!joinCode) throw createError(400, "Join code required");
+
+    const user = req.user as IUser;
+    const result = await companyService.joinByCode(joinCode, user);
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const joinClinic = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { companyId, clinicId } = req.params;
+    const email = (req.user as any).email;
+    const emp = await Employee.findOne({
+      companyId: new mongoose.Types.ObjectId(companyId),
+      email,
+    });
+    if (!emp) throw createError(404, "Must join company first");
+    emp.clinicId = new mongoose.Types.ObjectId(clinicId) as any;
+    await emp.save();
+    await Clinic.findByIdAndUpdate(clinicId, {
+      $addToSet: { employees: emp._id },
+    });
     res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listCompanies = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = req.user as IUser;
+    // Use new service (covers both owner and employee)
+    const companies = await companyService.listCompanies(user);
+    res.status(200).json(companies);
   } catch (err) {
     next(err);
   }

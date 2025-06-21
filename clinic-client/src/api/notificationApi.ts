@@ -1,35 +1,42 @@
-import { NotificationInfo } from "../types/sharedTypes";
+// src/api/notificationApi.ts
 import { request } from "./apiClient";
+import { NotificationInfo } from "../types/sharedTypes";
 
+/**
+ * Fetch notifications and normalize ID:
+ */
 export function getNotifications(
   token: string,
-  companyId: string
-): Promise<NotificationInfo[]> {
-  return request<NotificationInfo[]>(`/company/${companyId}/notifications`, {
-    token,
-  });
-}
-
-export function markNotificationCalled(
-  token: string,
   companyId: string,
-  notificationId: string
-): Promise<void> {
-  return request(
-    `/company/${companyId}/notifications/${notificationId}/mark-called`,
-    { method: "PATCH", token }
+  clinicId: string
+): Promise<NotificationInfo[]> {
+  return request<NotificationInfo[]>(
+    `/company/${companyId}/clinics/${clinicId}/notifications`,
+    { token }
+  ).then((list) =>
+    list.map((n: any) => ({
+      ...n,
+      id: n._id || n.id,
+    }))
   );
 }
 
-export function flagPatientCall(
+/**
+ * Mark a notification as done and normalize ID:
+ */
+export function markNotificationCalled(
   token: string,
   companyId: string,
-  patientId: string,
-  note?: string
-): Promise<void> {
-  return request(`/company/${companyId}/patients/${patientId}/flag-call`, {
-    method: "PATCH",
-    token,
-    body: { note },
-  });
+  clinicId: string,
+  notificationId: string
+): Promise<NotificationInfo> {
+  type NotificationWithOptionalId = NotificationInfo & { _id?: string };
+
+  return request<NotificationWithOptionalId>(
+    `/company/${companyId}/clinics/${clinicId}/notifications/${notificationId}/done`,
+    { method: "PATCH", token }
+  ).then((n: NotificationWithOptionalId) => ({
+    ...n,
+    id: n._id || n.id,
+  }));
 }

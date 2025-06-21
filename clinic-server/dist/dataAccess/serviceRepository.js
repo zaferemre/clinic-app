@@ -3,45 +3,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findServices = findServices;
-exports.addService = addService;
-exports.updateService = updateService;
-exports.deleteService = deleteService;
-const Company_1 = __importDefault(require("../models/Company"));
-function findServices(companyId) {
-    return Company_1.default.findById(companyId).then((c) => {
-        if (!c)
-            throw { status: 404, message: "Company not found" };
-        return c.services;
+exports.listServices = listServices;
+exports.createService = createService;
+exports.updateServiceById = updateServiceById;
+exports.deleteServiceById = deleteServiceById;
+// dataAccess/serviceRepository.ts
+const Service_1 = __importDefault(require("../models/Service"));
+const mongoose_1 = require("mongoose");
+async function listServices(companyId, clinicId) {
+    return Service_1.default.find({
+        companyId: new mongoose_1.Types.ObjectId(companyId),
+        clinicId: new mongoose_1.Types.ObjectId(clinicId),
     });
 }
-function addService(companyId, dto) {
-    return Company_1.default.findById(companyId).then((c) => {
-        if (!c)
-            throw { status: 404, message: "Company not found" };
-        c.services.push(dto);
-        return c.save().then(() => c.services.at(-1));
-    });
+async function createService(doc) {
+    return Service_1.default.create(doc);
 }
-function updateService(companyId, serviceId, updates) {
-    return Company_1.default.findById(companyId).then((c) => {
-        if (!c)
-            throw { status: 404, message: "Company not found" };
-        const svc = c.services.id(serviceId);
-        if (!svc)
-            throw { status: 404, message: "Service not found" };
-        Object.assign(svc, updates);
-        return c.save().then(() => svc);
-    });
+async function updateServiceById(serviceId, updates) {
+    return Service_1.default.findByIdAndUpdate(serviceId, updates, { new: true });
 }
-function deleteService(companyId, serviceId) {
-    return Company_1.default.findById(companyId).then((c) => {
-        if (!c)
-            throw { status: 404, message: "Company not found" };
-        const svc = c.services.id(serviceId);
-        if (!svc)
-            throw { status: 404, message: "Service not found" };
-        svc.remove();
-        return c.save();
-    });
+async function deleteServiceById(serviceId) {
+    await Service_1.default.findByIdAndDelete(serviceId);
 }

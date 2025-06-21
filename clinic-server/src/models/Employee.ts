@@ -1,38 +1,56 @@
-import mongoose, { Schema } from "mongoose";
-import { WorkingHour, workingHourSchema } from "./WorkingHour";
+import { Schema, model, Document } from "mongoose";
+import { workingHourSchema, WorkingHour } from "./WorkingHour";
 
-export interface EmployeeInfo {
-  _id?: mongoose.Types.ObjectId;
+export interface EmployeeDocument extends Document {
+  companyId: Schema.Types.ObjectId;
+  clinicId: Schema.Types.ObjectId;
+  userId: string; // Firebase UID
   email: string;
   name?: string;
-  role?: "staff" | "manager" | "admin" | "owner";
+  phone?: string;
+  role:
+    | "owner"
+    | "staff"
+    | "admin"
+    | "doctor"
+    | "nurse"
+    | "receptionist"
+    | "other";
   pictureUrl?: string;
-  services?: mongoose.Types.ObjectId[]; // now just references
-  workingHours?: WorkingHour[];
+  services: Schema.Types.ObjectId[];
+  workingHours: WorkingHour[];
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export const employeeSchema = new Schema<EmployeeInfo>(
+const EmployeeSchema = new Schema<EmployeeDocument>(
   {
+    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
+    clinicId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
+    userId: { type: String, required: true, index: true },
     email: { type: String, required: true },
     name: { type: String },
+    phone: { type: String },
     role: {
       type: String,
-      enum: ["owner", "staff", "manager", "admin"],
-      default: "staff",
+      enum: [
+        "owner",
+        "staff",
+        "admin",
+        "doctor",
+        "nurse",
+        "receptionist",
+        "other",
+      ],
+      default: "other",
     },
-    pictureUrl: { type: String, default: "" },
-    services: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Service", // references Service model
-      },
-    ],
+    pictureUrl: { type: String },
+    services: [{ type: Schema.Types.ObjectId, ref: "Service" }],
     workingHours: { type: [workingHourSchema], default: [] },
+    isActive: { type: Boolean, default: true },
   },
-  { _id: true }
+  { timestamps: true }
 );
 
-export const Employee = mongoose.model<EmployeeInfo>(
-  "Employee",
-  employeeSchema
-);
+export default model<EmployeeDocument>("Employee", EmployeeSchema);

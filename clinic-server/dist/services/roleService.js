@@ -37,16 +37,19 @@ exports.listRoles = listRoles;
 exports.addRole = addRole;
 exports.updateRole = updateRole;
 exports.deleteRole = deleteRole;
-const repo = __importStar(require("../dataAccess/roleRepository"));
-function listRoles(companyId) {
-    return repo.listRoles(companyId);
+// services/roleService.ts
+const repoRole = __importStar(require("../dataAccess/roleRepository"));
+const mongoose_1 = require("mongoose");
+async function listRoles(companyId) {
+    return repoRole.listRoles(companyId);
 }
-function addRole(companyId, role) {
-    return repo.addRole(companyId, role);
+async function addRole(companyId, data) {
+    const doc = { companyId: new mongoose_1.Types.ObjectId(companyId), ...data };
+    return repoRole.createRole(doc);
 }
-function updateRole(companyId, oldRole, newRole) {
-    return repo.updateRole(companyId, oldRole, newRole);
+async function updateRole(companyId, roleId, updates) {
+    return repoRole.updateRoleById(roleId, updates);
 }
-function deleteRole(companyId, role) {
-    return repo.deleteRole(companyId, role);
+async function deleteRole(companyId, roleId) {
+    return repoRole.deleteRoleById(roleId);
 }

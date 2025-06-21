@@ -1,44 +1,67 @@
 import React from "react";
+import BackButton from "../Button/BackButton";
 
 interface GreetingHeaderProps {
   userName: string;
   userAvatarUrl?: string;
   companyName: string;
-  companyLogoUrl?: string;
+
+  clinicName: string;
+  pageTitle?: string;
+  showBackButton?: boolean;
 }
 
 export const GreetingHeader: React.FC<GreetingHeaderProps> = ({
   userName,
   userAvatarUrl,
   companyName,
-  companyLogoUrl,
+
+  clinicName,
+  pageTitle,
+  showBackButton = false,
 }) => {
   return (
-    <div className="flex items-center justify-between mb-4">
-      <div>
-        <div className="flex items-center gap-2">
-          {companyLogoUrl && (
-            <img
-              src={companyLogoUrl}
-              alt="Company"
-              className="w-9 h-9 rounded-full border border-brand-main bg-white object-cover"
-            />
-          )}
-          <span className="text-lg font-extrabold text-brand-main">
+    <header className="flex items-center justify-between mb-4 px-2 pt-2 bg-transparent">
+      <div className="flex flex-col min-w-0 w-full">
+        {/* DATE & BACK BUTTON */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            {showBackButton && <BackButton />}
+          </div>
+        </div>
+        {/* MAIN HEADER */}
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className="text-base font-bold text-brand-main truncate">
             {companyName}
           </span>
+          <span className="mx-1 text-brand-main font-bold">•</span>
+          <span className="text-base font-semibold text-brand-black truncate">
+            {clinicName}
+          </span>
+          {pageTitle && (
+            <>
+              <span className="mx-1 text-black font-bold">•</span>
+              <span className="text-base font-semibold text-gray-600 truncate">
+                {pageTitle}
+              </span>
+            </>
+          )}
         </div>
-        <div className="text-base mt-1 text-gray-700">
-          Hoş geldin, <span className="font-semibold">{userName}</span>!
+        {/* Welcome Row */}
+        <div className="mt-1 text-sm text-gray-500">
+          Merhaba,{" "}
+          <span className="font-semibold text-brand-black">{userName}</span>!
         </div>
       </div>
       {userAvatarUrl && (
-        <img
-          src={userAvatarUrl}
-          alt="Kullanıcı"
-          className="w-10 h-10 rounded-full border border-gray-200 object-cover"
-        />
+        <div className="flex-shrink-0 ml-2">
+          <img
+            src={userAvatarUrl}
+            alt="Kullanıcı"
+            className="w-14 mt-8 rounded-full border-4 border-brand-main object-cover"
+          />
+        </div>
       )}
-    </div>
+    </header>
   );
 };

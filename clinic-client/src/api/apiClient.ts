@@ -1,3 +1,4 @@
+// src/api/apiClient.ts
 import { API_BASE } from "../config/apiConfig";
 
 interface RequestOptions {
@@ -31,7 +32,6 @@ export async function request<T>(
     }
     throw new Error(msg || `API error ${res.status}`);
   }
-  // no content
   if (res.status === 204) return undefined as unknown as T;
   return res.json();
 }

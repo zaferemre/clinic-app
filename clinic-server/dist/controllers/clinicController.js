@@ -1,311 +1,119 @@
 "use strict";
-// src/controllers/clinicController.ts
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getWorkersList = exports.joinClinic = exports.updateWorker = exports.removeWorker = exports.addWorker = exports.getClinicById = exports.createClinic = exports.getClinicByEmail = void 0;
+exports.deleteClinic = exports.updateClinic = exports.getClinicById = exports.createClinic = exports.listClinics = void 0;
+const clinicService = __importStar(require("../services/clinicService"));
 const Clinic_1 = __importDefault(require("../models/Clinic"));
-const firebase_1 = require("../config/firebase");
-// ────────────────────────────────────────────────────────────────────────────
-// 1) getClinicByEmail
-// ────────────────────────────────────────────────────────────────────────────
-const getClinicByEmail = async (req, res, next) => {
+const Company_1 = __importDefault(require("../models/Company"));
+const mongoose_1 = __importDefault(require("mongoose"));
+// List all clinics for a company
+const listClinics = async (req, res, next) => {
     try {
-        const ownerEmail = req.user?.email;
-        if (!ownerEmail) {
-            res.status(401).json({ error: "User not authenticated" });
-            return;
-        }
-        const clinic = await Clinic_1.default.findOne({
-            $or: [{ ownerEmail: ownerEmail }, { "workers.email": ownerEmail }],
-        }).exec();
-        if (!clinic) {
-            res.status(404).json({ error: "No clinic for this user" });
-            return;
-        }
-        res.status(200).json(clinic);
-        return;
+        const { companyId } = req.params;
+        const clinics = await clinicService.listClinics(companyId);
+        res.status(200).json(clinics);
     }
     catch (err) {
-        console.error("Error in GET /clinic/by-email:", err);
-        res.status(500).json({ error: "Server error", details: err.message });
-        return;
+        next(err);
     }
 };
-exports.getClinicByEmail = getClinicByEmail;
-// ────────────────────────────────────────────────────────────────────────────
-// 2) createClinic
-// ────────────────────────────────────────────────────────────────────────────
+exports.listClinics = listClinics;
+// Create new clinic for a company
 const createClinic = async (req, res, next) => {
     try {
-        const ownerEmail = req.user?.email;
-        if (!ownerEmail) {
-            res.status(401).json({ error: "User not authenticated" });
-            return;
-        }
-        const { name } = req.body;
-        if (!name?.trim()) {
-            res.status(400).json({ error: "Clinic name is required" });
-            return;
-        }
-        const existing = await Clinic_1.default.findOne({ ownerEmail }).exec();
-        if (existing) {
-            res
-                .status(409)
-                .json({ error: "You already have a clinic", clinic: existing });
-            return;
-        }
-        const newClinic = new Clinic_1.default({
-            name: name.trim(),
-            ownerEmail,
-            workers: [],
+        const { companyId } = req.params;
+        const { name, address, phoneNumber, workingHours } = req.body;
+        const exists = await Clinic_1.default.findOne({
+            companyId: new mongoose_1.default.Types.ObjectId(companyId),
+            name,
         });
-        const saved = await newClinic.save();
-        res.status(201).json(saved);
-        return;
+        if (exists) {
+            return res
+                .status(400)
+                .json({ message: "A clinic with this name already exists." });
+        }
+        const clinic = await clinicService.createClinic(companyId, {
+            name,
+            address,
+            phoneNumber,
+            workingHours,
+            services: [],
+        });
+        await Company_1.default.findByIdAndUpdate(companyId, {
+            $addToSet: { clinics: clinic._id },
+        });
+        res.status(201).json(clinic);
     }
     catch (err) {
-        console.error("⚠️ Error in POST /clinic/new:", err);
-        res
-            .status(500)
-            .json({ error: "Failed to create clinic", details: err.message });
-        return;
+        next(err);
     }
 };
 exports.createClinic = createClinic;
-// ────────────────────────────────────────────────────────────────────────────
-// 3) getClinicById
-// ────────────────────────────────────────────────────────────────────────────
 const getClinicById = async (req, res, next) => {
     try {
-        const { clinicId } = req.params;
-        const clinic = await Clinic_1.default.findById(clinicId).exec();
-        if (!clinic) {
-            res.status(404).json({ error: "Clinic not found" });
-            return;
-        }
+        const { companyId, clinicId } = req.params;
+        const clinic = await clinicService.getClinic(companyId, clinicId);
         res.status(200).json(clinic);
-        return;
     }
     catch (err) {
-        console.error("Error in GET /clinic/:clinicId:", err);
-        res.status(500).json({ error: "Server error", details: err.message });
-        return;
+        next(err);
     }
 };
 exports.getClinicById = getClinicById;
-// ────────────────────────────────────────────────────────────────────────────
-// 4) addWorker (owner-only)
-// ────────────────────────────────────────────────────────────────────────────
-const addWorker = async (req, res) => {
+const updateClinic = async (req, res, next) => {
     try {
-        const { clinicId } = req.params;
-        const { email } = req.body;
-        if (!email?.trim()) {
-            res.status(400).json({ error: "Worker email is required" });
-            return;
-        }
-        const userEmail = req.user?.email;
-        if (!userEmail) {
-            res.status(401).json({ error: "User not authenticated" });
-            return;
-        }
-        const clinic = await Clinic_1.default.findById(clinicId).exec();
-        if (!clinic) {
-            res.status(404).json({ error: "Clinic not found" });
-            return;
-        }
-        if (clinic.ownerEmail !== userEmail) {
-            res.status(403).json({ error: "Only the owner can add workers" });
-            return;
-        }
-        // TypeScript knows clinic.workers is WorkerSubdoc[]
-        if (clinic.workers.some((w) => w.email === email) ||
-            clinic.ownerEmail === email) {
-            res.status(409).json({ error: "User is already a worker or owner" });
-            return;
-        }
-        try {
-            const fbUser = await firebase_1.admin.auth().getUserByEmail(email);
-            const displayName = fbUser.displayName ?? "";
-            const photoURL = fbUser.photoURL ?? "";
-            clinic.workers.push({
-                email,
-                name: displayName,
-                pictureUrl: photoURL,
-                role: "staff",
-            });
-            await clinic.save();
-            res.status(201).json({ email, name: displayName, role: "staff" });
-            return;
-        }
-        catch (err) {
-            console.error("Error verifying Firebase user:", err);
-            res
-                .status(404)
-                .json({ error: "No registered Firebase user with that email" });
-            return;
-        }
+        const { companyId, clinicId } = req.params;
+        const updated = await clinicService.updateClinic(companyId, clinicId, req.body);
+        res.status(200).json(updated);
     }
     catch (err) {
-        console.error("Error in addWorker:", err);
-        res.status(500).json({ error: "Server error", details: err.message });
-        return;
+        next(err);
     }
 };
-exports.addWorker = addWorker;
-// ────────────────────────────────────────────────────────────────────────────
-// 5) removeWorker (owner-only)
-// ────────────────────────────────────────────────────────────────────────────
-const removeWorker = async (req, res) => {
+exports.updateClinic = updateClinic;
+const deleteClinic = async (req, res, next) => {
     try {
-        const { clinicId, workerEmail } = req.params;
-        const userEmail = req.user?.email;
-        if (!userEmail) {
-            res.status(401).json({ error: "User not authenticated" });
-            return;
-        }
-        const clinic = await Clinic_1.default.findById(clinicId).exec();
-        if (!clinic) {
-            res.status(404).json({ error: "Clinic not found" });
-            return;
-        }
-        if (clinic.ownerEmail !== userEmail) {
-            res.status(403).json({ error: "Only the owner can remove workers" });
-            return;
-        }
-        // Filter out the worker whose email matches workerEmail
-        clinic.workers = clinic.workers.filter((w) => w.email !== workerEmail);
-        await clinic.save();
-        res.status(200).json({ message: "Worker removed" });
-        return;
+        const { companyId, clinicId } = req.params;
+        await clinicService.deleteClinic(companyId, clinicId);
+        res.sendStatus(204);
     }
     catch (err) {
-        console.error("Error in removeWorker:", err);
-        res.status(500).json({ error: "Server error", details: err.message });
-        return;
+        next(err);
     }
 };
-exports.removeWorker = removeWorker;
-// ────────────────────────────────────────────────────────────────────────────
-// 6) updateWorker (owner-only)
-// ────────────────────────────────────────────────────────────────────────────
-const updateWorker = async (req, res) => {
-    try {
-        const { clinicId, workerEmail } = req.params;
-        const { name, role } = req.body;
-        const userEmail = req.user?.email;
-        if (!userEmail) {
-            res.status(401).json({ error: "User not authenticated" });
-            return;
-        }
-        const clinic = await Clinic_1.default.findById(clinicId).exec();
-        if (!clinic) {
-            res.status(404).json({ error: "Clinic not found" });
-            return;
-        }
-        if (clinic.ownerEmail !== userEmail) {
-            res.status(403).json({ error: "Only the owner can update workers" });
-            return;
-        }
-        const idx = clinic.workers.findIndex((w) => w.email === workerEmail);
-        if (idx === -1) {
-            res.status(404).json({ error: "Worker not found" });
-            return;
-        }
-        if (name !== undefined) {
-            clinic.workers[idx].name = name;
-        }
-        if (role !== undefined) {
-            clinic.workers[idx].role = role;
-        }
-        await clinic.save();
-        res.status(200).json(clinic.workers[idx]);
-        return;
-    }
-    catch (err) {
-        console.error("Error in updateWorker:", err);
-        res.status(500).json({ error: "Server error", details: err.message });
-        return;
-    }
-};
-exports.updateWorker = updateWorker;
-// ────────────────────────────────────────────────────────────────────────────
-// 7) joinClinic (any authenticated user can join by clinicId)
-// ────────────────────────────────────────────────────────────────────────────
-const joinClinic = async (req, res) => {
-    try {
-        const { clinicId } = req.params;
-        const { joinCode } = req.body;
-        const userEmail = req.user?.email;
-        if (!userEmail) {
-            console.log("No userEmail found in req.user!", req.user);
-            res.status(401).json({ error: "No userEmail" });
-            return;
-        }
-        if (!joinCode || joinCode !== clinicId) {
-            res.status(400).json({ error: "joinCode is invalid or missing" });
-            return;
-        }
-        const clinic = await Clinic_1.default.findById(clinicId).exec();
-        if (!clinic) {
-            console.log("No clinic found");
-            res.status(404).json({ error: "No clinic" });
-            return;
-        }
-        // Prevent owner from re‐joining
-        if (clinic.ownerEmail === userEmail) {
-            res.status(409).json({ error: "Owner cannot join as worker" });
-            return;
-        }
-        // Prevent duplicate entries
-        const alreadyWorker = clinic.workers.some((w) => w.email === userEmail);
-        if (alreadyWorker) {
-            res.status(409).json({ error: "Already a worker" });
-            return;
-        }
-        // Pull displayName + photoURL from Firebase token payload
-        const displayName = req.user?.name ?? "Unknown";
-        const photoURL = req.user?.picture ?? "";
-        // Add new worker
-        clinic.workers.push({
-            email: userEmail,
-            name: displayName,
-            pictureUrl: photoURL,
-            role: "staff",
-        });
-        await clinic.save();
-        console.log("Joined clinic, new workers list:", clinic.workers);
-        res.status(200).json({ message: "Joined clinic", workers: clinic.workers });
-        return;
-    }
-    catch (err) {
-        console.error("FATAL joinClinic error:", err);
-        res.status(500).json({ error: "Server error", details: err.message });
-        return;
-    }
-};
-exports.joinClinic = joinClinic;
-// ────────────────────────────────────────────────────────────────────────────
-// 8) getWorkersList (owner or worker can see the list of workers)
-// ────────────────────────────────────────────────────────────────────────────
-const getWorkersList = async (req, res) => {
-    try {
-        const { clinicId } = req.params;
-        const clinic = await Clinic_1.default.findById(clinicId).exec();
-        if (!clinic) {
-            res.status(404).json({ error: "Clinic not found" });
-            return;
-        }
-        // Return only the workers array
-        res.status(200).json(clinic.workers);
-        return;
-    }
-    catch (err) {
-        console.error("Error in GET /clinic/:clinicId/workers:", err);
-        res.status(500).json({ error: "Server error", details: err.message });
-        return;
-    }
-};
-exports.getWorkersList = getWorkersList;
+exports.deleteClinic = deleteClinic;

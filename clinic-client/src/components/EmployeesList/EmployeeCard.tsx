@@ -1,105 +1,92 @@
+// src/components/EmployeeCard/EmployeeCard.tsx
 import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { EmployeeInfo } from "../../types/sharedTypes";
-import { FaTrashAlt, FaUserEdit } from "react-icons/fa";
-import { EditEmployeeModal } from "../Modals/EditEmployeeModal/EditEmployeeModal";
 
-interface Props {
+import type { EmployeeInfo } from "../../types/sharedTypes";
+import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { isElevatedRole } from "../../utils/role";
+import EditEmployeeModal from "../Modals/EditEmployeeModal/EditEmployeeModal";
+
+interface EmployeeCardProps {
   employee: EmployeeInfo;
-  ownerEmail: string | null;
-  ownerImageUrl?: string;
-  updatingEmail?: string | null;
-  removingEmail?: string | null;
-  removingId: string | null;
-  onRemove: (id: string) => void;
+  ownerEmail: string;
+  ownerImageUrl: string;
+  updatingEmail: string | null;
+  removingEmail: string | null;
+  onRemove: (email: string) => void;
   onUpdateEmployee: (
-    id: string,
-    updates: {
-      role: EmployeeInfo["role"];
-      workingHours: EmployeeInfo["workingHours"];
-    }
-  ) => Promise<void>;
+    email: string,
+    updates: Partial<Pick<EmployeeInfo, "role" | "workingHours">>
+  ) => void;
 }
 
-export const EmployeeCard: React.FC<Props> = ({
+const EmployeeCard: React.FC<EmployeeCardProps> = ({
   employee,
   ownerEmail,
   ownerImageUrl,
-  removingId,
+  updatingEmail,
+  removingEmail,
   onRemove,
   onUpdateEmployee,
 }) => {
   const { user } = useAuth();
-  const currentUserEmail = user?.email || "";
-  const currentUserIsOwner = currentUserEmail === ownerEmail;
-  const isSelf = currentUserEmail === employee.email;
-  const isOwnerCard = employee.role === "owner";
-
-  const canEdit = currentUserIsOwner || isSelf;
-  const canDelete = currentUserIsOwner && !isSelf;
+  const canEdit = user ? isElevatedRole(user.role) : false;
+  const isOwner = employee.email === ownerEmail;
 
   const [showEdit, setShowEdit] = useState(false);
 
-  const handleSubmit = async (updates: {
+  const handleEditSubmit = async (updates: {
     role: EmployeeInfo["role"];
     workingHours: EmployeeInfo["workingHours"];
   }) => {
-    await onUpdateEmployee(employee._id!.toString(), updates);
+    await onUpdateEmployee(employee.email, updates);
     setShowEdit(false);
   };
 
-  // If this card represents the owner, use ownerImageUrl
-  const avatarUrl = isOwnerCard
-    ? ownerImageUrl || employee.pictureUrl
-    : employee.pictureUrl;
-
   return (
-    <li className="relative bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition">
-      <div className="absolute top-3 right-3 flex space-x-2">
-        {canEdit && (
+    <div className="relative bg-white rounded-lg shadow p-4">
+      {/* Edit/Delete buttons in top-right */}
+      {canEdit && !isOwner && (
+        <div className="absolute top-2 right-2 flex items-center space-x-2">
           <button
             onClick={() => setShowEdit(true)}
-            className="p-1 hover:bg-gray-100 rounded"
-            title="Edit"
+            disabled={updatingEmail === employee.email}
+            className="p-1 rounded hover:bg-gray-100"
           >
-            <FaUserEdit className="h-5 w-5 text-indigo-600" />
+            <PencilIcon className="w-5 h-5 text-green-600 hover:text-green-800" />
           </button>
-        )}
-        {canDelete && (
           <button
-            onClick={() => onRemove(employee._id!.toString())}
-            className="p-1 hover:bg-gray-100 rounded"
-            title="Delete"
-            disabled={removingId === employee._id!.toString()}
+            onClick={() => onRemove(employee.email)}
+            disabled={removingEmail === employee.email}
+            className="p-1 rounded hover:bg-gray-100"
           >
-            <FaTrashAlt className="h-5 w-5 text-red-600" />
+            <TrashIcon className="w-5 h-5 text-red-600 hover:text-red-800" />
           </button>
-        )}
-      </div>
-
-      <div className="flex items-center space-x-4">
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 border">
-          <img
-            src={avatarUrl}
-            alt={employee.name}
-            className="w-full h-full object-cover"
-          />
         </div>
+      )}
+
+      <div className="flex items-center space-x-3 mt-2">
+        <img
+          src={employee.pictureUrl || ownerImageUrl}
+          alt={employee.name}
+          className="w-12 h-12 rounded-full"
+        />
         <div>
-          <p className="font-semibold text-gray-800">{employee.name}</p>
-          <p className="text-sm text-gray-500">{employee.email}</p>
-          <p className="text-xs mt-1 inline-block bg-gray-100 px-2 py-0.5 rounded text-gray-600">
-            {employee.role}
-          </p>
+          <p className="font-medium text-black">{employee.name}</p>
+          <p className="text-sm text-gray-500 truncate">{employee.email}</p>
+          <p className="text-sm text-gray-500 capitalize">{employee.role}</p>
         </div>
       </div>
 
+      {/* Edit Employee Modal */}
       <EditEmployeeModal
         show={showEdit}
         employee={employee}
         onClose={() => setShowEdit(false)}
-        onSubmit={handleSubmit}
+        onSubmit={handleEditSubmit}
       />
-    </li>
+    </div>
   );
 };
+
+export default EmployeeCard;

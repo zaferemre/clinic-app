@@ -37,7 +37,13 @@ exports.deleteAppointment = exports.updateAppointment = exports.createAppointmen
 const appointmentService = __importStar(require("../services/appointmentService"));
 const getAppointments = async (req, res, next) => {
     try {
-        const events = await appointmentService.getAppointments(req.params.companyId);
+        const { companyId, clinicId } = req.params;
+        const filters = {
+            employeeId: req.query.employeeId,
+            patientId: req.query.patientId,
+            groupId: req.query.groupId,
+        };
+        const events = await appointmentService.getAppointments(companyId, clinicId, filters);
         res.status(200).json(events);
     }
     catch (err) {
@@ -47,7 +53,8 @@ const getAppointments = async (req, res, next) => {
 exports.getAppointments = getAppointments;
 const getAppointmentById = async (req, res, next) => {
     try {
-        const dto = await appointmentService.getAppointmentById(req.params.companyId, req.params.appointmentId);
+        const { companyId, clinicId, appointmentId } = req.params;
+        const dto = await appointmentService.getAppointmentById(companyId, clinicId, appointmentId);
         res.status(200).json(dto);
     }
     catch (err) {
@@ -57,7 +64,25 @@ const getAppointmentById = async (req, res, next) => {
 exports.getAppointmentById = getAppointmentById;
 const createAppointment = async (req, res, next) => {
     try {
-        const created = await appointmentService.createAppointment(req.params.companyId, req.body, req.user);
+        const { companyId, clinicId } = req.params;
+        const user = req.user;
+        const { patientId, groupId, employeeId, serviceId, start, end } = req.body;
+        if (!employeeId || !serviceId || !start || !end) {
+            res.status(400).json({
+                message: "employeeId, serviceId, start, and end are required.",
+            });
+            return;
+        }
+        const appointmentType = groupId ? "group" : "individual";
+        const created = await appointmentService.createAppointment(companyId, clinicId, {
+            patientId,
+            groupId,
+            employeeId,
+            serviceId,
+            start,
+            end,
+            appointmentType,
+        }, user);
         res.status(201).json(created);
     }
     catch (err) {
@@ -67,7 +92,12 @@ const createAppointment = async (req, res, next) => {
 exports.createAppointment = createAppointment;
 const updateAppointment = async (req, res, next) => {
     try {
-        const updated = await appointmentService.updateAppointment(req.params.companyId, req.params.appointmentId, req.body);
+        const { companyId, clinicId, appointmentId } = req.params;
+        const updates = { ...req.body };
+        if ("groupId" in updates) {
+            updates.appointmentType = updates.groupId ? "group" : "individual";
+        }
+        const updated = await appointmentService.updateAppointment(companyId, clinicId, appointmentId, updates);
         res.status(200).json(updated);
     }
     catch (err) {
@@ -77,8 +107,9 @@ const updateAppointment = async (req, res, next) => {
 exports.updateAppointment = updateAppointment;
 const deleteAppointment = async (req, res, next) => {
     try {
-        await appointmentService.deleteAppointment(req.params.companyId, req.params.appointmentId);
-        res.status(204).send();
+        const { companyId, clinicId, appointmentId } = req.params;
+        await appointmentService.deleteAppointment(companyId, clinicId, appointmentId);
+        res.sendStatus(204);
     }
     catch (err) {
         next(err);

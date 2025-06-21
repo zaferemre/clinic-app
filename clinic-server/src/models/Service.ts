@@ -1,29 +1,32 @@
-import mongoose, { Document, Schema } from "mongoose";
+import { Schema, model, Document } from "mongoose";
 
-export interface IService extends Document {
+export interface ServiceDocument extends Document {
+  companyId: Schema.Types.ObjectId;
+  clinicId: Schema.Types.ObjectId;
   serviceName: string;
   servicePrice: number;
-  serviceKapora: number;
   serviceDuration: number;
-  companyId: mongoose.Types.ObjectId;
+  category?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// Named export of the raw schema for embedding
-export const ServiceSchema = new Schema<IService>(
+const ServiceSchema = new Schema<ServiceDocument>(
   {
     companyId: {
       type: Schema.Types.ObjectId,
       ref: "Company",
       required: true,
     },
+    clinicId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
     serviceName: { type: String, required: true },
     servicePrice: { type: Number, required: true, min: 0 },
-    serviceKapora: { type: Number, default: 0, min: 0 },
     serviceDuration: { type: Number, required: true, min: 1 },
+    category: { type: String },
+    isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
 
-// Default export of the model
-export default mongoose.models.Service ||
-  mongoose.model<IService>("Service", ServiceSchema);
+export default model<ServiceDocument>("Service", ServiceSchema);

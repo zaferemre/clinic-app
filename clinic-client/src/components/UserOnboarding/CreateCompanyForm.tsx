@@ -1,562 +1,213 @@
-// src/components/CreateCompanyForm.tsx
-import React, { useState, useEffect } from "react";
+// src/components/Forms/CreateCompanyForm.tsx
+import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { createCompany } from "../../api/companyApi";
-import turkeyGeo from "../../data/turkey-geo.json";
-import CountryCodes from "../../data/CountryCodes.json";
-import LocationPicker from "../LocationPicker";
+import { createCompany, CreateCompanyPayload } from "../../api/companyApi";
+import ToggleSwitch from "../../components/ToggleSwitch";
 
-// Flag emoji util
-function countryCodeToFlag(code: string) {
-  if (!code) return "🏳️";
-  return code
-    .toUpperCase()
-    .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)));
+interface Props {
+  readonly onCreated: (companyId: string) => void;
+  readonly onCancel: () => void;
 }
 
-type DayOfWeek =
-  | "Monday"
-  | "Tuesday"
-  | "Wednesday"
-  | "Thursday"
-  | "Friday"
-  | "Saturday"
-  | "Sunday";
-
-interface WorkingHour {
-  day: DayOfWeek;
-  open: string;
-  close: string;
-}
-const DEFAULT_WORKING_HOURS: WorkingHour[] = [
-  { day: "Monday", open: "09:00", close: "17:00" },
-  { day: "Tuesday", open: "09:00", close: "17:00" },
-  { day: "Wednesday", open: "09:00", close: "17:00" },
-  { day: "Thursday", open: "09:00", close: "17:00" },
-  { day: "Friday", open: "09:00", close: "17:00" },
-];
-
-interface Service {
-  serviceName: string;
-  servicePrice: string;
-  serviceDuration: string;
-}
-type LatLng = { lat: number; lng: number };
-
-// PhoneInput (no changes)
-type PhoneInputProps = {
-  phone: string;
-  setPhone: React.Dispatch<React.SetStateAction<string>>;
-  phoneCode: { code: string; dial_code: string; name: string };
-  setPhoneCode: React.Dispatch<
-    React.SetStateAction<{ code: string; dial_code: string; name: string }>
-  >;
-};
-
-function PhoneInput({
-  phone,
-  setPhone,
-  phoneCode,
-  setPhoneCode,
-}: PhoneInputProps) {
-  const [open, setOpen] = useState(false);
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
-
-  // Click outside closes dropdown
-  useEffect(() => {
-    function handle(e: MouseEvent) {
-      if (
-        open &&
-        wrapperRef.current &&
-        !wrapperRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    }
-    window.addEventListener("mousedown", handle);
-    return () => window.removeEventListener("mousedown", handle);
-  }, [open]);
-
-  const topCountries = ["TR", "US", "DE", "GB", "FR"];
-  const topList = CountryCodes.filter((c) => topCountries.includes(c.code));
-  const restList = CountryCodes.filter((c) => !topCountries.includes(c.code));
-
-  return (
-    <div className="flex gap-2 items-center relative" ref={wrapperRef}>
-      <button
-        type="button"
-        className="flex items-center gap-1 border rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 bg-white min-w-[80px]"
-        onClick={() => setOpen((v) => !v)}
-        aria-label="Ülke kodu seç"
-      >
-        <span>{countryCodeToFlag(phoneCode.code || "TR")}</span>
-        <span className="ml-1">{phoneCode.dial_code}</span>
-        <svg width="16" height="16" className="ml-1" fill="none">
-          <path d="M4 6l4 4 4-4" stroke="#333" strokeWidth="2" />
-        </svg>
-      </button>
-      {open && (
-        <div className="absolute top-12 left-0 bg-white border z-50 rounded-lg w-64 max-h-60 overflow-auto shadow">
-          {topList.map((c) => (
-            <div
-              key={c.code}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 cursor-pointer"
-              onMouseDown={() => {
-                setPhoneCode(c);
-                setOpen(false);
-              }}
-            >
-              <span>{countryCodeToFlag(c.code)}</span>
-              <span>{c.name}</span>
-              <span className="ml-auto">{c.dial_code}</span>
-            </div>
-          ))}
-          <hr />
-          {restList.map((c) => (
-            <div
-              key={c.code}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 cursor-pointer"
-              onMouseDown={() => {
-                setPhoneCode(c);
-                setOpen(false);
-              }}
-            >
-              <span>{countryCodeToFlag(c.code)}</span>
-              <span>{c.name}</span>
-              <span className="ml-auto">{c.dial_code}</span>
-            </div>
-          ))}
-        </div>
-      )}
-      <input
-        type="tel"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-        placeholder="Telefon Numarası*"
-        className="border rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 flex-1"
-        maxLength={15}
-      />
-    </div>
-  );
-}
-
-// Main Form
-export default function CreateCompanyForm({
-  onCreated,
-  onClose,
-}: {
-  onCreated: (id: string, name: string) => void;
-  onClose: () => void;
-}) {
-  const { idToken, user } = useAuth();
-  const IST_CENTER: LatLng = { lat: 41.0082, lng: 28.9784 };
-
-  const [ownerName, setOwnerName] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [companyType, setCompanyType] = useState("");
-  const [isOnline, setIsOnline] = useState(false);
-
-  const defaultCountry =
-    CountryCodes.find((c) => c.code === "TR") || CountryCodes[0];
-  const [phoneCode, setPhoneCode] = useState(defaultCountry);
-  const [phone, setPhone] = useState("");
-
-  type Neighbourhood = string;
-  type Town = {
-    Town: string;
-    Neighbourhoods: Neighbourhood[];
-  };
-  type District = {
-    District: string;
-    Towns: Town[];
-  };
-  type Province = {
-    Province: string;
-    Districts: District[];
-  };
-  const provinces = turkeyGeo as Province[];
-  const [provQuery, setProvQuery] = useState("");
-  const [provSug, setProvSug] = useState<string[]>([]);
-  const [districtQuery, setDistrictQuery] = useState("");
-  const [districtSug, setDistrictSug] = useState<string[]>([]);
-  const [townQuery, setTownQuery] = useState("");
-  const [townSug, setTownSug] = useState<string[]>([]);
-  const [neighQuery, setNeighQuery] = useState("");
-  const [neighSug, setNeighSug] = useState<string[]>([]);
-  const [openDropdown, setOpenDropdown] = useState<null | number>(null);
-
-  const [mapLocation, setMapLocation] = useState<LatLng | null>(null);
-  const [workingHours, setWorkingHours] = useState(DEFAULT_WORKING_HOURS);
-  const [services, setServices] = useState<Service[]>([]);
-  const [message, setMessage] = useState<string>("");
-
-  useEffect(() => {
-    if (user?.name) setOwnerName(user.name);
-  }, [user]);
-
-  // --- autocomplete logic (same as before) ---
-  useEffect(() => {
-    if (provQuery) {
-      setProvSug(
-        provinces
-          .map((p) => p.Province)
-          .filter((n) => n.toLowerCase().includes(provQuery.toLowerCase()))
-      );
-    } else setProvSug([]);
-    setDistrictQuery("");
-    setDistrictSug([]);
-    setTownQuery("");
-    setTownSug([]);
-    setNeighQuery("");
-    setNeighSug([]);
-  }, [provQuery]);
-  useEffect(() => {
-    if (provQuery && districtQuery) {
-      const p = provinces.find((p) => p.Province === provQuery);
-      const list = p?.Districts.map((d: District) => d.District) || [];
-      setDistrictSug(
-        list.filter((n) =>
-          n.toLowerCase().includes(districtQuery.toLowerCase())
-        )
-      );
-    } else setDistrictSug([]);
-    setTownQuery("");
-    setTownSug([]);
-    setNeighQuery("");
-    setNeighSug([]);
-  }, [districtQuery, provQuery]);
-  useEffect(() => {
-    if (provQuery && districtQuery && townQuery) {
-      const p = provinces.find((p) => p.Province === provQuery);
-      const d = p?.Districts.find(
-        (d: District) => d.District === districtQuery
-      );
-      const list = d?.Towns.map((t: Town) => t.Town) || [];
-      setTownSug(
-        list.filter((n) => n.toLowerCase().includes(townQuery.toLowerCase()))
-      );
-    } else setTownSug([]);
-    setNeighQuery("");
-    setNeighSug([]);
-  }, [townQuery, districtQuery, provQuery]);
-  useEffect(() => {
-    if (provQuery && districtQuery && townQuery && neighQuery) {
-      const p = provinces.find((p) => p.Province === provQuery);
-      const d = p?.Districts.find(
-        (d: District) => d.District === districtQuery
-      );
-      const t = d?.Towns.find((t: Town) => t.Town === townQuery);
-      const list = t?.Neighbourhoods || [];
-      setNeighSug(
-        list.filter((n: string) =>
-          n.toLowerCase().includes(neighQuery.toLowerCase())
-        )
-      );
-    } else setNeighSug([]);
-  }, [neighQuery, townQuery, districtQuery, provQuery]);
-  useEffect(() => {
-    if (!isOnline && provQuery && districtQuery && townQuery && neighQuery) {
-      const query = `${neighQuery}, ${townQuery}, ${districtQuery}, ${provQuery}, Turkey`;
-      fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          query
-        )}&limit=1`
-      )
-        .then((r) => r.json())
-        .then((data: { lat: string; lon: string }[]) => {
-          if (data[0]) setMapLocation({ lat: +data[0].lat, lng: +data[0].lon });
-        });
-    }
-  }, [provQuery, districtQuery, townQuery, neighQuery, isOnline]);
+export default function CreateCompanyForm({ onCreated, onCancel }: Props) {
+  const { idToken } = useAuth();
+  const [name, setName] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [facebook, setFacebook] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [allowPublicBooking, setAllowPublicBooking] = useState(false);
+  const [inactivityThreshold, setInactivityThreshold] = useState(90);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage("");
-    if (!ownerName || !companyName || !companyType)
-      return setMessage("Temel alanlar zorunludur.");
-    if (!idToken) return;
-    if (!isOnline) {
-      if (!provQuery || !districtQuery || !townQuery || !neighQuery)
-        return setMessage("Adres bilgisi gerekli.");
-      if (!mapLocation) return setMessage("Konum seçin.");
+    if (!name.trim()) {
+      setError("Şirket adı zorunlu.");
+      return;
     }
-    if (!phone || !phoneCode.dial_code) return setMessage("Telefon gerekli.");
-    const finalLoc = isOnline ? IST_CENTER : mapLocation!;
-    const payload = {
-      name: companyName,
-      companyType,
-      phoneNumber: phoneCode.dial_code + phone,
-      address: {
-        province: provQuery,
-        district: districtQuery,
-        town: townQuery,
-        neighborhood: neighQuery,
+    if (!idToken) {
+      setError("Giriş yapmanız gerekiyor.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+
+    const payload: CreateCompanyPayload = {
+      name,
+      websiteUrl: websiteUrl || undefined,
+      socialLinks:
+        instagram || facebook || whatsapp
+          ? { instagram, facebook, whatsapp }
+          : undefined,
+      settings: {
+        allowPublicBooking,
+        inactivityThresholdDays: inactivityThreshold,
       },
-      location: {
-        type: "Point" as const,
-        coordinates: [finalLoc.lng, finalLoc.lat] as [number, number],
-      },
-      workingHours,
-      services: services.map((s) => ({
-        serviceName: s.serviceName,
-        servicePrice: Number(s.servicePrice) || 0,
-        serviceKapora: 0,
-        serviceDuration: Number(s.serviceDuration) || 0,
-      })),
-      employees: [],
-      roles: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
     };
+
     try {
       const created = await createCompany(idToken, payload);
-      onCreated(created._id, created.name);
+      onCreated(created._id);
     } catch (err: unknown) {
-      if (err && typeof err === "object" && "message" in err) {
-        setMessage((err as { message?: string }).message || "Hata oluştu.");
+      if (err instanceof Error) {
+        setError(err.message || "Oluşturma başarısız oldu.");
       } else {
-        setMessage("Hata oluştu.");
+        setError("Oluşturma başarısız oldu.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fieldConfigs = [
-    {
-      value: provQuery,
-      setValue: setProvQuery,
-      suggestions: provSug,
-      placeholder: "Şehir*",
-      idx: 0,
-    },
-    {
-      value: districtQuery,
-      setValue: setDistrictQuery,
-      suggestions: districtSug,
-      placeholder: "İlçe*",
-      idx: 1,
-    },
-    {
-      value: townQuery,
-      setValue: setTownQuery,
-      suggestions: townSug,
-      placeholder: "Town*",
-      idx: 2,
-    },
-    {
-      value: neighQuery,
-      setValue: setNeighQuery,
-      suggestions: neighSug,
-      placeholder: "Mahalle*",
-      idx: 3,
-    },
-  ];
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Basic Info */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <input
-          value={ownerName}
-          onChange={(e) => setOwnerName(e.target.value)}
-          placeholder="Kurucu Adı*"
-          className="border p-2 rounded-xl focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          value={companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
-          placeholder="Şirket Adı*"
-          className="border p-2 rounded-xl focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          value={companyType}
-          onChange={(e) => setCompanyType(e.target.value)}
-          placeholder="Tür*"
-          className="border p-2 rounded-xl focus:ring-2 focus:ring-blue-500"
-        />
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-6 p-8 max-w-lg mx-auto bg-white rounded-2xl shadow-lg"
+    >
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-brand-main">👋 Hoşgeldiniz!</h2>
+        <p className="text-gray-700 mt-2">
+          İlk şirketinizi oluşturmadan önce, sadece gerekli bilgileri soracağız.
+          Diğer tüm ayarları ve detayları{" "}
+          <span className="font-semibold text-brand-main">
+            daha sonra şirket ayarlarından
+          </span>{" "}
+          değiştirebilirsiniz.
+        </p>
       </div>
-      {/* Phone with flag country code */}
-      <PhoneInput
-        phone={phone}
-        setPhone={setPhone}
-        phoneCode={phoneCode}
-        setPhoneCode={setPhoneCode}
-      />
-      {/* Toggle */}
-      <div className="flex items-center gap-4 my-2">
-        <span className="mr-3 text-sm">Çevrimiçi Hizmet</span>
-        <button
-          type="button"
-          aria-pressed={isOnline}
-          onClick={() => setIsOnline((v) => !v)}
-          className={`w-12 h-6 flex items-center rounded-full transition-colors duration-300 
-              ${isOnline ? "bg-blue-500" : "bg-gray-300"} relative`}
-        >
-          <span
-            className={`h-6 w-6 bg-white rounded-full shadow transition-transform duration-300 absolute 
-                ${isOnline ? "translate-x-6" : "translate-x-0"}`}
-            style={{ left: 0, top: 0 }}
-          ></span>
-        </button>
-      </div>
-      {/* Address Autocomplete */}
-      {!isOnline && (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {fieldConfigs.map(
-              ({ value, setValue, suggestions, placeholder, idx }) => (
-                <div key={idx} className="relative">
-                  <input
-                    value={value}
-                    onChange={(e) => {
-                      setValue(e.target.value);
-                      setOpenDropdown(idx);
-                    }}
-                    onFocus={() => setOpenDropdown(idx)}
-                    placeholder={placeholder}
-                    className="border w-full px-3 py-2 rounded-xl focus:ring-2 focus:ring-blue-500"
-                    autoComplete="off"
-                    onBlur={() => setTimeout(() => setOpenDropdown(null), 120)}
-                  />
-                  {openDropdown === idx && suggestions.length > 0 && (
-                    <ul className="absolute bg-white border w-full max-h-32 overflow-auto mt-1 z-20 rounded-lg shadow">
-                      {suggestions.map((s) => (
-                        <li
-                          key={s}
-                          className="px-3 py-1 hover:bg-blue-100 cursor-pointer transition"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setValue(s);
-                            setOpenDropdown(null);
-                          }}
-                        >
-                          {s}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              )
-            )}
-          </div>
-          <div>
-            <label className="block mb-1">Konum Seç</label>
-            <LocationPicker value={mapLocation} onChange={setMapLocation} />
-          </div>
-        </>
+
+      {error && (
+        <div className="text-red-700 bg-red-100 border border-red-200 p-2 rounded mb-2">
+          {error}
+        </div>
       )}
-      {/* Working Hours */}
+
       <div>
-        <label className="block mb-2">Çalışma Saatleri</label>
-        {workingHours.map((wh, idx) => (
-          <div key={wh.day} className="flex items-center gap-3 mb-2">
-            <span className="w-24 text-sm">{wh.day}</span>
-            <input
-              type="time"
-              value={wh.open}
-              onChange={(e) =>
-                setWorkingHours((arr) =>
-                  arr.map((w, i) =>
-                    i === idx ? { ...w, open: e.target.value } : w
-                  )
-                )
-              }
-              className="border px-2 py-1 rounded focus:ring-2 focus:ring-blue-500"
-            />
-            <span>–</span>
-            <input
-              type="time"
-              value={wh.close}
-              onChange={(e) =>
-                setWorkingHours((arr) =>
-                  arr.map((w, i) =>
-                    i === idx ? { ...w, close: e.target.value } : w
-                  )
-                )
-              }
-              className="border px-2 py-1 rounded focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        ))}
+        <label htmlFor="companyName" className="block mb-1 font-medium">
+          Şirket Adı <span className="text-red-600">*</span>
+        </label>
+        <input
+          id="companyName"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-500"
+          placeholder="Örn: Acıbadem Tıp Merkezi"
+        />
       </div>
-      {/* Services */}
-      <div>
-        <label className="block mb-2">Hizmetler</label>
-        {services.map((s, idx) => (
-          <div key={idx} className="grid grid-cols-3 gap-2 mb-2">
-            <input
-              placeholder="Adı"
-              value={s.serviceName}
-              onChange={(e) =>
-                setServices((arr) =>
-                  arr.map((v, i) =>
-                    i === idx ? { ...v, serviceName: e.target.value } : v
-                  )
-                )
-              }
-              className="border px-2 py-1 rounded focus:ring-2 focus:ring-blue-500 col-span-1"
+
+      {/* Optional Fields */}
+      <div className="mt-8 border-t pt-6">
+        <div className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+          <span className="text-lg">Opsiyonel Bilgiler</span>
+          <span className="text-xs text-gray-400">
+            (İstediğiniz zaman doldurabilirsiniz)
+          </span>
+        </div>
+
+        <div>
+          <label className="block mb-1">
+            Web Sitesi{" "}
+            <span className="text-gray-400 text-xs">(opsiyonel)</span>
+          </label>
+          <input
+            type="url"
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+            placeholder="https://..."
+          />
+        </div>
+
+        <fieldset className="mt-2 space-y-2">
+          <legend className="font-medium text-gray-600 mb-1">
+            Sosyal Medya Bağlantıları{" "}
+            <span className="text-gray-400 text-xs">(opsiyonel)</span>
+          </legend>
+          <input
+            placeholder="Instagram URL"
+            value={instagram}
+            onChange={(e) => setInstagram(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+          />
+          <input
+            placeholder="Facebook URL"
+            value={facebook}
+            onChange={(e) => setFacebook(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+          />
+          <input
+            placeholder="WhatsApp Link / Numara"
+            value={whatsapp}
+            onChange={(e) => setWhatsapp(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+          />
+        </fieldset>
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-4">
+          <label
+            htmlFor="publicBooking"
+            className="font-medium text-gray-700 flex-shrink-0"
+          >
+            Herkese açık rezervasyona izin ver
+          </label>
+          <div className="flex items-center gap-3">
+            <ToggleSwitch
+              id="publicBooking"
+              checked={allowPublicBooking}
+              onChange={setAllowPublicBooking}
             />
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="Fiyat"
-              value={s.servicePrice}
-              onChange={(e) =>
-                setServices((arr) =>
-                  arr.map((v, i) =>
-                    i === idx ? { ...v, servicePrice: e.target.value } : v
-                  )
-                )
-              }
-              className="border px-2 py-1 rounded focus:ring-2 focus:ring-blue-500 col-span-1"
-            />
-            <input
-              type="number"
-              min="1"
-              step="1"
-              placeholder="Süre (dk)"
-              value={s.serviceDuration}
-              onChange={(e) =>
-                setServices((arr) =>
-                  arr.map((v, i) =>
-                    i === idx ? { ...v, serviceDuration: e.target.value } : v
-                  )
-                )
-              }
-              className="border px-2 py-1 rounded focus:ring-2 focus:ring-blue-500 col-span-1"
-            />
+            <div className="text-xs text-gray-500 leading-snug max-w-xs">
+              Kullanıcılar, randevu almak için sizi aramak veya üye olmak
+              zorunda kalmaz.
+            </div>
           </div>
-        ))}
-        <button
-          type="button"
-          onClick={() =>
-            setServices((arr) => [
-              ...arr,
-              { serviceName: "", servicePrice: "", serviceDuration: "" },
-            ])
-          }
-          className="text-sm text-blue-600 hover:underline"
-        >
-          + Hizmet Ekle
-        </button>
+        </div>
+
+        <div className="mt-3">
+          <label className="block mb-1">
+            Pasif Hasta Eşik (gün){" "}
+            <span className="block text-xs text-gray-500">
+              Uzun süre randevu almayan hastaları otomatik belirler.
+            </span>
+          </label>
+          <input
+            type="number"
+            min={1}
+            value={inactivityThreshold}
+            onChange={(e) => setInactivityThreshold(+e.target.value)}
+            className="w-32 border rounded px-2 py-1"
+          />
+        </div>
       </div>
-      {/* Message & Submit */}
-      {message && (
-        <p className="text-sm text-red-600 bg-red-100 p-2 rounded">{message}</p>
-      )}
-      <button
-        type="submit"
-        className="w-full py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
-      >
-        Oluştur
-      </button>
-      <button
-        type="button"
-        onClick={onClose}
-        className="w-full mt-2 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition"
-      >
-        Vazgeç
-      </button>
+
+      <div className="flex flex-col items-end space-y-2 pt-4">
+        <div className="text-xs text-gray-500 pb-2">
+          <span className="font-medium text-brand-main">İpucu:</span>{" "}
+          Ayarlarınızı{" "}
+          <span className="font-semibold">Şirket Ayarları'ndan</span>{" "}
+          güncelleyebilirsiniz.
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="px-4 py-2 border rounded hover:bg-gray-100"
+          >
+            Vazgeç
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 bg-brand-main text-white rounded hover:bg-brand-dark transition font-semibold"
+          >
+            {loading ? "Oluşturuluyor…" : "Şirketi Oluştur"}
+          </button>
+        </div>
+      </div>
     </form>
   );
 }

@@ -1,12 +1,14 @@
+// src/pages/Settings/SettingsPage.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  CogIcon,
-  UserIcon,
-  BuildingStorefrontIcon,
-  BellIcon,
-  SunIcon,
-  LockClosedIcon,
+  UserCircleIcon,
+  Cog8ToothIcon,
+  BuildingLibraryIcon,
+  UserGroupIcon,
+  BellAlertIcon,
+  EyeIcon,
+  ShieldCheckIcon,
   AdjustmentsHorizontalIcon,
   ArrowRightStartOnRectangleIcon,
 } from "@heroicons/react/24/outline";
@@ -14,21 +16,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 import { PatientSettingsModal } from "../../components/Modals/PatientSettingsModal";
 import { PatientSettings } from "../../types/sharedTypes";
-const settingsOptions = [
-  { label: "Profil", icon: UserIcon, path: "/settings/user" },
-  {
-    label: "Şirket Bilgileri",
-    icon: BuildingStorefrontIcon,
-    path: "/settings/company",
-  },
-  {
-    label: "Bildirim Ayarları",
-    icon: BellIcon,
-    path: "/settings/notifications",
-  },
-  { label: "Görünüm", icon: SunIcon, path: "/settings/appearance" },
-  { label: "Güvenlik", icon: LockClosedIcon, path: "/settings/security" },
-];
+import { isElevatedRole } from "../../utils/role";
+import { GreetingHeader } from "../../components/GreetingHeader/GreetingHeader";
 
 const DEFAULT_PATIENT_SETTINGS: PatientSettings = {
   showCredit: true,
@@ -38,9 +27,53 @@ const DEFAULT_PATIENT_SETTINGS: PatientSettings = {
   showNotes: false,
 };
 
-export const SettingsPage: React.FC = () => {
-  const { signOut } = useAuth();
+const SettingsPage: React.FC = () => {
+  const {
+    signOut,
+    selectedClinicId,
+    selectedClinicName,
+    selectedCompanyName,
+    user,
+  } = useAuth();
   const navigate = useNavigate();
+  const base = `/clinics/${selectedClinicId}/settings`;
+
+  const role = user?.role ?? "staff";
+
+  // Add Company Settings if owner
+  const settingsOptions = [
+    { label: "Profil", icon: UserCircleIcon, path: `${base}/user` },
+    ...(user?.role === "owner"
+      ? [
+          {
+            label: "Şirket Ayarları",
+            icon: Cog8ToothIcon,
+            path: "/company-settings",
+          },
+        ]
+      : []),
+    ...(isElevatedRole(role)
+      ? [
+          {
+            label: "Klinik Ayarları",
+            icon: BuildingLibraryIcon,
+            path: `${base}/clinic`,
+          },
+          {
+            label: "Roller",
+            icon: UserGroupIcon,
+            path: `${base}/roles`,
+          },
+        ]
+      : []),
+    {
+      label: "Bildirim Ayarları",
+      icon: BellAlertIcon,
+      path: `${base}/notifications`,
+    },
+    { label: "Görünüm", icon: EyeIcon, path: `${base}/appearance` },
+    { label: "Güvenlik", icon: ShieldCheckIcon, path: `${base}/security` },
+  ];
 
   const [showPatientModal, setShowPatientModal] = useState(false);
   const [patientSettings, setPatientSettings] = useState<PatientSettings>(
@@ -58,20 +91,26 @@ export const SettingsPage: React.FC = () => {
     setShowPatientModal(false);
   };
 
+  // Safe logout handler
   const handleLogout = () => {
     signOut();
     navigate("/login", { replace: true });
   };
 
   return (
-    <div className="min-h-screen bg-brand-gray-100 flex flex-col">
-      {/* HEADER */}
-      <header className="px-6 py-4 bg-white flex items-center shadow-sm border-b">
-        <CogIcon className="w-6 h-6 mr-2 text-brand-green-600" />
-        <h1 className="text-xl font-semibold text-brand-black">Ayarlar</h1>
-      </header>
+    <div className="min-h-screen bg-brand-gray-100 flex flex-col pb-16">
+      <div className="px-4 pt-4  bg-transparent">
+        <GreetingHeader
+          userName={user?.name ?? ""}
+          userAvatarUrl={user?.imageUrl}
+          companyName={selectedCompanyName ?? ""}
+          clinicName={selectedClinicName ?? ""}
+          pageTitle="Ayarlar"
+          showBackButton={true}
+        />
+      </div>
 
-      <main className="flex-1 p-6 space-y-4">
+      <main className="flex-1 px-6 pb-16 space-y-4">
         {settingsOptions.map(({ label, icon: Icon, path }) => (
           <button
             key={label}
@@ -85,7 +124,6 @@ export const SettingsPage: React.FC = () => {
           </button>
         ))}
 
-        {/* Patient Settings Modal Trigger */}
         <button
           onClick={() => setShowPatientModal(true)}
           className="w-full flex items-center space-x-4 p-4 bg-white hover:bg-gray-50 rounded-lg shadow-sm transition"
@@ -96,7 +134,6 @@ export const SettingsPage: React.FC = () => {
           </span>
         </button>
 
-        {/* Logout Button */}
         <button
           onClick={handleLogout}
           className="w-full flex items-center space-x-4 p-4 bg-white hover:bg-gray-50 rounded-lg shadow-sm transition text-red-600"

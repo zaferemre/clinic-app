@@ -3,48 +3,147 @@ import React, {
   createContext,
   useState,
   useEffect,
+  useCallback,
   useContext,
   ReactNode,
+  useMemo,
 } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
-import { getCompanyByEmail } from "../api/companyApi";
-import { getEmployees } from "../api/employeeApi";
-import type { EmployeeInfo } from "../types/sharedTypes";
+import { getCompanies } from "../api/companyApi";
+import { getClinics } from "../api/clinicApi";
+import { listEmployees } from "../api/employeeApi";
+import type { EmployeeInfo, Clinic, Company } from "../types/sharedTypes";
 
 interface User {
   uid: string;
   email: string;
   name: string;
-  role: string; // now required
   imageUrl: string;
+  role: string; // "owner" | "admin" | "manager" | "staff" | "other"
 }
 
-interface AuthContextProps {
+export interface AuthContextProps {
   idToken: string | null;
   user: User | null;
-  companyId: string | null;
-  companyName: string | null;
+  companies: Company[];
+  setCompanies: React.Dispatch<React.SetStateAction<Company[]>>;
+  selectedCompanyId: string | null;
+  setSelectedCompanyId: (id: string | null) => void;
+  selectedCompanyName: string | null;
+  setSelectedCompanyName: (name: string | null) => void;
+  clinics: Clinic[];
+  setClinics: React.Dispatch<React.SetStateAction<Clinic[]>>;
+  selectedClinicId: string | null;
+  setSelectedClinicId: (id: string | null) => void;
+  selectedClinicName: string | null;
+  setSelectedClinicName: (name: string | null) => void;
+  subscriptionPlan: Company["subscription"]["plan"] | null;
+  allowedFeatures: string[];
+  maxClinics: number;
   checkingCompany: boolean;
-  setCompanyId: (id: string | null) => void;
-  setCompanyName: (name: string | null) => void;
   signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+
+const getLS = (key: string) => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+const setLS = (key: string, val: string | null) => {
+  try {
+    if (val) localStorage.setItem(key, val);
+    else localStorage.removeItem(key);
+  } catch {
+    // no-op
+  }
+};
+
+// --- Helper: Detect owner ---
+function isOwner(company: Company | null, email: string): boolean {
+  return company?.ownerEmail === email;
+}
+
+// --- Helper: Find user role in clinic ---
+async function fetchClinicRole(
+  idToken: string,
+  companyId: string,
+  clinicId: string,
+  email: string
+): Promise<string> {
+  try {
+    const emps: EmployeeInfo[] = await listEmployees(
+      idToken,
+      companyId,
+      clinicId
+    );
+    const me = emps.find((e) => e.email === email);
+    return me?.role ?? "staff";
+  } catch (error) {
+    // Optionally log
+    console.error("fetchClinicRole failed:", error);
+    return "staff";
+  }
+}
 
 export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [idToken, setIdToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [companyId, setCompanyId] = useState<string | null>(null);
-  const [companyName, setCompanyName] = useState<string | null>(null);
-  const [checkingCompany, setCheckingCompany] = useState<boolean>(false);
 
-  // 1. Listen for Firebase Auth changes
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompanyId, setSelectedCompanyIdRaw] = useState<string | null>(
+    getLS("selectedCompanyId") ?? null
+  );
+  const [selectedCompanyName, setSelectedCompanyNameRaw] = useState<
+    string | null
+  >(getLS("selectedCompanyName") ?? null);
+
+  const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [selectedClinicId, setSelectedClinicIdRaw] = useState<string | null>(
+    getLS("selectedClinicId") ?? null
+  );
+  const [selectedClinicName, setSelectedClinicNameRaw] = useState<
+    string | null
+  >(getLS("selectedClinicName") ?? null);
+
+  const [checkingCompany, setCheckingCompany] = useState(false);
+
+  // LocalStorage-wrapped setters (no empty blocks)
+  const setSelectedCompanyId = useCallback((id: string | null) => {
+    setSelectedCompanyIdRaw(id);
+    setLS("selectedCompanyId", id);
+  }, []);
+  const setSelectedCompanyName = useCallback((name: string | null) => {
+    setSelectedCompanyNameRaw(name);
+    setLS("selectedCompanyName", name);
+  }, []);
+  const setSelectedClinicId = useCallback((id: string | null) => {
+    setSelectedClinicIdRaw(id);
+    setLS("selectedClinicId", id);
+  }, []);
+  const setSelectedClinicName = useCallback((name: string | null) => {
+    setSelectedClinicNameRaw(name);
+    setLS("selectedClinicName", name);
+  }, []);
+
+  // Derived company info
+  const selectedCompany = useMemo(
+    () => companies.find((c) => c._id === selectedCompanyId) || null,
+    [companies, selectedCompanyId]
+  );
+  const subscriptionPlan = selectedCompany?.subscription.plan ?? null;
+  const allowedFeatures = selectedCompany?.subscription.allowedFeatures ?? [];
+  const maxClinics = selectedCompany?.subscription.maxClinics ?? 0;
+
+  // Firebase Auth
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(
+    const unsub = onAuthStateChanged(
       auth,
       async (fbUser: FirebaseUser | null) => {
         if (!fbUser) {
@@ -59,102 +158,191 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
           email: fbUser.email ?? "",
           name: fbUser.displayName ?? "",
           imageUrl: fbUser.photoURL ?? "",
-          role: "staff", // temporary default
+          role: "staff",
         });
       }
     );
-    return unsubscribe;
+    return unsub;
   }, []);
 
-  // 2. When the token changes, fetch company & assign real role
+  // --- Core company/clinic/role detection logic ---
   useEffect(() => {
-    if (!idToken) {
-      setCompanyId(null);
-      setCompanyName(null);
-      setCheckingCompany(false);
-      return;
-    }
+    let mounted = true;
+    async function loadAll() {
+      if (!idToken) {
+        setCompanies([]);
+        setSelectedCompanyId(null);
+        setSelectedCompanyName(null);
+        setClinics([]);
+        setSelectedClinicId(null);
+        setSelectedClinicName(null);
+        setUser((u) => (u ? { ...u, role: "staff" } : u));
+        setCheckingCompany(false);
+        return;
+      }
+      setCheckingCompany(true);
 
-    let isMounted = true;
-    setCheckingCompany(true);
-
-    (async () => {
       try {
-        const company = await getCompanyByEmail(idToken);
-        if (!isMounted) return;
+        const comps = await getCompanies(idToken);
+        if (!mounted) return;
+        setCompanies(comps);
 
-        if (company?._id) {
-          setCompanyId(company._id);
-          setCompanyName(company.name);
+        // select company
+        const compId =
+          selectedCompanyId && comps.some((c) => c._id === selectedCompanyId)
+            ? selectedCompanyId
+            : comps[0]?._id ?? null;
+        setSelectedCompanyId(compId);
+        setSelectedCompanyName(
+          comps.find((c) => c._id === compId)?.name ?? null
+        );
 
-          // grab the email of the currently signed-in user
-          const email = auth.currentUser?.email ?? "";
-          const isOwner = company.ownerEmail === email;
+        // fetch clinics
+        const compClinics = compId ? await getClinics(idToken, compId) : [];
+        setClinics(compClinics);
 
-          // 2.a) Owner → role = "owner"
-          setUser((u) => (u ? { ...u, role: isOwner ? "owner" : "staff" } : u));
+        // Owner check
+        const email = auth.currentUser?.email ?? "";
+        const companyObj = comps.find((c) => c._id === compId) || null;
+        const isUserOwner = isOwner(companyObj, email);
 
-          // 2.b) Non-owner → fetch their employee record to get the real role
-          if (!isOwner) {
-            const employees: EmployeeInfo[] = await getEmployees(
-              idToken,
-              company._id
-            );
-            if (!isMounted) return;
-            const me = employees.find((e) => e.email === email);
-            setUser((u) => (u ? { ...u, role: me?.role ?? "staff" } : u));
+        // select clinic
+        let clinicId = selectedClinicId;
+        if (compClinics.length > 0) {
+          if (
+            !selectedClinicId ||
+            !compClinics.some((cl) => cl._id === selectedClinicId)
+          ) {
+            clinicId = compClinics[0]._id;
+            setSelectedClinicId(clinicId);
+            setSelectedClinicName(compClinics[0].name ?? null);
           }
-        } else {
-          // no company found → default role
-          setCompanyId(null);
-          setCompanyName(null);
-          setUser((u) => (u ? { ...u, role: "staff" } : u));
         }
-      } catch {
-        setCompanyId(null);
-        setCompanyName(null);
+
+        // set user role
+        setUser((u) =>
+          u
+            ? {
+                ...u,
+                role: isUserOwner ? "owner" : u.role ?? "staff", // will be refined below if not owner
+              }
+            : null
+        );
+
+        // if not owner, check user's actual clinic role
+        if (!isUserOwner && compId && clinicId && email) {
+          const clinicRole = await fetchClinicRole(
+            idToken,
+            compId,
+            clinicId,
+            email
+          );
+          setUser((u) => (u ? { ...u, role: clinicRole } : u));
+        }
+      } catch (err) {
+        // handle error
+        console.error("Auth context error:", err);
+        setCompanies([]);
+        setSelectedCompanyId(null);
+        setSelectedCompanyName(null);
+        setClinics([]);
+        setSelectedClinicId(null);
+        setSelectedClinicName(null);
         setUser((u) => (u ? { ...u, role: "staff" } : u));
       } finally {
-        if (isMounted) setCheckingCompany(false);
+        if (mounted) setCheckingCompany(false);
       }
-    })();
-
+    }
+    loadAll();
     return () => {
-      isMounted = false;
+      mounted = false;
     };
-  }, [idToken]); // ← only re-run when the token itself changes
+    // all referenced in body or setters
+  }, [
+    idToken,
+    selectedCompanyId,
+    selectedClinicId,
+    setSelectedCompanyId,
+    setSelectedCompanyName,
+    setSelectedClinicId,
+    setSelectedClinicName,
+  ]);
 
-  const signOutUser = React.useCallback(() => {
+  const handleSignOut = useCallback(() => {
     auth.signOut();
     setIdToken(null);
     setUser(null);
-    setCompanyId(null);
-    setCompanyName(null);
+    setCompanies([]);
+    setSelectedCompanyId(null);
+    setSelectedCompanyName(null);
+    setClinics([]);
+    setSelectedClinicId(null);
+    setSelectedClinicName(null);
     setCheckingCompany(false);
-  }, []);
+    setLS("selectedCompanyId", null);
+    setLS("selectedCompanyName", null);
+    setLS("selectedClinicId", null);
+    setLS("selectedClinicName", null);
+  }, [
+    setSelectedCompanyId,
+    setSelectedCompanyName,
+    setSelectedClinicId,
+    setSelectedClinicName,
+  ]);
+
+  // Use useMemo for contextValue to avoid unnecessary rerenders
+  const contextValue = useMemo(
+    () => ({
+      idToken,
+      user,
+      companies,
+      setCompanies,
+      selectedCompanyId,
+      setSelectedCompanyId,
+      selectedCompanyName,
+      setSelectedCompanyName,
+      clinics,
+      setClinics,
+      selectedClinicId,
+      setSelectedClinicId,
+      selectedClinicName,
+      setSelectedClinicName,
+      subscriptionPlan,
+      allowedFeatures,
+      maxClinics,
+      checkingCompany,
+      signOut: handleSignOut,
+    }),
+    [
+      idToken,
+      user,
+      companies,
+      setCompanies,
+      selectedCompanyId,
+      setSelectedCompanyId,
+      selectedCompanyName,
+      setSelectedCompanyName,
+      clinics,
+      setClinics,
+      selectedClinicId,
+      setSelectedClinicId,
+      selectedClinicName,
+      setSelectedClinicName,
+      subscriptionPlan,
+      allowedFeatures,
+      maxClinics,
+      checkingCompany,
+      handleSignOut,
+    ]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        idToken,
-        user,
-        companyId,
-        companyName,
-        checkingCompany,
-        setCompanyId,
-        setCompanyName,
-        signOut: signOutUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 
 export function useAuth(): AuthContextProps {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthContextProvider");
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthContextProvider");
+  return ctx;
 }

@@ -1,4 +1,5 @@
 import { Schema } from "mongoose";
+
 export interface WorkingHour {
   day:
     | "Monday"
@@ -11,6 +12,7 @@ export interface WorkingHour {
   open: string; // "HH:mm"
   close: string; // "HH:mm"
 }
+
 export const workingHourSchema = new Schema<WorkingHour>(
   {
     day: {
@@ -31,4 +33,3 @@ export const workingHourSchema = new Schema<WorkingHour>(
   },
   { _id: false }
 );
-export default workingHourSchema;

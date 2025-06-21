@@ -1,63 +1,64 @@
-import Appointment from "../models/Appointment";
+import Appointment, { AppointmentDocument } from "../models/Appointment";
+import { Types } from "mongoose";
 
-export function findByCompany(companyId: string) {
-  return Appointment.find({ companyId })
-    .populate("patientId", "name")
-    .populate("serviceId", "serviceName")
-    .exec();
-}
-
-export function findOne(companyId: string, appointmentId: string) {
-  return Appointment.findOne({ _id: appointmentId, companyId })
-    .populate("patientId", "name")
-    .exec();
-}
-
-export function findByPatient(companyId: string, patientId: string) {
-  // returns all appointments for a given patient, sorted newest first
-  return Appointment.find({ companyId, patientId }).sort({ start: -1 }).exec();
-}
-
-export function create(data: any) {
-  return new Appointment(data).save();
-}
-
-export function updateById(
+export function listAppointments(
   companyId: string,
-  appointmentId: string,
-  updates: any
-) {
-  return Appointment.findOneAndUpdate(
-    { _id: appointmentId, companyId },
-    updates,
-    { new: true }
-  ).exec();
+  clinicId: string,
+  filter: Partial<Record<keyof AppointmentDocument, any>> = {}
+): Promise<AppointmentDocument[]> {
+  return Appointment.find({
+    companyId: new Types.ObjectId(companyId),
+    clinicId: new Types.ObjectId(clinicId),
+    ...filter,
+  }).exec();
 }
 
-export function deleteById(companyId: string, appointmentId: string) {
-  return Appointment.deleteOne({ _id: appointmentId, companyId }).exec();
+export function findAppointmentById(
+  companyId: string,
+  clinicId: string,
+  appointmentId: string
+): Promise<AppointmentDocument | null> {
+  return Appointment.findOne({
+    _id: new Types.ObjectId(appointmentId),
+    companyId: new Types.ObjectId(companyId),
+    clinicId: new Types.ObjectId(clinicId),
+  }).exec();
+}
+
+export function createAppointment(
+  doc: Record<string, any> // or: AppointmentCreationAttrs if you want strong typing
+): Promise<AppointmentDocument> {
+  return Appointment.create(doc);
+}
+
+export function updateAppointmentById(
+  appointmentId: string,
+  updates: Partial<AppointmentDocument>
+): Promise<AppointmentDocument | null> {
+  return Appointment.findByIdAndUpdate(appointmentId, updates, {
+    new: true,
+  }).exec();
+}
+
+export function deleteAppointmentById(
+  appointmentId: string
+): Promise<AppointmentDocument | null> {
+  return Appointment.findByIdAndDelete(appointmentId).exec();
 }
 
 export function findOverlap(
   companyId: string,
-  employeeEmail: string,
+  employeeId: string,
   start: Date,
   end: Date
-) {
+): Promise<AppointmentDocument | null> {
   return Appointment.findOne({
-    companyId,
-    employeeEmail,
+    companyId: new Types.ObjectId(companyId),
+    employeeId: new Types.ObjectId(employeeId),
     $or: [
       { start: { $lt: end, $gte: start } },
       { end: { $gt: start, $lte: end } },
       { start: { $lte: start }, end: { $gte: end } },
     ],
   }).exec();
-}
-
-// simple stub for “owner or employee” check
-export async function ensureUserIsEmployee(companyId: string, email: string) {
-  const { findByIdWithAccessCheck } = await import("./companyRepository");
-  const company = await findByIdWithAccessCheck(companyId, email);
-  if (!company) throw { status: 403, message: "Employee not in company" };
 }

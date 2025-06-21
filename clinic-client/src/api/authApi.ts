@@ -1,3 +1,4 @@
+// src/api/auth.ts
 import { auth } from "../firebase";
 import {
   signInWithEmailAndPassword,

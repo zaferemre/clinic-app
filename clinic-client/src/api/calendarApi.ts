@@ -1,15 +1,12 @@
+// src/api/calendarApi.ts
 import { CalendarEvent } from "../types/sharedTypes";
-import { getAppointments } from "./appointmentApi";
+import * as appt from "./appointmentApi";
 
-export async function getCalendarEvents(
+export function getCalendarEvents(
   token: string,
   companyId: string,
-  filters?: { employeeEmail?: string; serviceId?: string }
+  clinicId: string,
+  filters?: { employeeId?: string; patientId?: string; groupId?: string }
 ): Promise<CalendarEvent[]> {
-  return getAppointments(
-    token,
-    companyId,
-    filters?.employeeEmail,
-    filters?.serviceId
-  );
+  return appt.getAppointments(token, companyId, clinicId, filters);
 }

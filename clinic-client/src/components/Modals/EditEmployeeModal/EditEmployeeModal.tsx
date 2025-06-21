@@ -1,7 +1,9 @@
 // src/components/Modals/EditEmployeeModal/EditEmployeeModal.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AppModal from "../../Modals/AppModal";
-import { EmployeeInfo, WorkingHour } from "../../../types/sharedTypes";
+import { useAuth } from "../../../contexts/AuthContext";
+import { EmployeeInfo, Role, WorkingHour } from "../../../types/sharedTypes";
+import { listRoles } from "../../../api/roleApi";
 
 interface Props {
   show: boolean;
@@ -13,17 +15,35 @@ interface Props {
   }) => Promise<void>;
 }
 
-export const EditEmployeeModal: React.FC<Props> = ({
+const EditEmployeeModal: React.FC<Props> = ({
   show,
   employee,
   onClose,
   onSubmit,
 }) => {
+  const { idToken, selectedCompanyId, selectedClinicId } = useAuth();
   const [role, setRole] = useState<EmployeeInfo["role"]>(employee.role);
   const [hours, setHours] = useState<WorkingHour[]>(
     employee.workingHours || []
   );
   const [saving, setSaving] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(false);
+
+  // fetch roles from API
+  useEffect(() => {
+    if (!idToken || !selectedCompanyId || !selectedClinicId) return;
+    setLoadingRoles(true);
+    listRoles(idToken, selectedCompanyId, selectedClinicId)
+      .then((rs) => setRoles(rs))
+      .catch(() => setRoles([]))
+      .finally(() => setLoadingRoles(false));
+  }, [idToken, selectedCompanyId, selectedClinicId]);
+
+  useEffect(() => {
+    setRole(employee.role);
+    setHours(employee.workingHours || []);
+  }, [employee]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -39,14 +59,18 @@ export const EditEmployeeModal: React.FC<Props> = ({
         <label className="block text-sm font-medium">Rol</label>
         <select
           value={role}
-          onChange={(e) => setRole(e.target.value as any)}
+          onChange={(e) => setRole(e.target.value as EmployeeInfo["role"])}
           className="mt-1 w-full border px-3 py-2 rounded"
+          disabled={loadingRoles}
         >
-          <option value="staff">Staff</option>
-          <option value="manager">Manager</option>
-          <option value="admin">Admin</option>
+          {roles.map((r) => (
+            <option key={r._id} value={r.name}>
+              {r.name.charAt(0).toUpperCase() + r.name.slice(1)}
+            </option>
+          ))}
         </select>
       </div>
+
       {/* Working Hours */}
       <div className="mb-4">
         <div className="flex justify-between items-center mb-2">
@@ -128,6 +152,7 @@ export const EditEmployeeModal: React.FC<Props> = ({
           ))}
         </div>
       </div>
+
       {/* Footer */}
       <div className="flex justify-end space-x-3 pt-4">
         <button
@@ -148,3 +173,5 @@ export const EditEmployeeModal: React.FC<Props> = ({
     </AppModal>
   );
 };
+
+export default EditEmployeeModal;

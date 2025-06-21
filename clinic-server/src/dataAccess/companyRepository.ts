@@ -1,199 +1,118 @@
-import Company from "../models/Company";
+import Company, { CompanyDocument } from "../models/Company";
 import Appointment from "../models/Appointment";
 import Patient from "../models/Patient";
-import Message from "../models/Message";
+import Group from "../models/Group";
 import Notification from "../models/Notification";
-import Worker from "../models/Worker";
+import Message from "../models/Message";
 import Service from "../models/Service";
-import { auth } from "../thirdParty/firebaseAdminService";
+import Role from "../models/Role";
+import Clinic from "../models/Clinic";
+import Employee from "../models/Employee";
 
-export function create(data: any) {
-  return new Company(data).save();
+export interface CompanyCreateInput {
+  name: string;
+  ownerUserId: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerImageUrl?: string;
+  subscription: CompanyDocument["subscription"];
+  joinCode: string;
+  settings?: Record<string, any>;
+  websiteUrl?: string;
+  socialLinks?: {
+    instagram?: string;
+    facebook?: string;
+    whatsapp?: string;
+  };
 }
 
-export function findByIdWithAccessCheck(companyId: string, email: string) {
-  return Company.findOne({
-    _id: companyId,
-    $or: [{ ownerEmail: email }, { "employees.email": email }],
-  }).exec();
+export async function createCompany(
+  doc: CompanyCreateInput
+): Promise<CompanyDocument> {
+  return Company.create(doc);
 }
 
-export function updateByIdWithOwnerCheck(
-  companyId: string,
-  email: string,
-  updates: any
-) {
-  return Company.findOneAndUpdate(
-    { _id: companyId, ownerEmail: email },
-    updates,
-    { new: true }
-  ).exec();
+export async function findCompanyById(
+  id: string
+): Promise<CompanyDocument | null> {
+  return Company.findById(id).populate("clinics").populate("roles").exec();
 }
 
-export async function deleteByIdWithCascade(companyId: string, email: string) {
-  const c = await Company.findOne({ _id: companyId, ownerEmail: email }).exec();
-  if (!c)
-    throw new Error(JSON.stringify({ status: 403, message: "Forbidden" }));
+export async function findCompanyByJoinCode(
+  code: string
+): Promise<CompanyDocument | null> {
+  return Company.findOne({ joinCode: code }).exec();
+}
+
+export async function listCompaniesByOwner(
+  ownerId: string
+): Promise<CompanyDocument[]> {
+  return Company.find({ ownerUserId: ownerId }).exec();
+}
+
+export async function updateCompanyById(
+  id: string,
+  updates: Partial<CompanyCreateInput>
+): Promise<CompanyDocument | null> {
+  return Company.findByIdAndUpdate(id, updates, { new: true }).exec();
+}
+
+export async function deleteCompanyById(id: string): Promise<void> {
   await Promise.all([
-    Appointment.deleteMany({ companyId }),
-    Patient.deleteMany({ companyId }),
-    Message.deleteMany({ companyId }),
-    Notification.deleteMany({ companyId }),
-    Worker.deleteMany({ companyId }),
-    Service.deleteMany({ companyId }),
+    Appointment.deleteMany({ companyId: id }).exec(),
+    Patient.deleteMany({ companyId: id }).exec(),
+    Group.deleteMany({ companyId: id }).exec(),
+    Notification.deleteMany({ companyId: id }).exec(),
+    Message.deleteMany({ companyId: id }).exec(),
+    Service.deleteMany({ companyId: id }).exec(),
+    Role.deleteMany({ companyId: id }).exec(),
+    Clinic.deleteMany({ companyId: id }).exec(),
+    Company.findByIdAndDelete(id).exec(),
   ]);
-  return Company.deleteOne({ _id: companyId }).exec();
-}
-
-export function listEmployees(companyId: string) {
-  return Company.findById(companyId).then((c) => {
-    if (!c)
-      throw new Error(
-        JSON.stringify({ status: 404, message: "Company not found" })
-      );
-    const owner = {
-      _id: "owner",
-      email: c.ownerEmail,
-      name: c.ownerName,
-      role: "owner" as const,
-      pictureUrl: c.ownerImageUrl,
-    };
-    return [owner, ...c.employees];
-  });
-}
-
-export function addEmployee(companyId: string, dto: any) {
-  return Company.findById(companyId).then((c) => {
-    if (!c)
-      throw new Error(
-        JSON.stringify({ status: 404, message: "Company not found" })
-      );
-    c.employees.push(dto);
-    return c.save().then(() => c.employees.slice(-1)[0]);
-  });
-}
-
-export function updateEmployee(
-  companyId: string,
-  employeeId: string,
-  updates: any
-) {
-  return Company.findById(companyId).then((c) => {
-    if (!c)
-      throw new Error(
-        JSON.stringify({ status: 404, message: "Company not found" })
-      );
-    const emp = c.employees.id(employeeId);
-    if (!emp)
-      throw new Error(
-        JSON.stringify({ status: 404, message: "Employee not found" })
-      );
-    Object.assign(emp, updates);
-    return c.save().then(() => emp);
-  });
-}
-
-export function deleteEmployee(companyId: string, employeeId: string) {
-  return Company.findById(companyId).then((c) => {
-    if (!c)
-      throw new Error(
-        JSON.stringify({ status: 404, message: "Company not found" })
-      );
-    c.employees = c.employees.filter(
-      (e: any) => e._id!.toString() !== employeeId
-    );
-    return c.save();
-  });
-}
-
-export function joinCompany(companyId: string, joinCode: string, user: any) {
-  return Company.findById(companyId).then((c) => {
-    if (!c)
-      throw new Error(
-        JSON.stringify({ status: 404, message: "Company not found" })
-      );
-    if (joinCode !== companyId)
-      throw new Error(
-        JSON.stringify({ status: 400, message: "Invalid joinCode" })
-      );
-    if (c.ownerEmail === user.email)
-      throw new Error(
-        JSON.stringify({ status: 409, message: "Owner cannot join" })
-      );
-    if (c.employees.some((e: any) => e.email === user.email)) {
-      throw new Error(
-        JSON.stringify({ status: 409, message: "Already an employee" })
-      );
-    }
-    c.employees.push({
-      email: user.email,
-      name: user.name,
-      pictureUrl: user.picture,
-      role: "staff",
-    });
-    return c.save().then(() => ({ message: "Joined", employees: c.employees }));
-  });
-}
-
-export function getEmployeeSchedule(
-  companyId: string,
-  employeeId: string,
-  requesterEmail: string
-) {
-  return Company.findById(companyId).then(async (c) => {
-    if (!c)
-      throw new Error(
-        JSON.stringify({ status: 404, message: "Company not found" })
-      );
-    const isOwner = c.ownerEmail === requesterEmail;
-    const isSelf = c.employees.some(
-      (e: any) => e.email === requesterEmail && e.email === employeeId
-    );
-    if (!isOwner && !isSelf)
-      throw new Error(JSON.stringify({ status: 403, message: "Forbidden" }));
-    return Appointment.find({ companyId, employeeEmail: employeeId }).exec();
-  });
-}
-
-export function getServices(companyId: string) {
-  return Company.findById(companyId).then((c) => {
-    if (!c)
-      throw new Error(
-        JSON.stringify({ status: 404, message: "Company not found" })
-      );
-    return c.services;
-  });
-}
-
-export function deleteUserAccount(email: string, uid?: string) {
-  return Company.updateMany({}, { $pull: { employees: { email } } }).then(
-    async () => {
-      if (uid) {
-        await auth.deleteUser(uid);
-      }
-    }
-  );
-}
-
-export async function leaveCompany(companyId: string, userEmail: string) {
-  const c = await Company.findById(companyId).exec();
-  if (!c)
-    throw new Error(
-      JSON.stringify({ status: 404, message: "Company not found" })
-    );
-  if (c.ownerEmail === userEmail)
-    throw new Error(
-      JSON.stringify({ status: 400, message: "Owner cannot leave" })
-    );
-  c.employees = c.employees.filter((e: any) => e.email !== userEmail);
-  await c.save();
 }
 
 /**
- * Find the company where the given email is either owner or employee.
+ * Returns all companies where user is owner or employee (by email).
  */
-export function findByEmail(email: string) {
-  return Company.findOne({
-    $or: [{ ownerEmail: email }, { "employees.email": email }],
-  }).exec();
+export async function listCompaniesForUser(user: {
+  uid: string;
+  email: string;
+}): Promise<CompanyDocument[]> {
+  // 1. Owned companies
+  const ownedCompanies = await Company.find({ ownerUserId: user.uid });
+
+  // 2. Employees with this email
+  const employees = await Employee.find({ email: user.email });
+  const clinicIds = employees.map((emp) => emp.clinicId);
+
+  // 3. Clinics where user is an employee
+  const clinics = await Clinic.find({ _id: { $in: clinicIds } });
+  const companyIdsFromClinics = clinics.map((clinic) =>
+    clinic.companyId instanceof Object
+      ? clinic.companyId.toString()
+      : clinic.companyId
+  );
+
+  // 4. Companies by those IDs
+  const memberCompanies = await Company.find({
+    _id: { $in: companyIdsFromClinics },
+  });
+
+  // 5. Merge, dedupe by _id
+  const allCompanies = [
+    ...ownedCompanies,
+    ...memberCompanies.filter(
+      (mc) =>
+        !ownedCompanies.some(
+          (oc) =>
+            oc._id &&
+            typeof oc._id === "object" &&
+            "equals" in oc._id &&
+            typeof oc._id.equals === "function" &&
+            oc._id.equals(mc._id)
+        )
+    ),
+  ];
+
+  return allCompanies;
 }

@@ -32,17 +32,25 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getNotifications = getNotifications;
-exports.markPatientCalled = markPatientCalled;
+exports.listNotifications = listNotifications;
+exports.markNotificationDone = markNotificationDone;
 exports.processPending = processPending;
-const repo = __importStar(require("../dataAccess/notificationRepository"));
-function getNotifications(companyId) {
-    return repo.findPendingByCompany(companyId);
+// services/notificationService.ts
+const repoNotif = __importStar(require("../dataAccess/notificationRepository"));
+const http_errors_1 = __importDefault(require("http-errors"));
+async function listNotifications(companyId, clinicId) {
+    return repoNotif.listNotifications(companyId, clinicId);
 }
-function markPatientCalled(companyId, notificationId) {
-    return repo.markDone(companyId, notificationId);
+async function markNotificationDone(companyId, clinicId, notificationId) {
+    const n = await repoNotif.updateNotificationStatus(notificationId, "done");
+    if (!n)
+        throw (0, http_errors_1.default)(404, "Notification not found");
+    return n;
 }
 function processPending() {
-    return repo.processAllPending();
+    throw new Error("Function not implemented.");
 }

@@ -1,177 +1,116 @@
 // src/pages/Home/Home.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { GreetingHeader } from "../../components/GreetingHeader/GreetingHeader";
-import { QuickActionsRow } from "../../components/QuickActionsRow/QuickActionsRow";
-import { UpcomingAppointments } from "../../components/UpcomingAppointments/UpcomingAppointments";
-import { HomeNavGrid } from "../../components/HomeNavGrid/HomeNavGrid";
-import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
+import { useHomeData } from "../../hooks/useHomeData";
 import { useTodaysAppointments } from "../../hooks/useTodaysAppointments";
-import { getNotifications } from "../../api/notificationApi";
-import AddPatient from "../../components/AddPatient/AddPatientModal";
-import { NewAppointmentModal } from "../../components/CalendarView/NewAppointmentModal";
-import { ServiceModal } from "../../components/Modals/ServiceModal/ServiceModal";
-import { getPatients } from "../../api/patientApi";
-import { getServices } from "../../api/servicesApi";
-import { getEmployees } from "../../api/employeeApi";
-import { createAppointment } from "../../api/appointmentApi";
-import type {
-  NotificationInfo,
-  Patient as PatientType,
-  ServiceInfo,
-  EmployeeInfo,
-} from "../../types/sharedTypes";
+
+import HomeHeader from "../../components/HomePage/HomeHeader";
+import { HomeNavSection } from "../../components/HomePage/HomeNavSection";
+import { HomeQuickActions } from "../../components/HomePage/HomeQuickActions";
+import { HomeUpcomingAppointments } from "../../components/HomePage/HomeUpcomingAppointments";
+import HomeModals, {
+  HomeModalType,
+} from "../../components/HomePage/HomeModals";
+import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 
 const Home: React.FC = () => {
-  const { idToken, companyId, companyName, user } = useAuth();
+  const {
+    idToken,
+    selectedCompanyId,
 
-  // **All hooks run at top level**:
-  const [unreadCount, setUnreadCount] = useState(0);
+    selectedClinicId,
 
-  const { appointments: todaysAppointments, employees: allEmployees } =
-    useTodaysAppointments(idToken ?? "", companyId ?? "");
+    user,
+  } = useAuth();
 
-  const [showAddPatient, setShowAddPatient] = useState(false);
-  const [activeModal, setActiveModal] = useState<"randevu" | "service" | null>(
-    null
+  // allow our null business IDs
+  const {
+    patients,
+    services,
+    employees,
+    groups,
+    loading: homeLoading,
+    error: homeError,
+    unreadCount = 0,
+    refresh: refreshHomeData,
+  } = useHomeData(
+    idToken ?? undefined,
+    selectedCompanyId ?? undefined,
+    selectedClinicId ?? undefined,
+    []
   );
 
-  const [patients, setPatients] = useState<PatientType[]>([]);
-  const [services, setServices] = useState<ServiceInfo[]>([]);
-  const [employees, setEmployees] = useState<EmployeeInfo[]>([]);
-
-  const [selectedPatient, setSelectedPatient] = useState("");
-  const [selectedService, setSelectedService] = useState("");
-  const [selectedEmployee, setSelectedEmployee] = useState("");
-  const [startStr, setStartStr] = useState("");
-  const [endStr, setEndStr] = useState("");
-
-  // fetch unread count
-  useEffect(() => {
-    const fetchUnread = async () => {
-      if (!idToken || !companyId) {
-        setUnreadCount(0);
-        return;
-      }
-      try {
-        const notifs: NotificationInfo[] = await getNotifications(
-          idToken,
-          companyId
-        );
-        setUnreadCount(notifs.filter((n) => !n.isCalled).length);
-      } catch {
-        setUnreadCount(0);
-      }
-    };
-    fetchUnread();
-  }, [idToken, companyId]);
-
-  // preload lists when any modal opens
-  useEffect(() => {
-    if (!idToken || !companyId) return;
-    if (showAddPatient || activeModal) {
-      Promise.all([
-        getPatients(idToken, companyId),
-        getServices(idToken, companyId),
-        getEmployees(idToken, companyId),
-      ])
-        .then(([p, s, e]) => {
-          setPatients(p);
-          setServices(s);
-          setEmployees(e);
-        })
-        .catch(console.error);
-    }
-  }, [idToken, companyId, showAddPatient, activeModal]);
-
-  // **Now that all hooks are declared, we can guard render:**
-  if (!idToken || !companyId || !companyName || !user) {
-    return null;
-  }
-
-  // create appointment handler
-  const handleCreateAppointment = async (
-    startISO: string,
-    endISO: string,
-    empEmail: string
-  ) => {
-    await createAppointment(
-      idToken,
-      companyId,
-      selectedPatient,
-      empEmail,
-      selectedService,
-      startISO,
-      endISO
+  const { appointments: todaysAppointments, employees: allEmployees } =
+    useTodaysAppointments(
+      idToken ?? "",
+      selectedCompanyId ?? "",
+      selectedClinicId ?? ""
     );
-    alert("Randevu başarıyla oluşturuldu.");
-    setActiveModal(null);
-  };
+
+  // track which modal is open
+  const [activeModal, setActiveModal] = useState<HomeModalType>(null);
+
+  if (!idToken || !selectedCompanyId || !selectedClinicId || !user) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        Yükleniyor…
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 pb-16">
       <div className="flex-1 overflow-auto px-4 py-4 space-y-4">
-        <GreetingHeader
-          userName={user.name}
-          userAvatarUrl={user.imageUrl || ""}
-          companyName={companyName}
+        <HomeHeader />
+
+        <HomeNavSection unreadCount={unreadCount} />
+
+        <HomeQuickActions
+          onAddPatient={() => setActiveModal("addPatient")}
+          onAddAppointment={() => setActiveModal("addAppointment")}
+          onAddService={() => setActiveModal("addService")}
         />
 
-        <div className="rounded-2xl shadow bg-white p-2">
-          <HomeNavGrid unreadCount={unreadCount} />
-        </div>
-
-        <QuickActionsRow
-          onAddPatient={() => setShowAddPatient(true)}
-          onAddAppointment={() => setActiveModal("randevu")}
-          onAddService={() => setActiveModal("service")}
-        />
-
-        <UpcomingAppointments
+        <HomeUpcomingAppointments
           appointments={todaysAppointments}
           user={{ email: user.email, role: user.role ?? "" }}
           employees={allEmployees}
         />
+
+        {homeLoading && <div>Yükleniyor…</div>}
+        {homeError && <div className="text-red-600">{homeError}</div>}
       </div>
 
-      <AddPatient
-        show={showAddPatient}
-        onClose={() => setShowAddPatient(false)}
+      <HomeModals
+        activeModal={activeModal}
+        closeModal={() => setActiveModal(null)}
+        onAddPatientInModal={refreshHomeData}
+        onServiceAdded={refreshHomeData}
         idToken={idToken}
-        companyId={companyId}
-      />
-
-      <NewAppointmentModal
-        show={activeModal === "randevu"}
-        onClose={() => setActiveModal(null)}
+        companyId={selectedCompanyId}
+        clinicId={selectedClinicId}
         patients={patients}
-        employees={employees.map((e) => ({ ...e, name: e.name ?? "" }))}
-        services={services.filter(
-          (s): s is ServiceInfo & { _id: string } => typeof s._id === "string"
-        )}
+        employees={employees}
+        services={services}
+        groups={groups}
         isOwner={user.role === "owner"}
-        currentEmail={user.email}
-        selectedPatient={selectedPatient}
-        setSelectedPatient={setSelectedPatient}
-        selectedEmployee={selectedEmployee}
-        setSelectedEmployee={setSelectedEmployee}
-        selectedService={selectedService}
-        setSelectedService={setSelectedService}
-        startStr={startStr}
-        setStartStr={setStartStr}
-        endStr={endStr}
-        setEndStr={setEndStr}
-        onSubmit={handleCreateAppointment}
-        onAddPatient={() => {
-          setActiveModal(null);
-          setShowAddPatient(true);
-        }}
-      />
-
-      <ServiceModal
-        show={activeModal === "service"}
-        onClose={() => setActiveModal(null)}
-        onSubmit={() => setActiveModal(null)}
+        currentUserId={user.email}
+        currentUserName={user.name ?? ""}
+        selectedPatient={""}
+        setSelectedPatient={() => {}}
+        selectedEmployee={""}
+        setSelectedEmployee={() => {}}
+        selectedService={""}
+        setSelectedService={() => {}}
+        selectedGroup={""}
+        setSelectedGroup={() => {}}
+        startStr={""}
+        setStartStr={() => {}}
+        endStr={""}
+        setEndStr={() => {}}
+        onSubmitIndividual={() => {}}
+        onSubmitGroup={() => {}}
+        onSubmitCustom={() => {}}
       />
 
       <NavigationBar />

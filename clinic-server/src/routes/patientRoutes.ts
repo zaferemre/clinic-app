@@ -1,36 +1,17 @@
-import express from "express";
+// src/routes/patientRoutes.ts
+import { Router } from "express";
 import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
-import { authorizeCompanyAccess } from "../middlewares/authorizeCompanyAccess";
-import {
-  createPatient,
-  getPatients,
-  getPatientById, // ← import new
-  updatePatient,
-  recordPayment,
-  getPatientAppointments,
-  flagPatientCall,
-  deletePatient,
-} from "../controllers/patientController";
 
-const router = express.Router();
-
-// protect all /:companyId routes
-router.use("/:companyId", verifyFirebaseToken, authorizeCompanyAccess);
-
-// Create & list
-router.post("/:companyId/patients", createPatient);
-router.get("/:companyId/patients", getPatients);
-
-// ← single‐patient GET
-router.get("/:companyId/patients/:patientId", getPatientById);
-
-router.patch("/:companyId/patients/:patientId", updatePatient);
-router.patch("/:companyId/patients/:patientId/payment", recordPayment);
-router.patch("/:companyId/patients/:patientId/flag-call", flagPatientCall);
-router.get(
-  "/:companyId/patients/:patientId/appointments",
-  getPatientAppointments
-);
-router.delete("/:companyId/patients/:patientId", deletePatient);
+import * as patientCtrl from "../controllers/patientController";
+const router = Router({ mergeParams: true });
+router.use(verifyFirebaseToken);
+router.post("/", patientCtrl.createPatient);
+router.get("/", patientCtrl.listPatients);
+router.get("/:patientId", patientCtrl.getPatientById);
+router.patch("/:patientId", patientCtrl.updatePatient);
+router.post("/:patientId/payments", patientCtrl.recordPayment);
+router.get("/:patientId/appointments", patientCtrl.getPatientAppointments);
+router.post("/:patientId/call-flag", patientCtrl.flagPatientCall);
+router.delete("/:patientId", patientCtrl.deletePatient);
 
 export default router;

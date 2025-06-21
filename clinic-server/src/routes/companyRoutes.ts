@@ -1,70 +1,30 @@
-import express from "express";
+import { Router } from "express";
+import * as companyController from "../controllers/companyController";
 import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
 import { authorizeCompanyAccess } from "../middlewares/authorizeCompanyAccess";
-import {
-  createCompany,
-  getCompany,
-  updateCompany,
-  deleteCompany,
-  listEmployees,
-  addEmployee,
-  updateEmployee,
-  deleteEmployee,
-  joinCompany,
-  leaveCompany,
-  getEmployeeSchedule,
-  updateWorkingHours,
-  updateServices,
-  getServices,
-  deleteUserAccount,
-} from "../controllers/companyController";
-import {
-  listRoles,
-  addRole,
-  updateRole,
-  deleteRole,
-} from "../controllers/roleController";
 
-const router = express.Router();
+const router = Router();
 
-// all routes need a valid Firebase token
+// 1) auth middleware for *all* company routes
 router.use(verifyFirebaseToken);
 
-// Public (token-only) endpoints
-router.post("/", createCompany);
-router.post("/:companyId/join", joinCompany);
-router.post("/:companyId/leave", leaveCompany);
+// 2) public/before-membership routes
+router.post("/join", companyController.joinByCode);
+router.post("/:companyId/clinics/:clinicId/join", companyController.joinClinic);
+router.post("/", companyController.createCompany);
+router.get("/", companyController.listCompanies);
+router.get("/:companyId", companyController.getCompanyById);
 
-// everything under /:companyId now also needs company access
+// this one doesn’t include a companyId, so leave it here:
+router.delete("/user", companyController.deleteUserAccount);
+
+// 3) everything below now requires a real :companyId
 router.use("/:companyId", authorizeCompanyAccess);
 
-// Basic company ops
-router.get("/", getCompany);
-router.get("/:companyId", getCompany);
-router.patch("/:companyId", updateCompany);
-router.delete("/:companyId", deleteCompany);
-
-// Employee management
-router.post("/:companyId/employees", addEmployee);
-router.get("/:companyId/employees", listEmployees);
-router.patch("/:companyId/employees/:employeeId", updateEmployee);
-router.delete("/:companyId/employees/:employeeId", deleteEmployee);
-
-// Scheduling
-router.get("/:companyId/schedule/:employeeId", getEmployeeSchedule);
-
-// Owner‐only settings
-router.patch("/:companyId/working-hours", updateWorkingHours);
-router.patch("/:companyId/services", updateServices);
-router.get("/:companyId/services", getServices);
-
-// Role management
-router.get("/:companyId/roles", listRoles);
-router.post("/:companyId/roles", addRole);
-router.patch("/:companyId/roles", updateRole);
-router.delete("/:companyId/roles/:role", deleteRole);
-
-// Delete current user account
-router.delete("/user", deleteUserAccount);
+// Company-scoped actions
+router.patch("/:companyId", companyController.updateCompany);
+router.delete("/:companyId", companyController.deleteCompany);
+router.get("/:companyId/employees", companyController.listEmployees);
+router.post("/:companyId/leave", companyController.leaveCompany);
 
 export default router;

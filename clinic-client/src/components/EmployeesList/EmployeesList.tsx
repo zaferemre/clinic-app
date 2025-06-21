@@ -1,11 +1,22 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { EmployeeCard } from "./EmployeeCard";
-import { EmployeeInfo } from "../../types/sharedTypes";
+import EmployeeCard from "./EmployeeCard";
+import type { EmployeeInfo } from "../../types/sharedTypes";
+import {
+  listEmployees,
+  updateEmployee,
+  removeEmployee,
+} from "../../api/employeeApi";
 import { API_BASE } from "../../config/apiConfig";
 
 export const EmployeesList: React.FC = () => {
-  const { idToken, companyId, user } = useAuth();
+  const {
+    idToken,
+    selectedCompanyId: companyId,
+    selectedClinicId: clinicId,
+    user,
+  } = useAuth();
+
   const [employees, setEmployees] = useState<EmployeeInfo[]>([]);
   const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
   const [ownerImageUrl, setOwnerImageUrl] = useState<string | null>(null);
@@ -14,8 +25,9 @@ export const EmployeesList: React.FC = () => {
   const [updatingEmail, setUpdatingEmail] = useState<string | null>(null);
   const [removingEmail, setRemovingEmail] = useState<string | null>(null);
 
+  // Fetch employees list, always scoped to selected company & clinic
   const fetchEmployees = useCallback(async () => {
-    if (!idToken || !companyId) {
+    if (!idToken || !companyId || !clinicId) {
       setEmployees([]);
       setOwnerEmail(null);
       setOwnerImageUrl(null);
@@ -27,7 +39,7 @@ export const EmployeesList: React.FC = () => {
     setError(null);
 
     try {
-      // 1) Fetch company info
+      // 1) Fetch company for owner info
       const compRes = await fetch(`${API_BASE}/company/${companyId}`, {
         headers: {
           "Content-Type": "application/json",
@@ -36,18 +48,11 @@ export const EmployeesList: React.FC = () => {
       });
       if (!compRes.ok) throw new Error("Şirket bilgisi alınamadı");
       const comp = await compRes.json();
-      setOwnerEmail(comp.ownerEmail ?? null);
+      setOwnerEmail(comp.ownerEmail ?? user?.email ?? null);
       setOwnerImageUrl(comp.ownerImageUrl ?? user?.imageUrl ?? null);
 
-      // 2) Fetch sub-document employees
-      const empRes = await fetch(`${API_BASE}/company/${companyId}/employees`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-      if (!empRes.ok) throw new Error("Çalışanlar yüklenemedi");
-      const empArr: EmployeeInfo[] = await empRes.json();
+      // 2) Fetch employees via API
+      const empArr = await listEmployees(idToken, companyId, clinicId);
 
       // 3) Prepend owner if missing
       if (comp.ownerEmail) {
@@ -79,34 +84,19 @@ export const EmployeesList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [idToken, companyId, user?.imageUrl]);
+  }, [idToken, companyId, clinicId, user?.email, user?.imageUrl]);
 
   useEffect(() => {
     fetchEmployees();
   }, [fetchEmployees]);
 
-  // Delete employee
+  // Remove employee (API)
   const handleRemoveEmployee = async (email: string) => {
-    if (!idToken || !companyId || email === ownerEmail) return;
+    if (!idToken || !companyId || !clinicId || email === ownerEmail) return;
     if (!window.confirm("Bu çalışan silinsin mi?")) return;
     setRemovingEmail(email);
     try {
-      const res = await fetch(
-        `${API_BASE}/company/${companyId}/employees/${encodeURIComponent(
-          email
-        )}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-        }
-      );
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Silme başarısız.");
-      }
+      await removeEmployee(idToken, companyId, clinicId, email);
       await fetchEmployees();
     } catch (e) {
       console.error(e);
@@ -115,28 +105,15 @@ export const EmployeesList: React.FC = () => {
     }
   };
 
-  // Update employee (role & workingHours)
+  // Update employee (role & workingHours, API)
   const handleUpdateEmployee = async (
     email: string,
     updates: Partial<Pick<EmployeeInfo, "role" | "workingHours">>
   ) => {
-    if (!idToken || !companyId) return;
+    if (!idToken || !companyId || !clinicId) return;
     setUpdatingEmail(email);
     try {
-      const res = await fetch(
-        `${API_BASE}/company/${companyId}/employees/${encodeURIComponent(
-          email
-        )}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-          body: JSON.stringify(updates),
-        }
-      );
-      if (!res.ok) throw new Error("Güncelleme başarısız.");
+      await updateEmployee(idToken, companyId, clinicId, email, updates);
       await fetchEmployees();
     } catch (e) {
       console.error(e);
@@ -145,28 +122,49 @@ export const EmployeesList: React.FC = () => {
     }
   };
 
-  if (loading) return <p>Çalışanlar yükleniyor…</p>;
-  if (error) return <p className="text-red-500">Hata: {error}</p>;
-  if (!companyId || ownerEmail === null)
-    return <p>Henüz bir şirkete katılmadınız veya bilinmiyor.</p>;
-  if (employees.length === 0) return <p>Henüz çalışan eklenmemiş.</p>;
+  // --- UI ---
+  if (loading)
+    return (
+      <div className="flex justify-center py-8">
+        <span className="text-brand-main font-medium animate-pulse">
+          Çalışanlar yükleniyor…
+        </span>
+      </div>
+    );
+  if (error)
+    return (
+      <div className="flex justify-center py-8">
+        <span className="text-red-500 font-medium">{error}</span>
+      </div>
+    );
+  if (!companyId || !clinicId || ownerEmail === null)
+    return (
+      <div className="flex justify-center py-8">
+        <span>Henüz bir şirkete/kliniğe katılmadınız veya bilinmiyor.</span>
+      </div>
+    );
+  if (employees.length === 0)
+    return (
+      <div className="flex justify-center py-8">
+        <span>Henüz çalışan eklenmemiş.</span>
+      </div>
+    );
 
   return (
-    <div className="space-y-6 p-4 bg-brand-gray-100 rounded-lg shadow-sm">
-      <h2 className="text-2xl font-semibold text-brand-black">Çalışanlar</h2>
+    <div className="space-y-5  p-4 bg-white rounded-xl shadow-md">
       <ul className="space-y-3">
         {employees.map((e) => (
-          <EmployeeCard
-            key={e._id ?? e.email} // guaranteed unique
-            employee={e}
-            ownerEmail={ownerEmail}
-            ownerImageUrl={ownerImageUrl!}
-            updatingEmail={updatingEmail}
-            removingEmail={removingEmail}
-            onRemove={handleRemoveEmployee}
-            onUpdateEmployee={handleUpdateEmployee}
-            removingId={removingEmail === e.email ? e._id ?? null : null}
-          />
+          <li key={e._id ?? e.email}>
+            <EmployeeCard
+              employee={e}
+              ownerEmail={ownerEmail}
+              ownerImageUrl={ownerImageUrl!}
+              updatingEmail={updatingEmail}
+              removingEmail={removingEmail}
+              onRemove={handleRemoveEmployee}
+              onUpdateEmployee={handleUpdateEmployee}
+            />
+          </li>
         ))}
       </ul>
     </div>

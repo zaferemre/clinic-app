@@ -1,0 +1,409 @@
+import React, { useState, useEffect, useRef } from "react";
+import { useAuth } from "../../contexts/AuthContext";
+import { createClinic } from "../../api/clinicApi";
+import turkeyGeo from "../../data/turkey-geo.json";
+import LocationPicker from "../LocationPicker";
+import CountryCodes from "../../data/CountryCodes.json";
+
+// Convert country code to flag emoji
+function countryCodeToFlag(code: string) {
+  return code
+    .toUpperCase()
+    .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)));
+}
+
+type DayOfWeek =
+  | "Monday"
+  | "Tuesday"
+  | "Wednesday"
+  | "Thursday"
+  | "Friday"
+  | "Saturday"
+  | "Sunday";
+
+interface WorkingHour {
+  day: DayOfWeek;
+  open: string;
+  close: string;
+}
+
+const DEFAULT_WORKING_HOURS: WorkingHour[] = [
+  { day: "Monday", open: "09:00", close: "17:00" },
+  { day: "Tuesday", open: "09:00", close: "17:00" },
+  { day: "Wednesday", open: "09:00", close: "17:00" },
+  { day: "Thursday", open: "09:00", close: "17:00" },
+  { day: "Friday", open: "09:00", close: "17:00" },
+];
+
+interface PhoneInputProps {
+  phone: string;
+  setPhone: React.Dispatch<React.SetStateAction<string>>;
+  phoneCode: { code: string; dial_code: string; name: string };
+  setPhoneCode: React.Dispatch<
+    React.SetStateAction<{ code: string; dial_code: string; name: string }>
+  >;
+}
+
+function PhoneInput({
+  phone,
+  setPhone,
+  phoneCode,
+  setPhoneCode,
+}: PhoneInputProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (open && ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    window.addEventListener("mousedown", handleClickOutside);
+    return () => window.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  const topList = CountryCodes.filter((c) =>
+    ["TR", "US", "DE", "GB", "FR"].includes(c.code)
+  );
+  const restList = CountryCodes.filter((c) => !topList.includes(c));
+
+  return (
+    <div ref={ref} className="flex gap-2 items-center relative">
+      <button
+        type="button"
+        className="flex items-center gap-1 border rounded-xl px-3 py-2 bg-white"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span>{countryCodeToFlag(phoneCode.code)}</span>
+        <span>{phoneCode.dial_code}</span>
+        <svg width={16} height={16} fill="none" className="ml-1">
+          <path d="M4 6l4 4 4-4" stroke="#333" strokeWidth={2} />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute top-10 left-0 bg-white border rounded shadow-lg z-10 w-64 max-h-60 overflow-auto">
+          {[...topList, ...restList].map((c) => (
+            <button
+              key={c.code}
+              type="button"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 cursor-pointer w-full text-left"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setPhoneCode(c);
+                setOpen(false);
+              }}
+            >
+              <span>{countryCodeToFlag(c.code)}</span>
+              <span>{c.name}</span>
+              <span className="ml-auto">{c.dial_code}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <input
+        type="tel"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+        placeholder="Telefon Numarası*"
+        className="border rounded-xl px-3 py-2 flex-1"
+        maxLength={15}
+      />
+    </div>
+  );
+}
+
+export default function CreateClinicForm({
+  onCreated,
+  onClose,
+}: {
+  onCreated: (id: string, name: string) => void;
+  onClose: () => void;
+}) {
+  const { idToken, selectedCompanyId } = useAuth();
+  const [clinicName, setClinicName] = useState("");
+
+  const [provQuery, setProvQuery] = useState("");
+  const [provSug, setProvSug] = useState<string[]>([]);
+  const [districtQuery, setDistrictQuery] = useState("");
+  const [districtSug, setDistrictSug] = useState<string[]>([]);
+  const [townQuery, setTownQuery] = useState("");
+  const [townSug, setTownSug] = useState<string[]>([]);
+  const [neighQuery, setNeighQuery] = useState("");
+  const [neighSug, setNeighSug] = useState<string[]>([]);
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [mapLocation, setMapLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [phoneCode, setPhoneCode] = useState(
+    CountryCodes.find((c) => c.code === "TR")!
+  );
+  const [phone, setPhone] = useState("");
+  const [workingHours, setWorkingHours] = useState(DEFAULT_WORKING_HOURS);
+  const [message, setMessage] = useState("");
+
+  interface NeighbourhoodData {
+    Province: string;
+    Districts: {
+      District: string;
+      Towns: {
+        Town: string;
+        Neighbourhoods: string[];
+      }[];
+    }[];
+  }
+
+  const provinces: NeighbourhoodData[] = turkeyGeo;
+
+  // Address autocomplete
+  useEffect(() => {
+    setProvSug(
+      provinces
+        .map((p) => p.Province)
+        .filter((n) => n.toLowerCase().includes(provQuery.toLowerCase()))
+    );
+    setDistrictSug([]);
+    setTownSug([]);
+    setNeighSug([]);
+  }, [provQuery, provinces]);
+
+  useEffect(() => {
+    const p = provinces.find((p) => p.Province === provQuery);
+    const list =
+      p?.Districts.map(
+        (d: {
+          District: string;
+          Towns: { Town: string; Neighbourhoods: string[] }[];
+        }) => d.District
+      ) || [];
+    setDistrictSug(
+      list.filter((n: string) =>
+        n.toLowerCase().includes(districtQuery.toLowerCase())
+      )
+    );
+    setTownSug([]);
+    setNeighSug([]);
+  }, [districtQuery, provQuery, provinces]);
+
+  useEffect(() => {
+    const p = provinces.find((p) => p.Province === provQuery);
+    const d = p?.Districts.find(
+      (d: {
+        District: string;
+        Towns: { Town: string; Neighbourhoods: string[] }[];
+      }) => d.District === districtQuery
+    );
+    const list =
+      d?.Towns.map((t: { Town: string; Neighbourhoods: string[] }) => t.Town) ||
+      [];
+    setTownSug(
+      list.filter((n: string) =>
+        n.toLowerCase().includes(townQuery.toLowerCase())
+      )
+    );
+    setNeighSug([]);
+  }, [townQuery, districtQuery, provQuery, provinces]);
+
+  useEffect(() => {
+    const p = provinces.find((p) => p.Province === provQuery);
+    const d = p?.Districts.find(
+      (d: {
+        District: string;
+        Towns: { Town: string; Neighbourhoods: string[] }[];
+      }) => d.District === districtQuery
+    );
+    const t = d?.Towns.find(
+      (t: { Town: string; Neighbourhoods: string[] }) => t.Town === townQuery
+    );
+    const list = t?.Neighbourhoods || [];
+    setNeighSug(
+      list.filter((n: string) =>
+        n.toLowerCase().includes(neighQuery.toLowerCase())
+      )
+    );
+  }, [neighQuery, townQuery, districtQuery, provQuery, provinces]);
+
+  // Geocode selected address
+  useEffect(() => {
+    if (provQuery && districtQuery && townQuery && neighQuery) {
+      const query = `${neighQuery}, ${townQuery}, ${districtQuery}, ${provQuery}, Turkey`;
+      fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          query
+        )}&limit=1`
+      )
+        .then((res) => res.json())
+        .then((data: { lat: string; lon: string }[]) => {
+          if (data[0]) setMapLocation({ lat: +data[0].lat, lng: +data[0].lon });
+        });
+    }
+  }, [provQuery, districtQuery, townQuery, neighQuery]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage("");
+    if (!clinicName) return setMessage("Klinik adı gerekli.");
+    if (!selectedCompanyId) return setMessage("Geçersiz şirket.");
+    if (!provQuery || !districtQuery) return setMessage("Adres gerekli.");
+    if (!mapLocation) return setMessage("Konum seçin.");
+    if (!phone) return setMessage("Telefon gerekli.");
+
+    const payload = {
+      name: clinicName,
+      address: {
+        province: provQuery,
+        district: districtQuery,
+        town: townQuery,
+        neighborhood: neighQuery,
+      },
+      phoneNumber: `${phoneCode.dial_code}${phone}`,
+      location: {
+        type: "Point" as const,
+        coordinates: [mapLocation.lng, mapLocation.lat],
+      },
+      workingHours,
+      services: [] as string[],
+    };
+
+    try {
+      const created = await createClinic(idToken!, selectedCompanyId!, payload);
+      onCreated(created._id, created.name);
+    } catch (err: unknown) {
+      console.error("[CreateClinicForm] Error creating clinic:", err);
+      if (err instanceof Error) {
+        setMessage(err.message || "Hata oluştu.");
+      } else {
+        setMessage("Hata oluştu.");
+      }
+    }
+  };
+  const fields = [
+    {
+      value: provQuery,
+      setter: setProvQuery,
+      suggestions: provSug,
+      placeholder: "Şehir*",
+    },
+    {
+      value: districtQuery,
+      setter: setDistrictQuery,
+      suggestions: districtSug,
+      placeholder: "İlçe*",
+    },
+    {
+      value: townQuery,
+      setter: setTownQuery,
+      suggestions: townSug,
+      placeholder: "Semt",
+    },
+    {
+      value: neighQuery,
+      setter: setNeighQuery,
+      suggestions: neighSug,
+      placeholder: "Mahalle",
+    },
+  ];
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <input
+        value={clinicName}
+        onChange={(e) => setClinicName(e.target.value)}
+        placeholder="Klinik Adı*"
+        className="border p-2 rounded w-full"
+      />
+      <PhoneInput
+        phone={phone}
+        setPhone={setPhone}
+        phoneCode={phoneCode}
+        setPhoneCode={setPhoneCode}
+      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {fields.map((f, idx) => (
+          <div key={idx} className="relative">
+            <input
+              value={f.value}
+              onChange={(e) => {
+                f.setter(e.target.value);
+                setOpenIdx(idx);
+              }}
+              onFocus={() => setOpenIdx(idx)}
+              placeholder={f.placeholder}
+              className="border w-full px-2 py-1 rounded"
+              autoComplete="off"
+            />
+            {openIdx === idx && f.suggestions.length > 0 && (
+              <ul className="absolute bg-white border w-full max-h-32 overflow-auto mt-1 z-20 rounded shadow">
+                {f.suggestions.map((s) => (
+                  <li
+                    key={s}
+                    className="px-2 py-1 hover:bg-gray-100 cursor-pointer"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      f.setter(s);
+                      setOpenIdx(null);
+                    }}
+                  >
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+      <div>
+        <label className="block mb-1">Konum Seç</label>
+        <LocationPicker value={mapLocation} onChange={setMapLocation} />
+      </div>
+      <div>
+        <label className="block mb-2">Çalışma Saatleri</label>
+        {workingHours.map((wh, idx) => (
+          <div key={wh.day} className="flex items-center gap-3 mb-2">
+            <span className="w-24 text-sm font-medium">{wh.day}</span>
+            <input
+              type="time"
+              value={wh.open}
+              onChange={(e) =>
+                setWorkingHours((arr) =>
+                  arr.map((w, i) =>
+                    i === idx ? { ...w, open: e.target.value } : w
+                  )
+                )
+              }
+              className="border px-2 py-1 rounded"
+            />
+            <span>–</span>
+            <input
+              type="time"
+              value={wh.close}
+              onChange={(e) =>
+                setWorkingHours((arr) =>
+                  arr.map((w, i) =>
+                    i === idx ? { ...w, close: e.target.value } : w
+                  )
+                )
+              }
+              className="border px-2 py-1 rounded"
+            />
+          </div>
+        ))}
+      </div>
+      {message && <p className="text-red-600">{message}</p>}
+      <button
+        type="submit"
+        className="w-full py-2 bg-brand-main text-white rounded-xl font-semibold hover:bg-brand-green transition"
+      >
+        Oluştur
+      </button>
+      <button
+        type="button"
+        onClick={onClose}
+        className="w-full mt-2 py-2 bg-gray-200 rounded-xl hover:bg-gray-300"
+      >
+        Vazgeç
+      </button>
+    </form>
+  );
+}

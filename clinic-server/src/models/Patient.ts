@@ -1,53 +1,58 @@
-import mongoose, { Document, Schema } from "mongoose";
-
-export interface ServiceEntry {
-  name: string;
-  pointsLeft?: number;
-  sessionsTaken?: number;
-}
-
-export interface PaymentHistoryEntry {
-  date: Date;
-  method: "Havale" | "Card" | "Cash" | "Unpaid";
-  amount: number;
-  note?: string;
-}
+import { Schema, model, Document, Types } from "mongoose";
 
 export interface PatientDocument extends Document {
-  companyId: mongoose.Types.ObjectId;
+  companyId: Types.ObjectId;
+  clinicId: Types.ObjectId;
   name: string;
-  gender: "Male" | "Female" | "Other";
   age?: number;
   phone?: string;
+  email?: string;
   credit: number;
-  services: ServiceEntry[];
-  paymentHistory: PaymentHistoryEntry[];
+  services: {
+    serviceId: Types.ObjectId;
+    pointsLeft?: number;
+    sessionsTaken?: number;
+  }[];
+  groups: Types.ObjectId[];
+  paymentHistory: {
+    date: Date;
+    method: "Havale" | "Card" | "Cash" | "Unpaid";
+    amount: number;
+    note?: string;
+  }[];
+  status: "active" | "inactive" | "archived";
+  lastAppointmentAt?: Date;
   note?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const patientSchema = new Schema<PatientDocument>(
+const PatientSchema = new Schema<PatientDocument>(
   {
     companyId: {
       type: Schema.Types.ObjectId,
+      ref: "company",
       required: true,
-      ref: "Company",
     },
+    clinicId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
     name: { type: String, required: true },
-    gender: {
-      type: String,
-      enum: ["Male", "Female", "Other"],
-      required: true,
-    },
+
     age: { type: Number },
     phone: { type: String },
+    email: { type: String },
     credit: { type: Number, default: 0 },
     services: [
       {
-        name: { type: String, required: true },
+        serviceId: {
+          type: Schema.Types.ObjectId,
+          ref: "Service",
+          required: true,
+        },
         pointsLeft: { type: Number },
         sessionsTaken: { type: Number },
       },
     ],
+    groups: [{ type: Schema.Types.ObjectId, ref: "Group" }],
     paymentHistory: [
       {
         date: { type: Date, default: Date.now },
@@ -60,13 +65,15 @@ const patientSchema = new Schema<PatientDocument>(
         note: { type: String },
       },
     ],
+    status: {
+      type: String,
+      enum: ["active", "inactive", "archived"],
+      default: "active",
+    },
+    lastAppointmentAt: { type: Date },
     note: { type: String },
   },
   { timestamps: true }
 );
 
-const Patient =
-  mongoose.models.Patient ||
-  mongoose.model<PatientDocument>("Patient", patientSchema);
-
-export default Patient;
+export default model<PatientDocument>("Patient", PatientSchema);

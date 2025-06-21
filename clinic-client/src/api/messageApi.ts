@@ -1,3 +1,4 @@
+// src/api/messageApi.ts
 import { IMessage } from "../types/sharedTypes";
 import { request } from "./apiClient";
 
@@ -11,39 +12,24 @@ export function getMessages(
 export function schedulePatientMessage(
   token: string,
   companyId: string,
+  clinicId: string,
   patientId: string,
   body: { text: string; scheduledFor: string }
 ): Promise<IMessage> {
   return request<IMessage>(
-    `/company/${companyId}/messages/patient/${patientId}`,
-    {
-      method: "POST",
-      token,
-      body,
-    }
+    `/company/${companyId}/clinics/${clinicId}/messages/patient/${patientId}`,
+    { method: "POST", token, body }
   );
 }
 
 export function scheduleBulkMessage(
   token: string,
   companyId: string,
+  clinicId: string,
   body: { text: string; scheduledFor: string }
 ): Promise<IMessage> {
-  return request<IMessage>(`/company/${companyId}/messages/bulk`, {
-    method: "POST",
-    token,
-    body,
-  });
-}
-
-export function scheduleAutoRemind(
-  token: string,
-  companyId: string,
-  offsetHours: number
-): Promise<{ message: string; offsetHours: number }> {
-  return request(`/company/${companyId}/messages/auto-remind`, {
-    method: "POST",
-    token,
-    body: { offsetHours },
-  });
+  return request<IMessage>(
+    `/company/${companyId}/clinics/${clinicId}/messages/bulk`,
+    { method: "POST", token, body }
+  );
 }

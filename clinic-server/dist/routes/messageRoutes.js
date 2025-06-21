@@ -58,3 +58,4 @@ router.post("/:companyId/messages/bulk", async (req, res) => {
         res.status(400).json({ error: err.message });
     }
 });
+exports.default = router;

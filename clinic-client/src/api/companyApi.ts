@@ -1,3 +1,4 @@
+// src/api/companyApi.ts
 import {
   Company,
   EmployeeInfo,
@@ -6,9 +7,23 @@ import {
 } from "../types/sharedTypes";
 import { request } from "./apiClient";
 
-export function getCompanyByEmail(token: string): Promise<Company> {
-  return request<Company>("/company", { token });
+export interface JoinCompanyByCodeResponse {
+  companyId: string;
+  companyName: string;
+  clinics: { _id: string; name: string }[];
+  ownerName: string;
 }
+
+/**
+ * Fetch all companies this user belongs to.
+ */
+export function getCompanies(token: string): Promise<Company[]> {
+  return request<Company[]>("/company", { token });
+}
+
+/**
+ * Fetch a single company by its ID.
+ */
 export function getCompanyById(
   token: string,
   companyId: string
@@ -16,17 +31,43 @@ export function getCompanyById(
   return request<Company>(`/company/${companyId}`, { token });
 }
 
-export function createCompany(
-  token: string,
-  payload: Omit<Company, "_id" | "ownerEmail" | "ownerName">
-): Promise<Company> {
-  return request<Company>("/company", { method: "POST", token, body: payload });
+export interface CreateCompanyPayload {
+  name: string;
+  websiteUrl?: string;
+  socialLinks?: {
+    instagram: string;
+    facebook: string;
+    whatsapp: string;
+  };
+  settings: {
+    allowPublicBooking: boolean;
+    inactivityThresholdDays: number;
+  };
 }
 
+/**
+ * Create a new company (POST /company).
+ */
+export function createCompany(
+  token: string,
+  payload: CreateCompanyPayload
+): Promise<Company> {
+  return request<Company>("/company", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+/**
+ * Update an existing company (PATCH /company/:companyId).
+ */
 export function updateCompany(
   token: string,
   companyId: string,
-  updates: Partial<Omit<Company, "_id" | "ownerEmail" | "ownerName">>
+  updates: Partial<
+    Omit<Company, "_id" | "ownerEmail" | "ownerName" | "clinics">
+  >
 ): Promise<Company> {
   return request<Company>(`/company/${companyId}`, {
     method: "PATCH",
@@ -35,10 +76,19 @@ export function updateCompany(
   });
 }
 
+/**
+ * Delete a company (DELETE /company/:companyId).
+ */
 export function deleteCompany(token: string, companyId: string): Promise<void> {
-  return request(`/company/${companyId}`, { method: "DELETE", token });
+  return request(`/company/${companyId}`, {
+    method: "DELETE",
+    token,
+  });
 }
 
+/**
+ * List all employees for a company (GET /company/:companyId/employees).
+ */
 export function listEmployees(
   token: string,
   companyId: string
@@ -46,6 +96,9 @@ export function listEmployees(
   return request<EmployeeInfo[]>(`/company/${companyId}/employees`, { token });
 }
 
+/**
+ * Add a new employee (POST /company/:companyId/employees).
+ */
 export function addEmployee(
   token: string,
   companyId: string,
@@ -58,6 +111,9 @@ export function addEmployee(
   });
 }
 
+/**
+ * Update an employee (PATCH /company/:companyId/employees/:employeeId).
+ */
 export function updateEmployee(
   token: string,
   companyId: string,
@@ -74,6 +130,9 @@ export function updateEmployee(
   );
 }
 
+/**
+ * Remove an employee (DELETE /company/:companyId/employees/:employeeId).
+ */
 export function removeEmployee(
   token: string,
   companyId: string,
@@ -85,57 +144,89 @@ export function removeEmployee(
   });
 }
 
-export function joinCompany(token: string, companyId: string): Promise<void> {
-  return request(`/company/${companyId}/join`, {
+/**
+ * Leave a company (POST /company/:companyId/leave).
+ */
+export function leaveCompany(token: string, companyId: string): Promise<void> {
+  return request(`/company/${companyId}/leave`, {
     method: "POST",
     token,
-    body: { joinCode: companyId },
   });
 }
 
-export function leaveCompany(token: string, companyId: string): Promise<void> {
-  return request(`/company/${companyId}/leave`, { method: "POST", token });
-}
-
-export function getEmployeeSchedule(
-  token: string,
-  companyId: string,
-  employeeId: string
-) {
-  return request(`/company/${companyId}/schedule/${employeeId}`, { token });
-}
-
+/**
+ * Update working hours (PATCH /company/:companyId/working-hours).
+ */
 export function updateWorkingHours(
   token: string,
   companyId: string,
   workingHours: WorkingHour[]
 ): Promise<WorkingHour[]> {
-  return request(`/company/${companyId}/working-hours`, {
+  return request<WorkingHour[]>(`/company/${companyId}/working-hours`, {
     method: "PATCH",
     token,
     body: { workingHours },
   });
 }
 
+/**
+ * Update services (PATCH /company/:companyId/services).
+ */
 export function updateServices(
   token: string,
   companyId: string,
   services: ServiceInfo[]
 ): Promise<ServiceInfo[]> {
-  return request(`/company/${companyId}/services`, {
+  return request<ServiceInfo[]>(`/company/${companyId}/services`, {
     method: "PATCH",
     token,
     body: { services },
   });
 }
 
+/**
+ * Fetch services (GET /company/:companyId/services).
+ */
 export function getServices(
   token: string,
   companyId: string
 ): Promise<ServiceInfo[]> {
-  return request(`/company/${companyId}/services`, { token });
+  return request<ServiceInfo[]>(`/company/${companyId}/services`, { token });
 }
 
+/**
+ * Delete the current user account (DELETE /company/user).
+ */
 export function deleteUser(token: string): Promise<void> {
-  return request("/company/user", { method: "DELETE", token });
+  return request("/company/user", {
+    method: "DELETE",
+    token,
+  });
+}
+
+/**
+ * Join a company by join code (POST /company/join).
+ * Returns { success, companyId, companyName } on success.
+ */
+// Update the API function:
+export function joinCompanyByCode(
+  token: string,
+  joinCode: string
+): Promise<JoinCompanyByCodeResponse> {
+  return request<JoinCompanyByCodeResponse>("/company/join", {
+    method: "POST",
+    token,
+    body: { joinCode },
+  });
+}
+
+export async function joinClinic(
+  token: string,
+  companyId: string,
+  clinicId: string
+) {
+  return request(`/company/${companyId}/clinics/${clinicId}/join`, {
+    method: "POST",
+    token,
+  });
 }

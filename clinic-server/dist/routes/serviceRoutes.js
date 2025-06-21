@@ -1,17 +1,44 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
-const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
-const authorizeCompanyAccess_1 = require("../middlewares/authorizeCompanyAccess");
-const serviceController_1 = require("../controllers/serviceController");
-const router = express_1.default.Router({ mergeParams: true });
-// require token + access for any :companyId
-router.use("/:companyId", verifyFirebaseToken_1.verifyFirebaseToken, authorizeCompanyAccess_1.authorizeCompanyAccess);
-router.get("/:companyId/services", serviceController_1.getServices);
-router.post("/:companyId/services", serviceController_1.createService);
-router.put("/:companyId/services/:serviceId", serviceController_1.updateService);
-router.delete("/:companyId/services/:serviceId", serviceController_1.deleteService);
+// src/routes/serviceRoutes.ts
+const express_1 = require("express");
+const svcCtrl = __importStar(require("../controllers/serviceController"));
+const router = (0, express_1.Router)();
+router.get("/", svcCtrl.listServices);
+router.post("/", svcCtrl.createService);
+router.patch("/:serviceId", svcCtrl.updateService);
+router.delete("/:serviceId", svcCtrl.deleteService);
 exports.default = router;

@@ -1,40 +1,48 @@
-import mongoose, { Document, Schema } from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
 
 export interface NotificationDocument extends Document {
-  companyId: mongoose.Types.ObjectId;
-  patientId: mongoose.Types.ObjectId;
-  type: "call";
-  status: "pending" | "done";
-  workerEmail?: string;
+  companyId: Types.ObjectId;
+  clinicId: Types.ObjectId;
+  patientId?: Types.ObjectId;
+  groupId?: Types.ObjectId;
+  type: "call" | "sms" | "email" | "whatsapp" | "system";
+  status: "pending" | "sent" | "failed" | "done";
+  message: string;
+  trigger: string;
+  workerId?: Types.ObjectId;
   note?: string;
+  sentAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const notificationSchema = new Schema<NotificationDocument>(
+const NotificationSchema = new Schema<NotificationDocument>(
   {
     companyId: {
       type: Schema.Types.ObjectId,
+      ref: "company",
       required: true,
-      ref: "Company",
     },
-    patientId: {
-      type: Schema.Types.ObjectId,
+    clinicId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
+    patientId: { type: Schema.Types.ObjectId, ref: "Patient" },
+    groupId: { type: Schema.Types.ObjectId, ref: "Group" },
+    type: {
+      type: String,
+      enum: ["call", "sms", "email", "whatsapp", "system"],
       required: true,
-      ref: "Patient",
     },
-    type: { type: String, enum: ["call"], required: true },
     status: {
       type: String,
-      enum: ["pending", "done"],
+      enum: ["pending", "sent", "failed", "done"],
       default: "pending",
     },
-    workerEmail: { type: String },
-    note: { type: String, default: "" },
+    message: { type: String, required: true },
+    trigger: { type: String },
+    workerId: { type: Schema.Types.ObjectId, ref: "Employee" },
+    note: { type: String },
+    sentAt: { type: Date },
   },
   { timestamps: true }
 );
 
-const Notification =
-  mongoose.models.Notification ||
-  mongoose.model<NotificationDocument>("Notification", notificationSchema);
-
-export default Notification;
+export default model<NotificationDocument>("Notification", NotificationSchema);

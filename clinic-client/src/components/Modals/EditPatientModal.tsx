@@ -17,7 +17,7 @@ const EditPatientModal: React.FC<EditPatientModalProps> = ({
   patient,
   onUpdated,
 }) => {
-  const { idToken, companyId } = useAuth();
+  const { idToken, selectedCompanyId } = useAuth();
   const [name, setName] = useState(patient.name);
   const [age, setAge] = useState(patient.age?.toString() ?? "");
   const [phone, setPhone] = useState(patient.phone ?? "");
@@ -38,21 +38,27 @@ const EditPatientModal: React.FC<EditPatientModalProps> = ({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!idToken || !companyId) return;
+    if (!idToken || !selectedCompanyId) return;
     setLoading(true);
     setMessage("");
     try {
-      await updatePatientField(idToken, companyId, patient._id, {
-        name: name.trim(),
-        age: age ? Number(age) : undefined,
-        phone: phone.trim(),
-        note: note.trim(),
-      });
+      await updatePatientField(
+        idToken,
+        selectedCompanyId,
+        patient.clinicId, // add clinicId as third argument
+        patient._id,
+        {
+          name: name.trim(),
+          age: age ? Number(age) : undefined,
+          phone: phone.trim(),
+          note: note.trim(),
+        }
+      );
       setMessage("Hasta başarıyla güncellendi.");
       onUpdated?.({ name, age: age ? Number(age) : undefined, phone, note });
       // close after brief delay
       setTimeout(() => onClose(), 800);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Hasta güncellenemedi:", err);
       setMessage("Güncelleme sırasında hata oluştu.");
     } finally {
@@ -64,10 +70,14 @@ const EditPatientModal: React.FC<EditPatientModalProps> = ({
     <AppModal open={open} onClose={onClose} title="Hasta Düzenle">
       <form onSubmit={handleSave} className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-brand-black">
+          <label
+            htmlFor="edit-patient-name"
+            className="block text-sm font-medium text-brand-black"
+          >
             İsim
           </label>
           <input
+            id="edit-patient-name"
             type="text"
             className="mt-1 block w-full border border-brand-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green-300"
             value={name}
@@ -76,10 +86,14 @@ const EditPatientModal: React.FC<EditPatientModalProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-brand-black">
+          <label
+            htmlFor="edit-patient-age"
+            className="block text-sm font-medium text-brand-black"
+          >
             Yaş
           </label>
           <input
+            id="edit-patient-age"
             type="number"
             min="0"
             className="mt-1 block w-full border border-brand-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green-300"
@@ -89,10 +103,14 @@ const EditPatientModal: React.FC<EditPatientModalProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-brand-black">
+          <label
+            htmlFor="edit-patient-phone"
+            className="block text-sm font-medium text-brand-black"
+          >
             Telefon
           </label>
           <input
+            id="edit-patient-phone"
             type="text"
             className="mt-1 block w-full border border-brand-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green-300"
             value={phone}
@@ -101,10 +119,14 @@ const EditPatientModal: React.FC<EditPatientModalProps> = ({
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-brand-black">
+          <label
+            htmlFor="edit-patient-note"
+            className="block text-sm font-medium text-brand-black"
+          >
             Not
           </label>
           <textarea
+            id="edit-patient-note"
             rows={3}
             className="mt-1 block w-full border border-brand-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green-300"
             value={note}

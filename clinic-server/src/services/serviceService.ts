@@ -1,21 +1,38 @@
-import * as repo from "../dataAccess/serviceRepository";
+// services/serviceService.ts
+import * as repoSvc from "../dataAccess/serviceRepository";
+import { Types } from "mongoose";
+import createError from "http-errors";
 
-export function getServices(companyId: string) {
-  return repo.findServices(companyId);
+export async function listServices(companyId: string, clinicId: string) {
+  return repoSvc.listServices(companyId, clinicId);
 }
 
-export function createService(companyId: string, dto: any) {
-  return repo.addService(companyId, dto);
-}
-
-export function updateService(
+export async function createService(
   companyId: string,
+  clinicId: string,
+  data: any
+) {
+  const doc = {
+    companyId: new Types.ObjectId(companyId),
+    clinicId: new Types.ObjectId(clinicId),
+    ...data,
+  };
+  return repoSvc.createService(doc);
+}
+
+export async function updateService(
+  companyId: string,
+  clinicId: string,
   serviceId: string,
   updates: any
 ) {
-  return repo.updateService(companyId, serviceId, updates);
+  return repoSvc.updateServiceById(serviceId, updates);
 }
 
-export function deleteService(companyId: string, serviceId: string) {
-  return repo.deleteService(companyId, serviceId);
+export async function deleteService(
+  companyId: string,
+  clinicId: string,
+  serviceId: string
+) {
+  return repoSvc.deleteServiceById(serviceId);
 }

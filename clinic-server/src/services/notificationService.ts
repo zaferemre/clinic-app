@@ -1,13 +1,20 @@
-import * as repo from "../dataAccess/notificationRepository";
+// services/notificationService.ts
+import * as repoNotif from "../dataAccess/notificationRepository";
+import createError from "http-errors";
 
-export function getNotifications(companyId: string) {
-  return repo.findPendingByCompany(companyId);
+export async function listNotifications(companyId: string, clinicId: string) {
+  return repoNotif.listNotifications(companyId, clinicId);
 }
 
-export function markPatientCalled(companyId: string, notificationId: string) {
-  return repo.markDone(companyId, notificationId);
+export async function markNotificationDone(
+  companyId: string,
+  clinicId: string,
+  notificationId: string
+) {
+  const n = await repoNotif.updateNotificationStatus(notificationId, "done");
+  if (!n) throw createError(404, "Notification not found");
+  return n;
 }
-
 export function processPending() {
-  return repo.processAllPending();
+  throw new Error("Function not implemented.");
 }

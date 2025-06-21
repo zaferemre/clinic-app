@@ -3,17 +3,26 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { connectDB } from "./config/mongoose";
 
-// routers
+// Routers
 import companyRoutes from "./routes/companyRoutes";
+import clinicRoutes from "./routes/clinicRoutes";
 import appointmentRoutes from "./routes/appointmentRoutes";
 import employeeRoutes from "./routes/employeeRoutes";
 import patientRoutes from "./routes/patientRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import serviceRoutes from "./routes/serviceRoutes";
+import groupRoutes from "./routes/groupRoutes";
+import roleRoutes from "./routes/roleRoutes";
 
 dotenv.config();
+
 const app = express();
 
+// body parsing, before any routes
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// CORS
 app.use(
   cors({
     origin: [
@@ -24,23 +33,34 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-app.use(express.json());
 
-// mount routes under /company
+// --- Clinic-scoped sub-routes (mount before company routes) ---
+app.use(
+  "/company/:companyId/clinics/:clinicId/appointments",
+  appointmentRoutes
+);
+app.use("/company/:companyId/clinics/:clinicId/employees", employeeRoutes);
+app.use("/company/:companyId/clinics/:clinicId/patients", patientRoutes);
+app.use(
+  "/company/:companyId/clinics/:clinicId/notifications",
+  notificationRoutes
+);
+app.use("/company/:companyId/clinics/:clinicId/services", serviceRoutes);
+app.use("/company/:companyId/clinics/:clinicId/groups", groupRoutes);
+
+// Roles (company-level but before companyRoutes)
+app.use("/company/:companyId/clinics/:clinicId/roles", roleRoutes);
+
+// --- Clinic routes ---
+app.use("/company/:companyId/clinics", clinicRoutes);
+// --- Company-level routes ---
 app.use("/company", companyRoutes);
-app.use("/company", appointmentRoutes);
-app.use("/company", employeeRoutes);
-app.use("/company", patientRoutes);
-app.use("/company", notificationRoutes);
-app.use("/company", serviceRoutes);
-
-// 404 fallback
+// catch-all 404
 app.use((req: Request, res: Response) => {
   res.status(404).json({ error: "Route not found" });
 });
 
-// connect DB & start server
 connectDB().then(() => {
   const port = process.env.PORT ?? 3001;
-  app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
+  app.listen(port, () => console.log(`Server running on port ${port}`));
 });

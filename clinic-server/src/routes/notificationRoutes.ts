@@ -1,20 +1,9 @@
-import express from "express";
-import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
-import { authorizeCompanyAccess } from "../middlewares/authorizeCompanyAccess";
-import {
-  getNotifications,
-  markPatientCalled,
-} from "../controllers/notificationController";
+// src/routes/notificationRoutes.ts
+import { Router } from "express";
+import * as notifCtrl from "../controllers/notificationController";
+const router = Router({ mergeParams: true });
 
-const router = express.Router();
-
-// require token + access for any :companyId
-router.use("/:companyId", verifyFirebaseToken, authorizeCompanyAccess);
-
-router.get("/:companyId/notifications", getNotifications);
-router.patch(
-  "/:companyId/notifications/:notificationId/mark-called",
-  markPatientCalled
-);
+router.get("/", notifCtrl.getNotifications);
+router.patch("/:notificationId/done", notifCtrl.markNotificationDone);
 
 export default router;

@@ -1,40 +1,43 @@
-import Company from "../models/Company";
+// dataAccess/serviceRepository.ts
+import Service, { ServiceDocument } from "../models/Service";
+import { Types } from "mongoose";
 
-export function findServices(companyId: string) {
-  return Company.findById(companyId).then((c) => {
-    if (!c) throw { status: 404, message: "Company not found" };
-    return c.services;
-  });
-}
-
-export function addService(companyId: string, dto: any) {
-  return Company.findById(companyId).then((c) => {
-    if (!c) throw { status: 404, message: "Company not found" };
-    c.services.push(dto);
-    return c.save().then(() => c.services.at(-1));
-  });
-}
-
-export function updateService(
+export async function listServices(
   companyId: string,
-  serviceId: string,
-  updates: any
-) {
-  return Company.findById(companyId).then((c) => {
-    if (!c) throw { status: 404, message: "Company not found" };
-    const svc = c.services.id(serviceId);
-    if (!svc) throw { status: 404, message: "Service not found" };
-    Object.assign(svc, updates);
-    return c.save().then(() => svc);
+  clinicId: string
+): Promise<ServiceDocument[]> {
+  return Service.find({
+    companyId: new Types.ObjectId(companyId),
+    clinicId: new Types.ObjectId(clinicId),
   });
 }
 
-export function deleteService(companyId: string, serviceId: string) {
-  return Company.findById(companyId).then((c) => {
-    if (!c) throw { status: 404, message: "Company not found" };
-    const svc = c.services.id(serviceId);
-    if (!svc) throw { status: 404, message: "Service not found" };
-    svc.remove();
-    return c.save();
+export async function findServiceById(
+  companyId: string,
+  clinicId: string,
+  serviceId: string
+): Promise<ServiceDocument | null> {
+  return Service.findOne({
+    _id: new Types.ObjectId(serviceId),
+    companyId: new Types.ObjectId(companyId),
+    clinicId: new Types.ObjectId(clinicId),
   });
 }
+
+export async function createService(
+  doc: Partial<ServiceDocument>
+): Promise<ServiceDocument> {
+  return Service.create(doc);
+}
+
+export async function updateServiceById(
+  serviceId: string,
+  updates: Partial<ServiceDocument>
+): Promise<ServiceDocument | null> {
+  return Service.findByIdAndUpdate(serviceId, updates, { new: true });
+}
+
+export async function deleteServiceById(serviceId: string): Promise<void> {
+  await Service.findByIdAndDelete(serviceId);
+}
+export const findById = findServiceById;

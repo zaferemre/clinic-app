@@ -1,11 +1,12 @@
+// src/components/ServicesList/ServicesList.tsx
 import React from "react";
-import { Service } from "../../api/servicesApi";
+import type { ServiceInfo } from "../../types/sharedTypes";
 import { ServiceCard } from "../ServiceCard/ServiceCard";
 
 interface Props {
-  services: Service[];
+  services: ServiceInfo[];
   isOwner: boolean;
-  onEdit: (service: Service) => void;
+  onEdit: (service: ServiceInfo) => void;
   onDelete: (id: string) => void;
 }
 

@@ -44,11 +44,11 @@ export const CalendarEmployeeSelector: React.FC<Props> = ({
   const selectedLabel =
     selectedEmployee === ""
       ? "Hepsi"
-      : employees.find((w) => w.email === selectedEmployee)?.name || "Hepsi";
+      : employees.find((w) => w.email === selectedEmployee)?.name ?? "Hepsi";
 
   // Get avatar URL for selected (fallback to placeholder)
   const selectedAvatar =
-    employees.find((w) => w.email === selectedEmployee)?.pictureUrl || "";
+    employees.find((w) => w.email === selectedEmployee)?.pictureUrl ?? "";
 
   return (
     <div className="relative inline-block text-left" ref={wrapperRef}>
@@ -96,42 +96,46 @@ export const CalendarEmployeeSelector: React.FC<Props> = ({
           "
         >
           {/* “All” option */}
-          <li
-            onClick={() => {
-              onChange("");
-              setOpen(false);
-            }}
-            className="
-              flex items-center px-3 py-2 hover:bg-brand-gray-100
-              cursor-pointer
-            "
-          >
-            {/* No avatar for “All” */}
-            <span className="ml-1 text-sm text-brand-black">Hepsi</span>
-          </li>
-
-          {employees.map((w) => (
-            <li
-              key={w.email}
+          <li>
+            <button
+              type="button"
               onClick={() => {
-                onChange(w.email);
+                onChange("");
                 setOpen(false);
               }}
               className="
-                flex items-center px-3 py-2 hover:bg-brand-gray-100
+                flex items-center w-full text-left px-3 py-2 hover:bg-brand-gray-100
                 cursor-pointer
               "
             >
-              {w.pictureUrl ? (
-                <img
-                  src={w.pictureUrl}
-                  alt={`${w.name} avatar`}
-                  className="w-6 h-6 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-6 h-6 rounded-full bg-brand-gray-200" />
-              )}
-              <span className="ml-2 text-sm text-brand-black">{w.name}</span>
+              {/* No avatar for “All” */}
+              <span className="ml-1 text-sm text-brand-black">Hepsi</span>
+            </button>
+          </li>
+
+          {employees.map((w) => (
+            <li key={w.email}>
+              <button
+                onClick={() => {
+                  onChange(w.email);
+                  setOpen(false);
+                }}
+                className="
+                  flex items-center w-full text-left px-3 py-2 hover:bg-brand-gray-100
+                  cursor-pointer
+                "
+              >
+                {w.pictureUrl ? (
+                  <img
+                    src={w.pictureUrl}
+                    alt={`${w.name} avatar`}
+                    className="w-6 h-6 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-brand-gray-200" />
+                )}
+                <span className="ml-2 text-sm text-brand-black">{w.name}</span>
+              </button>
             </li>
           ))}
         </ul>

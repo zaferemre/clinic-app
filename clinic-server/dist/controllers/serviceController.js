@@ -33,22 +33,24 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteService = exports.updateService = exports.createService = exports.getServices = void 0;
+exports.deleteService = exports.updateService = exports.createService = exports.listServices = void 0;
 const svcService = __importStar(require("../services/serviceService"));
-const getServices = async (req, res, next) => {
+const listServices = async (req, res, next) => {
     try {
-        const list = await svcService.getServices(req.params.companyId);
-        res.json(list);
+        const { companyId, clinicId } = req.params;
+        const services = await svcService.listServices(companyId, clinicId);
+        res.status(200).json(services);
     }
     catch (err) {
         next(err);
     }
 };
-exports.getServices = getServices;
+exports.listServices = listServices;
 const createService = async (req, res, next) => {
     try {
-        const s = await svcService.createService(req.params.companyId, req.body);
-        res.status(201).json(s);
+        const { companyId, clinicId } = req.params;
+        const created = await svcService.createService(companyId, clinicId, req.body);
+        res.status(201).json(created);
     }
     catch (err) {
         next(err);
@@ -57,8 +59,9 @@ const createService = async (req, res, next) => {
 exports.createService = createService;
 const updateService = async (req, res, next) => {
     try {
-        const s = await svcService.updateService(req.params.companyId, req.params.serviceId, req.body);
-        res.json(s);
+        const { companyId, clinicId, serviceId } = req.params;
+        const updated = await svcService.updateService(companyId, clinicId, serviceId, req.body);
+        res.status(200).json(updated);
     }
     catch (err) {
         next(err);
@@ -67,8 +70,9 @@ const updateService = async (req, res, next) => {
 exports.updateService = updateService;
 const deleteService = async (req, res, next) => {
     try {
-        await svcService.deleteService(req.params.companyId, req.params.serviceId);
-        res.status(204).send();
+        const { companyId, clinicId, serviceId } = req.params;
+        await svcService.deleteService(companyId, clinicId, serviceId);
+        res.sendStatus(204);
     }
     catch (err) {
         next(err);

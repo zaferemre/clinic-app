@@ -19,4 +19,3 @@ exports.workingHourSchema = new mongoose_1.Schema({
     open: { type: String, required: true },
     close: { type: String, required: true },
 }, { _id: false });
-exports.default = exports.workingHourSchema;

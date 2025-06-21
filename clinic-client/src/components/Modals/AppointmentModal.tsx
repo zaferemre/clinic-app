@@ -1,28 +1,16 @@
 // src/components/AppointmentModal.tsx
-
 import React, { useState, useEffect } from "react";
-import { EventInput } from "@fullcalendar/core";
 import AppModal from "./AppModal";
-
-interface Service {
-  _id: string;
-  serviceName: string;
-}
-interface Employee {
-  email: string;
-  name: string;
-}
+import type {
+  EnrichedAppointment,
+  EmployeeInfo,
+  ServiceInfo,
+} from "../../types/sharedTypes";
 
 interface Props {
-  event: EventInput & {
-    extendedProps?: {
-      employeeEmail?: string;
-      serviceId?: string;
-      serviceName?: string;
-    };
-  };
-  services: Service[];
-  employees: Employee[];
+  event: EnrichedAppointment;
+  services: ServiceInfo[];
+  employees: EmployeeInfo[];
   onClose: () => void;
   onCancel: (id: string) => Promise<void>;
   onUpdate: (
@@ -32,33 +20,17 @@ interface Props {
   loading?: boolean;
 }
 
-/**
- * Convert FullCalendar DateInput into a local YYYY-MM-DDThh:mm string
- * using local getters to avoid UTC offset shifts
- */
-const toLocalInput = (date?: string | Date | number | number[]): string => {
-  if (date == null) return "";
-  let d: Date;
-  if (Array.isArray(date)) {
-    const [y, m, day, h = 0, min = 0] = date;
-    d = new Date(y, (m ?? 1) - 1, day ?? 1, h, min);
-  } else {
-    d =
-      typeof date === "string" || typeof date === "number"
-        ? new Date(date)
-        : date;
-  }
+const toLocalInput = (iso?: string): string => {
+  if (!iso) return "";
+  const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
-  const pad2 = (n: number) => n.toString().padStart(2, "0");
-  const YYYY = d.getFullYear();
-  const MM = pad2(d.getMonth() + 1);
-  const DD = pad2(d.getDate());
-  const hh = pad2(d.getHours());
-  const mm = pad2(d.getMinutes());
-  return `${YYYY}-${MM}-${DD}T${hh}:${mm}`;
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
 };
 
-export const AppointmentModal: React.FC<Props> = ({
+const AppointmentModal: React.FC<Props> = ({
   event,
   services,
   employees,
@@ -69,53 +41,44 @@ export const AppointmentModal: React.FC<Props> = ({
 }) => {
   const [startStr, setStartStr] = useState(toLocalInput(event.start));
   const [endStr, setEndStr] = useState(toLocalInput(event.end));
-  const [serviceId, setServiceId] = useState(
-    event.extendedProps?.serviceId || ""
-  );
+  const [serviceId, setServiceId] = useState(event.serviceId || "");
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setStartStr(toLocalInput(event.start));
     setEndStr(toLocalInput(event.end));
-    setServiceId(event.extendedProps?.serviceId || "");
+    setServiceId(event.serviceId || "");
     setEditing(false);
     setError(null);
   }, [event]);
 
-  const empEmail = event.extendedProps?.employeeEmail || "";
-  const empName =
-    employees.find((e) => e.email === empEmail)?.name ||
-    empEmail ||
-    "Bilinmeyen";
-  const svcName =
-    services.find((s) => s._id === serviceId)?.serviceName ||
-    event.extendedProps?.serviceName ||
-    "Bilinmeyen";
+  const emp = employees.find((e) => e.email === event.employeeEmail);
+  const empName = emp?.name ?? event.employeeEmail ?? "Bilinmeyen";
 
-  const handleCancelEvt = async () => {
-    await onCancel(event.id as string);
+  const svc = services.find((s) => s._id === serviceId);
+  const svcName = svc?.serviceName ?? event.serviceName ?? "Bilinmeyen";
+
+  const handleCancel = async () => {
+    await onCancel(event.id);
     onClose();
   };
+
   const handleUpdateEvt = async () => {
     if (!startStr || !endStr) {
       setError("Başlangıç ve Bitiş gerekli.");
       return;
     }
-    await onUpdate(event.id as string, {
+    await onUpdate(event.id, {
       start: new Date(startStr).toISOString(),
       end: new Date(endStr).toISOString(),
-      serviceId,
+      serviceId: serviceId || undefined,
     });
     onClose();
   };
 
   return (
-    <AppModal
-      open={!loading && !!event.id}
-      onClose={onClose}
-      title="Randevu Detayları"
-    >
+    <AppModal open={!loading} onClose={onClose} title="Randevu Detayları">
       {loading && (
         <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
           Yükleniyor…
@@ -127,22 +90,31 @@ export const AppointmentModal: React.FC<Props> = ({
         </p>
         {editing ? (
           <>
-            <label className="block text-sm">Başlangıç</label>
+            <label htmlFor="appointment-start" className="block text-sm">
+              Başlangıç
+            </label>
             <input
+              id="appointment-start"
               type="datetime-local"
               value={startStr}
               onChange={(e) => setStartStr(e.target.value)}
               className="w-full border rounded p-2"
             />
-            <label className="block text-sm">Bitiş</label>
+            <label htmlFor="appointment-end" className="block text-sm">
+              Bitiş
+            </label>
             <input
+              id="appointment-end"
               type="datetime-local"
               value={endStr}
               onChange={(e) => setEndStr(e.target.value)}
               className="w-full border rounded p-2"
             />
-            <label className="block text-sm">Hizmet</label>
+            <label htmlFor="appointment-service" className="block text-sm">
+              Hizmet
+            </label>
             <select
+              id="appointment-service"
               value={serviceId}
               onChange={(e) => setServiceId(e.target.value)}
               className="w-full border rounded p-2"
@@ -159,11 +131,10 @@ export const AppointmentModal: React.FC<Props> = ({
           <>
             <p>
               <strong>Başlangıç:</strong>{" "}
-              {new Date(event.start as string).toLocaleString()}
+              {new Date(event.start).toLocaleString()}
             </p>
             <p>
-              <strong>Bitiş:</strong>{" "}
-              {new Date(event.end as string).toLocaleString()}
+              <strong>Bitiş:</strong> {new Date(event.end).toLocaleString()}
             </p>
             <p>
               <strong>Hizmet:</strong> {svcName}
@@ -192,7 +163,7 @@ export const AppointmentModal: React.FC<Props> = ({
           </button>
         )}
         <button
-          onClick={handleCancelEvt}
+          onClick={handleCancel}
           className="px-4 py-2 bg-red-500 text-white rounded"
         >
           İptal Et
@@ -201,3 +172,5 @@ export const AppointmentModal: React.FC<Props> = ({
     </AppModal>
   );
 };
+
+export default AppointmentModal;

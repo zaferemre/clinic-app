@@ -27,6 +27,7 @@
     "@types/express": "^5.0.2",
     "@types/mongoose": "^5.11.96",
     "@types/node": "^20.17.57",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.5"
   }

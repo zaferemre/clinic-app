@@ -1,111 +1,83 @@
-import mongoose, { Document, Schema } from "mongoose";
+// models/Company.ts
+import { Schema, model, Document } from "mongoose";
 
-// Re-use your existing sub-schemas (workingHourSchema, employeeSchema)
-import { WorkingHour, workingHourSchema } from "./WorkingHour";
-import { EmployeeInfo, employeeSchema } from "./Employee";
-import { IService, ServiceSchema } from "./Service";
-
-const AddressSchema = new Schema(
-  {
-    province: { type: String, required: true },
-    district: { type: String, required: true },
-    town: { type: String, required: true },
-    neighborhood: { type: String, required: true },
-  },
-  { _id: false }
-);
-
-const companyServiceSchema = new Schema(
-  {
-    serviceName: { type: String, required: true },
-    servicePrice: { type: Number, required: true, min: 0 },
-    serviceKapora: { type: Number, default: 0, min: 0 },
-    serviceDuration: { type: Number, required: true, min: 1 },
-  },
-  { _id: true }
-);
-export interface CompanyDoc extends Document {
+export interface CompanyDocument extends Document {
   name: string;
+  ownerUserId: string;
   ownerName: string;
   ownerEmail: string;
   ownerImageUrl?: string;
-  companyType: string;
-  address?: {
-    province: string;
-    district: string;
-    town: string;
-    neighborhood: string;
-  };
-  phoneNumber?: string;
-  googleUrl?: string;
-  websiteUrl?: string;
-  companyImgUrl?: string;
-  location?: { type: "Point"; coordinates: [number, number] };
-  workingHours: WorkingHour[];
-  services: mongoose.Types.Subdocument[];
-  employees: EmployeeInfo[];
-  roles: string[]; // dynamically managed
-  isPaid: boolean;
-  subscription?: {
+  subscription: {
+    plan: "free" | "basic" | "pro" | "enterprise";
     status: "active" | "trialing" | "canceled";
     provider: "iyzico" | "manual" | "other";
+    maxClinics: number;
     nextBillingDate?: Date;
+    allowedFeatures: string[];
   };
+  joinCode: string;
+  clinics?: Schema.Types.ObjectId[];
+  roles: Schema.Types.ObjectId[];
+  settings: {
+    allowPublicBooking: boolean;
+    inactivityThresholdDays: number;
+    [key: string]: any;
+  };
+  websiteUrl?: string;
+  socialLinks?: {
+    instagram: string;
+    facebook: string;
+    whatsapp: string;
+    [key: string]: string;
+  };
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const CompanySchema = new Schema<CompanyDoc>(
+const CompanySchema = new Schema<CompanyDocument>(
   {
     name: { type: String, required: true },
+    ownerUserId: { type: String, required: true, index: true },
     ownerName: { type: String, required: true },
     ownerEmail: { type: String, required: true, index: true },
     ownerImageUrl: { type: String, default: "" },
-    companyType: { type: String, required: true },
-    address: { type: AddressSchema },
-    phoneNumber: { type: String },
-    googleUrl: { type: String },
-    websiteUrl: { type: String },
-    companyImgUrl: { type: String, default: "" },
-    services: { type: [companyServiceSchema], default: [] },
-    location: {
-      type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: {
-        type: [Number],
-        required: true,
-        validate: {
-          validator: (arr: number[]) => arr.length === 2,
-          message: "Location must be [lng, lat]",
-        },
-      },
-    },
-
-    workingHours: { type: [workingHourSchema], default: [] },
-    employees: { type: [employeeSchema], default: [] },
-
-    // <-- dynamic roles array
-    roles: {
-      type: [String],
-      default: ["owner", "admin", "manager", "staff"],
-    },
-
-    isPaid: { type: Boolean, default: false },
     subscription: {
+      plan: {
+        type: String,
+        enum: ["free", "basic", "pro", "enterprise"],
+        default: "free",
+      },
       status: {
         type: String,
         enum: ["active", "trialing", "canceled"],
-        default: "canceled",
+        default: "trialing",
       },
       provider: {
         type: String,
         enum: ["iyzico", "manual", "other"],
         default: "manual",
       },
+      maxClinics: { type: Number, default: 1 },
       nextBillingDate: { type: Date },
+      allowedFeatures: [{ type: String }],
     },
+    joinCode: { type: String, required: true, unique: true },
+    clinics: [{ type: Schema.Types.ObjectId, ref: "Clinic" }],
+    roles: [{ type: Schema.Types.ObjectId, ref: "Role" }],
+    settings: {
+      allowPublicBooking: { type: Boolean, default: false },
+      inactivityThresholdDays: { type: Number, default: 90 },
+    },
+    websiteUrl: { type: String },
+    socialLinks: {
+      instagram: { type: String },
+      facebook: { type: String },
+      whatsapp: { type: String },
+    },
+    isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
 
-CompanySchema.index({ location: "2dsphere" });
-
-export default mongoose.models.Company ||
-  mongoose.model<CompanyDoc>("Company", CompanySchema);
+export default model<CompanyDocument>("Company", CompanySchema);

@@ -33,25 +33,27 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.markPatientCalled = exports.getNotifications = void 0;
+exports.markNotificationDone = exports.getNotifications = void 0;
 const notifService = __importStar(require("../services/notificationService"));
 const getNotifications = async (req, res, next) => {
     try {
-        const list = await notifService.getNotifications(req.params.companyId);
-        res.status(200).json(list);
+        const { companyId, clinicId } = req.params;
+        const notifications = await notifService.listNotifications(companyId, clinicId);
+        res.status(200).json(notifications);
     }
     catch (err) {
         next(err);
     }
 };
 exports.getNotifications = getNotifications;
-const markPatientCalled = async (req, res, next) => {
+const markNotificationDone = async (req, res, next) => {
     try {
-        await notifService.markPatientCalled(req.params.companyId, req.params.notificationId);
+        const { companyId, clinicId, notificationId } = req.params;
+        await notifService.markNotificationDone(companyId, clinicId, notificationId);
         res.status(200).json({ message: "Notification marked done" });
     }
     catch (err) {
         next(err);
     }
 };
-exports.markPatientCalled = markPatientCalled;
+exports.markNotificationDone = markNotificationDone;

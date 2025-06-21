@@ -1,101 +1,112 @@
-// src/pages/Notifications/NotificationsPage.tsx
 import React, { useState, useEffect } from "react";
-import { format } from "date-fns";
 import {
   getNotifications,
   markNotificationCalled,
 } from "../../api/notificationApi";
 import { getPatientById } from "../../api/patientApi";
-
 import { NotificationInfo } from "../../types/sharedTypes";
-
 import { useAuth } from "../../contexts/AuthContext";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
-
 import { PhoneIcon, CheckIcon } from "@heroicons/react/24/outline";
-
-import { tr } from "date-fns/locale";
+import { GreetingHeader } from "../../components/GreetingHeader/GreetingHeader";
 
 const NotificationsPage: React.FC = () => {
-  const { idToken, companyId, companyName } = useAuth();
+  const {
+    idToken,
+    selectedCompanyId,
+    selectedCompanyName,
+    selectedClinicId,
+    selectedClinicName,
+    user,
+  } = useAuth();
+
   const [notifications, setNotifications] = useState<NotificationInfo[]>([]);
-  const [todayStr, setTodayStr] = useState("");
 
-  // Format today’s header (e.g. “TUESDAY 9 APRIL”)
+  // Fetch & hydrate notifications once
   useEffect(() => {
-    const now = new Date();
-    setTodayStr(format(now, "EEEE d MMMM", { locale: tr }));
-  }, []);
-
-  useEffect(() => {
-    if (idToken && companyId) {
-      const fetchAll = async () => {
-        try {
-          const list = await getNotifications(idToken, companyId);
-          setNotifications(list);
-        } catch (err) {
-          console.error("Error fetching notifications:", err);
-          setNotifications([]);
-        }
-      };
-      fetchAll();
-    }
-  }, [idToken, companyId]);
+    if (!idToken || !selectedCompanyId || !selectedClinicId) return;
+    (async () => {
+      try {
+        const list = await getNotifications(
+          idToken,
+          selectedCompanyId,
+          selectedClinicId
+        );
+        // hydrate each with patientName
+        const withNames = await Promise.all(
+          list.map(async (n) => {
+            const patient = await getPatientById(
+              idToken,
+              selectedCompanyId,
+              selectedClinicId,
+              n.patientId
+            );
+            return { ...n, patientName: patient.name || "—" };
+          })
+        );
+        setNotifications(withNames);
+      } catch {
+        setNotifications([]);
+      }
+    })();
+  }, [idToken, selectedCompanyId, selectedClinicId]);
 
   const handleDial = async (patientId: string) => {
-    if (!idToken || !companyId) return;
+    if (!idToken || !selectedCompanyId || !selectedClinicId) return;
     try {
-      const patient = await getPatientById(idToken, companyId, patientId);
-      if (patient.phone) {
-        window.open(`tel:${patient.phone}`);
-      } else {
-        alert("Müşteri telefon numarası bulunamadı.");
-      }
-    } catch (err: unknown) {
-      console.error("❌ Error fetching single patient:", err);
-      const msg = err instanceof Error ? err.message : JSON.stringify(err);
-      alert(`Müşteri bilgisi alınırken hata oluştu:\n${msg}`);
+      const patient = await getPatientById(
+        idToken,
+        selectedCompanyId,
+        selectedClinicId,
+        patientId
+      );
+      if (patient.phone) window.open(`tel:${patient.phone}`);
+      else alert("Müşteri telefon numarası bulunamadı.");
+    } catch (err) {
+      console.error(err);
+      alert("Müşteri bilgisi alınırken hata oluştu.");
     }
   };
 
   const handleMarkCalled = async (notifId: string) => {
-    if (!idToken || !companyId) return;
+    if (!idToken || !selectedCompanyId || !selectedClinicId) return;
     try {
-      await markNotificationCalled(idToken, companyId, notifId);
-      // Re-fetch notifications after marking as called
-      try {
-        const list = await getNotifications(idToken, companyId);
-        setNotifications(list);
-      } catch (err) {
-        setNotifications([]);
-      }
-    } catch (err: unknown) {
-      console.error("❌ Error marking called:", err);
-      const msg = err instanceof Error ? err.message : "Bilinmeyen hata";
-      alert(msg);
+      await markNotificationCalled(
+        idToken,
+        selectedCompanyId,
+        selectedClinicId,
+        notifId
+      );
+      // Remove it from local list immediately
+      setNotifications((prev) => prev.filter((n) => n.id !== notifId));
+    } catch (err) {
+      console.error(err);
+      alert("Bildirim işaretlenirken hata oluştu.");
     }
   };
 
-  return (
-    <div className="flex flex-col h-screen bg-brand-gray-100 pb-16">
-      {/* Header */}
-      <header className="pt-4 px-4">
-        <p className="text-xs text-brand-green-500 tracking-wide">{todayStr}</p>
-        <h1 className="mt-1 text-2xl font-bold">
-          <span className="text-brand-main">{companyName}</span>
-          <span className="text-brand-main mx-1">›</span>
-          <span className="text-brand-black">Bildirimler</span>
-        </h1>
-      </header>
+  // Only show pending ones
+  const pending = notifications.filter((n) => n.status === "pending");
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto px-4 pt-4">
+  return (
+    <div className="flex flex-col h-screen bg-brand-gray-100 pb-16 px-4 pt-4">
+      {/* --- Replace header with GreetingHeader --- */}
+      <GreetingHeader
+        userName={user?.name || ""}
+        userAvatarUrl={user?.imageUrl || ""}
+        companyName={selectedCompanyName || ""}
+        clinicName={selectedClinicName || ""}
+        pageTitle="Bildirimler"
+        showBackButton={true}
+      />
+
+      <main className="flex-1 overflow-auto ">
         <div className="bg-white rounded-xl shadow p-4 space-y-4">
-          {notifications.length === 0 ? (
+          {pending.length === 0 ? (
             <p className="text-sm text-brand-gray-500">Aranacak müşteri yok.</p>
           ) : (
             <ul className="space-y-3">
-              {notifications.map((n) => (
+              {pending.map((n) => (
                 <li
                   key={n.id}
                   className="bg-brand-gray-100 rounded-lg p-3 flex items-start justify-between shadow-sm"
@@ -113,16 +124,9 @@ const NotificationsPage: React.FC = () => {
                       </p>
                     )}
                   </div>
-
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() =>
-                        handleDial(
-                          typeof n.patientId === "string"
-                            ? n.patientId
-                            : n.patientId?._id
-                        )
-                      }
+                      onClick={() => handleDial(n.patientId)}
                       className="p-2 bg-blue-100 rounded-lg hover:bg-blue-200"
                       aria-label="Ara"
                     >
