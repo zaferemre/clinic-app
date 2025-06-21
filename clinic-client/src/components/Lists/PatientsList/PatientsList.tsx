@@ -1,5 +1,5 @@
 // src/components/Lists/PatientsList/PatientsList.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import PatientCard from "../../Cards/PatientCard/PatientCard";
 import { getPatients } from "../../../api/patientApi";
 import { listGroups } from "../../../api/groupApi";
@@ -33,6 +33,24 @@ export const PatientsList: React.FC<PatientsListProps> = ({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<0 | 1 | 2 | 3>(0);
   const [searchTerm, setSearchTerm] = useState<string>("");
+
+  // Scroll hint
+  const filterContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollHint, setShowScrollHint] = useState(false);
+
+  useEffect(() => {
+    const el = filterContainerRef.current;
+    if (!el) return;
+    const checkOverflow = () =>
+      setShowScrollHint(el.scrollWidth > el.clientWidth + el.scrollLeft);
+    checkOverflow();
+    el.addEventListener("scroll", checkOverflow);
+    window.addEventListener("resize", checkOverflow);
+    return () => {
+      el.removeEventListener("scroll", checkOverflow);
+      window.removeEventListener("resize", checkOverflow);
+    };
+  }, [patients]);
 
   useEffect(() => {
     if (!idToken || !companyId || !clinicId) {
@@ -95,21 +113,29 @@ export const PatientsList: React.FC<PatientsListProps> = ({
     <div className="space-y-4">
       {/* Filter controls */}
       <div className="px-4 space-y-3">
-        <div className="flex justify-center flex-wrap gap-2 w-full pb-2">
-          {filterButtons.map((btn) => (
-            <button
-              key={btn.key}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition whitespace-nowrap
-                ${
-                  filterMode === btn.key
-                    ? "bg-brand-main text-white border border-brand-main"
-                    : "bg-brand-main-50 text-brand-main hover:bg-brand-main-100"
-                }`}
-              onClick={() => setFilterMode(btn.key as 0 | 1 | 2 | 3)}
-            >
-              {btn.label}
-            </button>
-          ))}
+        <div className="relative">
+          <div
+            ref={filterContainerRef}
+            className="flex gap-2 w-full pb-2 overflow-x-auto scrollbar-hide"
+          >
+            {filterButtons.map((btn) => (
+              <button
+                key={btn.key}
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition whitespace-nowrap
+                  ${
+                    filterMode === btn.key
+                      ? "bg-brand-main text-white border border-brand-main"
+                      : "bg-brand-main-50 text-brand-main hover:bg-brand-main-100"
+                  }`}
+                onClick={() => setFilterMode(btn.key as 0 | 1 | 2 | 3)}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
+          {showScrollHint && (
+            <div className="pointer-events-none absolute top-0 right-0 h-full w-6 bg-gradient-to-l from-white to-transparent" />
+          )}
         </div>
         <input
           type="text"
