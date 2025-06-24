@@ -1,9 +1,10 @@
+// src/components/EmployeeSelect/EmployeeSelect.tsx
 import React from "react";
 import type { EmployeeInfo } from "../../types/sharedTypes";
 
 export interface EmployeeSelectProps {
   employees: EmployeeInfo[];
-  value: string; // _id or email
+  value: string; // userId
   setValue: (id: string) => void;
   isOwner: boolean;
   currentUserId: string;
@@ -18,12 +19,11 @@ const EmployeeSelect: React.FC<EmployeeSelectProps> = ({
   currentUserId,
   currentUserName,
 }) => {
-  // If not owner, show a disabled select prefilled with current user
+  // If not owner, show a disabled input prefilled with current user
   if (!isOwner) {
-    // Find the current employee from the list
-    const currentEmployee =
-      employees.find((emp) => emp._id === currentUserId) ||
-      employees.find((emp) => emp.email === currentUserId);
+    const currentEmployee = employees.find(
+      (emp) => emp.userId === currentUserId
+    );
 
     return (
       <div className="mb-4">
@@ -62,8 +62,8 @@ const EmployeeSelect: React.FC<EmployeeSelectProps> = ({
       >
         <option value="">Seçiniz</option>
         {employees.map((emp) => (
-          <option key={emp._id ?? emp.email} value={emp._id ?? emp.email}>
-            {emp.name ?? emp.email ?? "(isimsiz çalışan)"}
+          <option key={emp.userId} value={emp.userId}>
+            {emp.name ?? emp.userId}
           </option>
         ))}
       </select>

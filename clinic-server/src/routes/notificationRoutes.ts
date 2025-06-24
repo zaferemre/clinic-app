@@ -1,9 +1,11 @@
-// src/routes/notificationRoutes.ts
 import { Router } from "express";
 import * as notifCtrl from "../controllers/notificationController";
-const router = Router({ mergeParams: true });
+import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
 
-router.get("/", notifCtrl.getNotifications);
+const router = Router({ mergeParams: true });
+router.use(verifyFirebaseToken);
+
+router.get("/", notifCtrl.listNotifications);
 router.patch("/:notificationId/done", notifCtrl.markNotificationDone);
 
 export default router;

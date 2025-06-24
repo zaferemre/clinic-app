@@ -32,52 +32,27 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteClinic = exports.updateClinic = exports.getClinicById = exports.createClinic = exports.listClinics = void 0;
+exports.getClinicById = exports.deleteClinic = exports.updateClinic = exports.getClinic = exports.createClinic = exports.listClinics = void 0;
 const clinicService = __importStar(require("../services/clinicService"));
-const Clinic_1 = __importDefault(require("../models/Clinic"));
-const Company_1 = __importDefault(require("../models/Company"));
-const mongoose_1 = __importDefault(require("mongoose"));
-// List all clinics for a company
+// List all clinics in a company
 const listClinics = async (req, res, next) => {
     try {
-        const { companyId } = req.params;
-        const clinics = await clinicService.listClinics(companyId);
-        res.status(200).json(clinics);
+        const clinics = await clinicService.listClinics(req.params.companyId);
+        res.json(clinics);
     }
     catch (err) {
         next(err);
     }
 };
 exports.listClinics = listClinics;
-// Create new clinic for a company
+// Create new clinic in company
 const createClinic = async (req, res, next) => {
     try {
-        const { companyId } = req.params;
-        const { name, address, phoneNumber, workingHours } = req.body;
-        const exists = await Clinic_1.default.findOne({
-            companyId: new mongoose_1.default.Types.ObjectId(companyId),
-            name,
-        });
-        if (exists) {
-            res
-                .status(400)
-                .json({ message: "A clinic with this name already exists." });
-            return;
-        }
-        const clinic = await clinicService.createClinic(companyId, {
-            name,
-            address,
-            phoneNumber,
-            workingHours,
-            services: [],
-        });
-        await Company_1.default.findByIdAndUpdate(companyId, {
-            $addToSet: { clinics: clinic._id },
-        });
+        // 🟢 Get current user's uid from auth middleware
+        const uid = req.user?.uid;
+        const clinic = await clinicService.createClinic(req.params.companyId, req.body, uid // Pass user id to service
+        );
         res.status(201).json(clinic);
     }
     catch (err) {
@@ -85,32 +60,32 @@ const createClinic = async (req, res, next) => {
     }
 };
 exports.createClinic = createClinic;
-const getClinicById = async (req, res, next) => {
+// Get clinic
+const getClinic = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        const clinic = await clinicService.getClinic(companyId, clinicId);
-        res.status(200).json(clinic);
+        const clinic = await clinicService.getClinicById(req.params.companyId, req.params.clinicId);
+        res.json(clinic);
     }
     catch (err) {
         next(err);
     }
 };
-exports.getClinicById = getClinicById;
+exports.getClinic = getClinic;
+// Update clinic
 const updateClinic = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        const updated = await clinicService.updateClinic(companyId, clinicId, req.body);
-        res.status(200).json(updated);
+        const updated = await clinicService.updateClinic(req.params.clinicId, req.body);
+        res.json(updated);
     }
     catch (err) {
         next(err);
     }
 };
 exports.updateClinic = updateClinic;
+// Delete clinic
 const deleteClinic = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        await clinicService.deleteClinic(companyId, clinicId);
+        await clinicService.deleteClinic(req.params.clinicId);
         res.sendStatus(204);
     }
     catch (err) {
@@ -118,3 +93,5 @@ const deleteClinic = async (req, res, next) => {
     }
 };
 exports.deleteClinic = deleteClinic;
+var clinicController_1 = require("./clinicController");
+Object.defineProperty(exports, "getClinicById", { enumerable: true, get: function () { return clinicController_1.getClinic; } });

@@ -33,56 +33,51 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteAppointment = exports.updateAppointment = exports.createAppointment = exports.getAppointmentById = exports.getAppointments = void 0;
+exports.deleteAppointment = exports.updateAppointment = exports.createAppointment = exports.getAppointment = exports.listAppointments = void 0;
 const appointmentService = __importStar(require("../services/appointmentService"));
-const getAppointments = async (req, res, next) => {
+// List all appointments
+const listAppointments = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        const filters = {
-            employeeId: req.query.employeeId,
-            patientId: req.query.patientId,
-            groupId: req.query.groupId,
-        };
-        const events = await appointmentService.getAppointments(companyId, clinicId, filters);
-        res.status(200).json(events);
+        const filters = {};
+        if (req.query.employeeId)
+            filters.employeeId = req.query.employeeId;
+        if (req.query.patientId)
+            filters.patientId = req.query.patientId;
+        if (req.query.groupId)
+            filters.groupId = req.query.groupId;
+        const appointments = await appointmentService.getAppointments(req.params.companyId, req.params.clinicId, filters);
+        res.json(appointments);
     }
     catch (err) {
         next(err);
     }
 };
-exports.getAppointments = getAppointments;
-const getAppointmentById = async (req, res, next) => {
+exports.listAppointments = listAppointments;
+// Get a single appointment
+const getAppointment = async (req, res, next) => {
     try {
-        const { companyId, clinicId, appointmentId } = req.params;
-        const dto = await appointmentService.getAppointmentById(companyId, clinicId, appointmentId);
-        res.status(200).json(dto);
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.getAppointmentById = getAppointmentById;
-const createAppointment = async (req, res, next) => {
-    try {
-        const { companyId, clinicId } = req.params;
-        const user = req.user;
-        const { patientId, groupId, employeeId, serviceId, start, end } = req.body;
-        if (!employeeId || !serviceId || !start || !end) {
-            res.status(400).json({
-                message: "employeeId, serviceId, start, and end are required.",
-            });
+        const appointment = await appointmentService.getAppointmentById(req.params.companyId, req.params.clinicId, req.params.appointmentId);
+        if (!appointment) {
+            res.status(404).json({ error: "Not found" });
             return;
         }
-        const appointmentType = groupId ? "group" : "individual";
-        const created = await appointmentService.createAppointment(companyId, clinicId, {
-            patientId,
-            groupId,
-            employeeId,
-            serviceId,
-            start,
-            end,
-            appointmentType,
-        }, user);
+        res.json(appointment);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.getAppointment = getAppointment;
+// Create new appointment
+const createAppointment = async (req, res, next) => {
+    try {
+        const uid = req.user?.uid;
+        if (!uid) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+        const created = await appointmentService.createAppointment(req.params.companyId, req.params.clinicId, req.body, // contains employeeId = Firebase UID
+        uid);
         res.status(201).json(created);
     }
     catch (err) {
@@ -90,25 +85,29 @@ const createAppointment = async (req, res, next) => {
     }
 };
 exports.createAppointment = createAppointment;
+// Update appointment
 const updateAppointment = async (req, res, next) => {
     try {
-        const { companyId, clinicId, appointmentId } = req.params;
-        const updates = { ...req.body };
-        if ("groupId" in updates) {
-            updates.appointmentType = updates.groupId ? "group" : "individual";
+        const updated = await appointmentService.updateAppointment(req.params.companyId, req.params.clinicId, req.params.appointmentId, req.body);
+        if (!updated) {
+            res.status(404).json({ error: "Not found" });
+            return;
         }
-        const updated = await appointmentService.updateAppointment(companyId, clinicId, appointmentId, updates);
-        res.status(200).json(updated);
+        res.json(updated);
     }
     catch (err) {
         next(err);
     }
 };
 exports.updateAppointment = updateAppointment;
+// Delete appointment
 const deleteAppointment = async (req, res, next) => {
     try {
-        const { companyId, clinicId, appointmentId } = req.params;
-        await appointmentService.deleteAppointment(companyId, clinicId, appointmentId);
+        const deleted = await appointmentService.deleteAppointment(req.params.companyId, req.params.clinicId, req.params.appointmentId);
+        if (!deleted) {
+            res.status(404).json({ error: "Not found" });
+            return;
+        }
         res.sendStatus(204);
     }
     catch (err) {

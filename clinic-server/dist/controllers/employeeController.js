@@ -33,26 +33,49 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteEmployee = exports.updateEmployee = exports.addEmployee = exports.listEmployees = void 0;
-const employeeService = __importStar(require("../services/employeeService"));
-// --- LIST EMPLOYEES IN A CLINIC ---
+exports.deleteEmployee = exports.updateEmployee = exports.addEmployee = exports.removeEmployee = exports.upsertEmployee = exports.listEmployees = void 0;
+const empService = __importStar(require("../services/employeeService"));
+// List employees in a clinic/company
 const listEmployees = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        const employees = await employeeService.listEmployees(companyId, clinicId);
-        res.status(200).json(employees);
+        const emps = await empService.listEmployees(req.params.companyId, req.params.clinicId);
+        res.json(emps);
     }
     catch (err) {
         next(err);
     }
 };
 exports.listEmployees = listEmployees;
+// Add (or update) employee
+const upsertEmployee = async (req, res, next) => {
+    try {
+        const { userUid, ...data } = req.body;
+        const emp = await empService.upsertEmployee(req.params.companyId, req.params.clinicId, userUid, data);
+        res.status(201).json(emp);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.upsertEmployee = upsertEmployee;
+// Remove employee (by userUid)
+const removeEmployee = async (req, res, next) => {
+    try {
+        await empService.removeEmployee(req.params.companyId, req.params.clinicId, req.params.userUid);
+        res.sendStatus(204);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.removeEmployee = removeEmployee;
+// Basic CRUD (by employeeId, for admin panel etc)
 const addEmployee = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        const user = req.user;
-        const created = await employeeService.addEmployee(companyId, clinicId, req.body, user.uid);
-        res.status(201).json(created);
+        const { companyId } = req.params;
+        const data = req.body;
+        const employee = await empService.addEmployee(companyId, data);
+        res.status(201).json(employee);
     }
     catch (err) {
         next(err);
@@ -62,9 +85,9 @@ exports.addEmployee = addEmployee;
 const updateEmployee = async (req, res, next) => {
     try {
         const { employeeId } = req.params;
-        // If you want to check companyId/clinicId, add logic here!
-        const updated = await employeeService.updateEmployee(employeeId, req.body);
-        res.status(200).json(updated);
+        const data = req.body;
+        const employee = await empService.updateEmployee(employeeId, data);
+        res.json(employee);
     }
     catch (err) {
         next(err);
@@ -74,9 +97,8 @@ exports.updateEmployee = updateEmployee;
 const deleteEmployee = async (req, res, next) => {
     try {
         const { employeeId } = req.params;
-        // If you want to check companyId/clinicId, add logic here!
-        await employeeService.deleteEmployee(employeeId);
-        res.sendStatus(204);
+        await empService.deleteEmployee(employeeId);
+        res.json({ success: true });
     }
     catch (err) {
         next(err);

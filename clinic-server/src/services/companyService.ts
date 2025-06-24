@@ -1,165 +1,104 @@
+import * as companyRepo from "../dataAccess/companyRepository";
+import * as userRepo from "../dataAccess/userRepository";
 import { v4 as uuidv4 } from "uuid";
-import createError from "http-errors";
-import { IUser } from "../thirdParty/firebaseAdminService";
-import * as repo from "../dataAccess/companyRepository";
-import * as clinicService from "./clinicService";
-import * as employeeService from "./employeeService";
-import Company, { CompanyDocument } from "../models/Company";
-import admin from "firebase-admin";
-import mongoose from "mongoose";
-export interface CompanyUserInput {
-  name: string;
-  websiteUrl?: string;
-  socialLinks?: any;
-  settings?: any;
-} // CREATE COMPANY (No default clinic, no mock employee)
-export async function createCompany(
-  user: IUser,
-  data: CompanyUserInput
-): Promise<CompanyDocument> {
-  if (!data.name) throw createError(400, "Company name is required");
+import { CompanyDocument } from "../models/Company";
+import type { Membership } from "../models/User"; // adjust if needed
 
-  const company = await repo.createCompany({
-    name: data.name,
-    ownerUserId: user.uid,
-    ownerName: user.name ?? "",
-    ownerEmail: user.email,
-    ownerImageUrl: user.picture ?? "",
-    subscription: {
-      plan: "free",
-      status: "trialing",
-      provider: "manual",
-      maxClinics: 1,
-      allowedFeatures: ["basicCalendar"],
-    },
+/**
+ * Create a new company and add the creating user as the owner in their memberships.
+ */
+export async function createCompany(
+  uid: string,
+  data: Partial<CompanyDocument>
+) {
+  // 1. Create the company document (ensure ownerUid, not ownerUserId)
+  const company = await companyRepo.createCompany({
+    ...data,
+    ownerUid: uid,
     joinCode: uuidv4(),
-    settings: data.settings ?? {},
-    websiteUrl: data.websiteUrl ?? "",
-    socialLinks: data.socialLinks ?? {},
   });
 
+  // 3. Add owner membership to user
+  await userRepo.addMembership(uid, {
+    companyId: company.id.toString(),
+    companyName: company.name,
+    roles: ["owner"],
+  } as Membership);
+
   return company;
 }
 
-export async function getCompany(companyId: string) {
-  const company = await repo.findCompanyById(companyId);
-  if (!company) throw createError(404, "Company not found");
-  return company;
+/**
+ * Find a company by its ID.
+ */
+export async function getCompanyById(companyId: string) {
+  return companyRepo.findCompanyById(companyId);
 }
 
-export async function getCompanyByJoinCode(joinCode: string) {
-  return repo.findCompanyByJoinCode(joinCode);
+/**
+ * Get all company memberships for a user.
+ */
+export async function getCompaniesForUser(uid: string) {
+  const user = await userRepo.findByUid(uid);
+  return user?.memberships || [];
 }
 
+/**
+ * Update company details (owner only).
+ */
 export async function updateCompany(
   companyId: string,
-  updates: Partial<repo.CompanyCreateInput>,
-  user: IUser
-): Promise<CompanyDocument> {
-  const existing = await repo.findCompanyById(companyId);
-  if (!existing) throw createError(404, "Company not found");
-  if (existing.ownerUserId !== user.uid)
-    throw createError(403, "Only the owner can update this company");
-
-  const updated = await repo.updateCompanyById(
-    companyId,
-    updates as Partial<CompanyDocument>
-  );
-  if (!updated) throw createError(500, "Failed to update company");
-  return updated;
+  updates: Partial<CompanyDocument>,
+  uid: string
+) {
+  const company = await companyRepo.findCompanyById(companyId);
+  if (!company) throw new Error("Company not found");
+  if ((company as any).ownerUid !== uid) throw new Error("Unauthorized");
+  return companyRepo.updateCompanyById(companyId, updates);
 }
 
-export async function deleteCompany(companyId: string, user: IUser) {
-  const existing = await repo.findCompanyById(companyId);
-  if (!existing) throw createError(404, "Company not found");
-  if (existing.ownerUserId !== user.uid)
-    throw createError(403, "Only the owner can delete this company");
-  await repo.deleteCompanyById(companyId);
+/**
+ * Delete a company (owner only).
+ */
+export async function deleteCompany(companyId: string, uid: string) {
+  const company = await companyRepo.findCompanyById(companyId);
+  if (!company) throw new Error("Company not found");
+  if ((company as any).ownerUid !== uid) throw new Error("Unauthorized");
+  return companyRepo.deleteCompanyById(companyId);
 }
 
-export async function joinCompany(
-  companyId: string,
-  joinCode: string,
-  user: IUser
-): Promise<CompanyDocument> {
-  const company = await repo.findCompanyByJoinCode(joinCode);
-  if (
-    !company ||
-    (company._id as mongoose.Types.ObjectId).toString() !== companyId
-  )
-    throw createError(400, "Invalid join code");
+/**
+ * Join a company by invite code.
+ */
+export async function joinByCode(uid: string, code: string) {
+  const company = await companyRepo.findCompanyByJoinCode(code);
+  if (!company) return { success: false, message: "Invalid code" };
 
-  const clinics = await clinicService.listClinics(companyId);
-  if (!clinics.length)
-    throw createError(500, "No clinic exists to assign new member");
-
-  await employeeService.addEmployee(
-    companyId,
-    (clinics[0]._id as mongoose.Types.ObjectId).toString(),
-    {
-      email: user.email,
-      name: user.name ?? "",
-      role: "other",
-      pictureUrl: user.picture ?? "",
-    },
-    user.uid
-  );
-
-  return company;
-}
-
-export async function joinByCode(joinCode: string, user: IUser) {
-  const company = await repo.findCompanyByJoinCode(joinCode);
-  if (!company) throw createError(400, "Invalid join code");
-
-  const companyId = (company._id as mongoose.Types.ObjectId).toString();
-  const clinics = await clinicService.listClinics(companyId);
-  if (!clinics.length) throw createError(500, "No clinic exists for company");
-
-  await employeeService.addEmployee(
-    companyId,
-    (clinics[0]._id as mongoose.Types.ObjectId).toString(),
-    {
-      email: user.email,
-      name: user.name ?? "",
-      role: "other",
-      pictureUrl: user.picture ?? "",
-    },
-    user.uid
-  );
+  // Add membership (avoid duplicate)
+  await userRepo.addMembership(uid, {
+    companyId: company.id.toString(),
+    companyName: company.name,
+    roles: ["member"],
+  } as Membership);
 
   return {
-    companyId,
+    success: true,
+    companyId: company.id.toString(),
     companyName: company.name,
-    clinics: clinics.map((c) => ({
-      _id: (c._id as mongoose.Types.ObjectId).toString(),
-      name: c.name,
-    })),
-    ownerName: company.ownerName,
   };
 }
 
-export async function leaveCompany(
-  companyId: string,
-  userEmail: string
-): Promise<void> {
-  const company = await repo.findCompanyById(companyId);
-  if (!company) throw createError(404, "Company not found");
-  if (company.ownerEmail === userEmail)
-    throw createError(400, "Owner cannot leave their own company");
-  await employeeService.removeEmployeeByEmail(companyId, userEmail);
+/**
+ * Leave a company (removes user's membership for this company).
+ */
+export async function leaveCompany(uid: string, companyId: string) {
+  await userRepo.removeMembership(uid, companyId, "");
+  return { success: true, message: "Left company" };
 }
 
-export async function deleteUserAccount(user: IUser) {
-  // Remove user from all employees in all companies
-  await Company.updateMany(
-    {},
-    { $pull: { "employees.email": user.email } }
-  ).exec();
-  await employeeService.deleteEmployeeByEmail(user.email!);
-  await admin.auth().deleteUser(user.uid);
-}
-
-export async function listCompanies(user: IUser) {
-  return repo.listCompaniesForUser({ uid: user.uid, email: user.email });
+/**
+ * List all employees for a company.
+ */
+export async function listEmployees(companyId: string) {
+  return companyRepo.listEmployees(companyId);
 }

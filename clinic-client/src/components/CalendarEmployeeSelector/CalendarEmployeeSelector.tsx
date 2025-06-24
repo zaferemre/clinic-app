@@ -2,18 +2,18 @@
 import React, { useState, useRef, useEffect } from "react";
 
 export interface CalendarEmployee {
-  email: string;
+  userId: string;
   name: string;
   pictureUrl?: string;
 }
 
 interface Props {
-  /** The list of all employees (must have email, name, optional pictureUrl) */
+  /** The list of all employees (must have userId, name, optional pictureUrl) */
   employees: CalendarEmployee[];
-  /** Currently selected Employee’s email (or empty string = “all”) */
+  /** Currently selected Employee’s userId (or empty string = “all”) */
   selectedEmployee: string;
-  /** Called when user picks a Employee (pass back the Employee.email) */
-  onChange: (newEmail: string) => void;
+  /** Called when user picks an Employee (pass back the Employee.userId) */
+  onChange: (newUserId: string) => void;
 }
 
 export const CalendarEmployeeSelector: React.FC<Props> = ({
@@ -38,17 +38,17 @@ export const CalendarEmployeeSelector: React.FC<Props> = ({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [wrapperRef]);
+  }, []);
 
-  // Determine label to show when no Employee or “all”
+  // Determine label to show when no employee or “all”
   const selectedLabel =
     selectedEmployee === ""
       ? "Hepsi"
-      : employees.find((w) => w.email === selectedEmployee)?.name ?? "Hepsi";
+      : employees.find((w) => w.userId === selectedEmployee)?.name ?? "Hepsi";
 
   // Get avatar URL for selected (fallback to placeholder)
   const selectedAvatar =
-    employees.find((w) => w.email === selectedEmployee)?.pictureUrl ?? "";
+    employees.find((w) => w.userId === selectedEmployee)?.pictureUrl ?? "";
 
   return (
     <div className="relative inline-block text-left" ref={wrapperRef}>
@@ -108,16 +108,15 @@ export const CalendarEmployeeSelector: React.FC<Props> = ({
                 cursor-pointer
               "
             >
-              {/* No avatar for “All” */}
               <span className="ml-1 text-sm text-brand-black">Hepsi</span>
             </button>
           </li>
 
           {employees.map((w) => (
-            <li key={w.email}>
+            <li key={w.userId}>
               <button
                 onClick={() => {
-                  onChange(w.email);
+                  onChange(w.userId);
                   setOpen(false);
                 }}
                 className="
@@ -143,3 +142,5 @@ export const CalendarEmployeeSelector: React.FC<Props> = ({
     </div>
   );
 };
+
+export default CalendarEmployeeSelector;

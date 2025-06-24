@@ -53,3 +53,22 @@ export function removeEmployee(
     }
   );
 }
+
+/**
+ * Add (create) a new employee in a clinic.
+ */
+export function addEmployee(
+  token: string,
+  companyId: string,
+  clinicId: string,
+  payload: { userId: string; role: string; name?: string }
+): Promise<EmployeeInfo> {
+  return request<EmployeeInfo>(
+    `/company/${companyId}/clinics/${clinicId}/employees`,
+    {
+      method: "POST",
+      token,
+      body: payload,
+    }
+  );
+}

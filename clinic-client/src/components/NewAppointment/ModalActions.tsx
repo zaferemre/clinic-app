@@ -14,7 +14,7 @@ export default function ModalActions({
       <button
         type="button"
         onClick={onClose}
-        className="px-4 py-2 rounded-lg bg-brand-gray-200 hover:bg-brand-gray-300 text-brand-gray-600 font-semibold transition"
+        className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-600 font-semibold transition"
       >
         İptal
       </button>

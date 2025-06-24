@@ -39,17 +39,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.listNotifications = listNotifications;
 exports.markNotificationDone = markNotificationDone;
 exports.processPending = processPending;
-// services/notificationService.ts
-const repoNotif = __importStar(require("../dataAccess/notificationRepository"));
+const notifRepo = __importStar(require("../dataAccess/notificationRepository"));
 const http_errors_1 = __importDefault(require("http-errors"));
 async function listNotifications(companyId, clinicId) {
-    return repoNotif.listNotifications(companyId, clinicId);
+    return notifRepo.listNotifications(companyId, clinicId);
 }
 async function markNotificationDone(companyId, clinicId, notificationId) {
-    const n = await repoNotif.updateNotificationStatus(notificationId, "done");
-    if (!n)
+    // You might want to check companyId/clinicId for permission, but for now:
+    const notif = await notifRepo.updateNotificationStatus(notificationId, "done");
+    if (!notif)
         throw (0, http_errors_1.default)(404, "Notification not found");
-    return n;
+    return notif;
 }
 function processPending() {
     throw new Error("Function not implemented.");

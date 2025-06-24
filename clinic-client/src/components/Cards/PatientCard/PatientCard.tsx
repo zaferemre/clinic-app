@@ -36,7 +36,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
 }) => {
   const { idToken, selectedCompanyId, selectedClinicId } = useAuth();
   const [pastAppointments, setPastAppointments] = useState<
-    { id: string; start: string; status: string; employeeEmail: string }[]
+    { id: string; start: string; status: string; employeeId: string }[]
   >([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
@@ -93,7 +93,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
               id: appt.id,
               start: appt.start,
               status: appt.status,
-              employeeEmail: appt.employeeEmail || "-",
+              employeeId: appt.employeeId || "-",
             }))
           );
         }
@@ -293,8 +293,8 @@ const PatientCard: React.FC<PatientCardProps> = ({
               <ul className="ml-4 list-disc">
                 {pastAppointments.map((a, i) => (
                   <li key={i}>
-                    {new Date(a.start).toLocaleDateString()} - {a.employeeEmail}{" "}
-                    - {a.status}
+                    {new Date(a.start).toLocaleDateString()} –{" "}
+                    <strong>{a.employeeId}</strong> – {a.status}
                   </li>
                 ))}
               </ul>

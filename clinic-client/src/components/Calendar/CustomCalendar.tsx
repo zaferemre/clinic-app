@@ -5,10 +5,11 @@ import {
   dateFnsLocalizer,
   SlotInfo,
   Formats,
-  View,
+  CalendarProps,
+  EventProps,
 } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
-import "react-big-calendar/lib/addons/dragAndDrop/styles.css"; // ← fixed path
+import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -34,16 +35,7 @@ import type {
   EnrichedAppointment,
 } from "../../types/sharedTypes";
 
-// -- Define the exact shape of events passed into BigCalendar
-type BigCalendarEvent = {
-  id: string;
-  title: string;
-  start: Date;
-  end: Date;
-  resource: EnrichedAppointment;
-};
-
-// — locale setup —
+// --- Localization & Setup ---
 const locales = { tr };
 const localizer = dateFnsLocalizer({
   format,
@@ -52,10 +44,6 @@ const localizer = dateFnsLocalizer({
   getDay,
   locales,
 });
-
-// — custom formats & constants —
-type CalendarViewOption = "day" | "week" | "month";
-
 const formats: Formats = {
   timeGutterFormat: "HH:mm",
   dayRangeHeaderFormat: ({ start, end }, culture, loc) =>
@@ -73,6 +61,9 @@ const formats: Formats = {
       culture
     )}`,
 };
+const DragDropCalendar = withDragAndDrop<BigCalendarEvent, object>(
+  BigCalendar as React.ComponentType<CalendarProps<BigCalendarEvent, object>>
+);
 
 const ACCENT = "#FF8269";
 const PAST = "#A0AEC0";
@@ -83,51 +74,51 @@ const VIEW_CONFIG = {
   month: { label: "Ay", days: 30 },
 };
 
-// Wrap BigCalendar with drag-and-drop, specifying our event type
-const DragDropCalendar = withDragAndDrop<BigCalendarEvent, object>(BigCalendar);
-
-type CalendarEventComponentProps = {
-  event: BigCalendarEvent;
+type CalendarViewOption = "day" | "week" | "month";
+type BigCalendarEvent = {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  resource: EnrichedAppointment;
 };
 
-const CalendarEventComponent: React.FC<CalendarEventComponentProps> = ({
-  event,
-}) => <div className="truncate text-xs font-semibold">{event.title}</div>;
-
-export const CustomCalendar: React.FC = () => {
+export const CustomCalendar: React.FC = (): React.ReactNode => {
   const { idToken, selectedCompanyId, selectedClinicId, user } = useAuth();
-  const yourEmail = user?.email ?? "";
-  const isOwner = user?.role === "owner";
+  const currentUserId = user?.uid ?? "";
+  // Check if user is owner - useful for future permission controls
+  const isOwner =
+    user?.memberships?.some((m) => m.roles.includes("owner")) ?? false;
 
-  // fetch appointments + metadata
+  // Enriched appointment hook (events, employees, services)
   const { appointments, employees, services, refetch } =
     useEnrichedAppointments(idToken!, selectedCompanyId!, selectedClinicId!);
 
-  // patients & groups
+  // Patients & groups
   const [patients, setPatients] = useState<Patient[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+
   useEffect(() => {
     if (!idToken || !selectedCompanyId || !selectedClinicId) return;
     getPatients(idToken, selectedCompanyId, selectedClinicId).then(setPatients);
     listGroups(idToken, selectedCompanyId, selectedClinicId).then(setGroups);
   }, [idToken, selectedCompanyId, selectedClinicId]);
 
-  // calendar state
+  // State: Calendar view & date
   const [view, setView] = useState<CalendarViewOption>("week");
   const [date, setDate] = useState<Date>(new Date());
 
-  // filters
+  // Filters & modals
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterEmp, setFilterEmp] = useState("");
-  const [filterServ, setFilterServ] = useState("");
-  const [filterGrp, setFilterGrp] = useState("");
+  const [filterEmp, setFilterEmp] = useState<string>("");
+  const [filterServ, setFilterServ] = useState<string>("");
+  const [filterGrp, setFilterGrp] = useState<string>("");
 
-  // modal state
   const [modalDay, setModalDay] = useState<Date | null>(null);
   const [appointmentModalData, setAppointmentModalData] =
     useState<EnrichedAppointment | null>(null);
 
-  // new-appointment form
+  // New appointment form state
   const [newPatient, setNewPatient] = useState("");
   const [newEmployee, setNewEmployee] = useState("");
   const [newService, setNewService] = useState("");
@@ -135,13 +126,13 @@ export const CustomCalendar: React.FC = () => {
   const [newStart, setNewStart] = useState("");
   const [newEnd, setNewEnd] = useState("");
 
-  // map to BigCalendarEvent[]
+  // --- Events array ---
   const events: BigCalendarEvent[] = useMemo(
     () =>
       appointments
         .filter(
           (evt) =>
-            (!filterEmp || evt.employeeEmail === filterEmp) &&
+            (!filterEmp || evt.employeeId === filterEmp) &&
             (!filterServ || evt.serviceId === filterServ) &&
             (!filterGrp || evt.groupId === filterGrp)
         )
@@ -155,34 +146,27 @@ export const CustomCalendar: React.FC = () => {
     [appointments, filterEmp, filterServ, filterGrp]
   );
 
-  // slot → new appointment
+  // --- Handlers ---
   const handleSelectSlot = (slot: SlotInfo) => {
-    setModalDay(slot.start);
-    setNewStart(slot.start.toISOString());
-    setNewEnd(slot.end.toISOString());
+    setModalDay(slot.start as Date);
+    setNewStart((slot.start as Date).toISOString());
+    setNewEnd((slot.end as Date).toISOString());
   };
 
-  // drag or resize → update appointment
-  const handleDropResize = async ({
-    event,
-    start,
-    end,
-  }: {
-    event: BigCalendarEvent;
-    start: Date;
-    end: Date;
-  }) => {
+  const handleDropResize = async ({ event, start, end }: any) => {
     await updateAppointment(
       idToken!,
       selectedCompanyId!,
       selectedClinicId!,
       event.id,
-      { start: start.toISOString(), end: end.toISOString() }
+      {
+        start: (start as Date).toISOString(),
+        end: (end as Date).toISOString(),
+      }
     );
     refetch?.();
   };
 
-  // clear all modal state
   const resetForm = () => {
     setModalDay(null);
     setAppointmentModalData(null);
@@ -194,7 +178,6 @@ export const CustomCalendar: React.FC = () => {
     setNewEnd("");
   };
 
-  // DTO for creation (serviceId optional for "ozel")
   type NewAppointmentDTO = {
     appointmentType: "individual" | "group" | "ozel";
     start: string;
@@ -205,15 +188,10 @@ export const CustomCalendar: React.FC = () => {
     groupId?: string;
   };
 
-  // create new appointment
   const handleNewAppointment = async (dto: NewAppointmentDTO) => {
-    // Map to API shape: always provide serviceId as string
-    const apiPayload = {
+    const payload = {
       ...dto,
       serviceId: dto.serviceId ?? "",
-      ...(dto.patientId ? { patientId: dto.patientId } : {}),
-      ...(dto.groupId ? { groupId: dto.groupId } : {}),
-      // appointmentType must be "individual" or "group" for API
       appointmentType:
         dto.appointmentType === "ozel" ? "individual" : dto.appointmentType,
     };
@@ -221,13 +199,12 @@ export const CustomCalendar: React.FC = () => {
       idToken!,
       selectedCompanyId!,
       selectedClinicId!,
-      apiPayload
+      payload
     );
     resetForm();
     refetch?.();
   };
 
-  // delete & update
   const handleDelete = async (id: string) => {
     await deleteAppointment(
       idToken!,
@@ -238,6 +215,7 @@ export const CustomCalendar: React.FC = () => {
     resetForm();
     refetch?.();
   };
+
   const handleUpdate = async (
     id: string,
     changes: { start: string; end: string; serviceId?: string }
@@ -253,28 +231,19 @@ export const CustomCalendar: React.FC = () => {
     refetch?.();
   };
 
-  // style past vs upcoming
-  const eventPropGetter = (ev: BigCalendarEvent) => {
-    const now = new Date();
-    return {
-      style: {
-        backgroundColor: ev.end < now ? PAST : ACCENT,
-        color: "#fff",
-        borderRadius: 6,
-        fontSize: "0.75rem",
-        padding: "2px 4px",
-      },
-    };
-  };
+  // No longer needed as we use inline eventPropGetter
+  // Removed extraneous closing bracket
 
-  // working hours
+  // Time boundaries
   const minTime = new Date();
   minTime.setHours(8, 0, 0, 0);
+
   const maxTime = new Date();
   maxTime.setHours(22, 0, 0, 0);
 
   return (
     <div className="w-full h-full flex flex-col" style={{ background: BG }}>
+      {/* Header with date/view/filter controls */}
       <CalendarHeader
         currentDate={date}
         setCurrentDate={setDate}
@@ -289,15 +258,15 @@ export const CustomCalendar: React.FC = () => {
         onClose={() => setFilterOpen(false)}
         employees={employees}
         selectedEmployee={filterEmp}
-        onEmployeeChange={setFilterEmp}
+        onEmployeeChange={(id) => setFilterEmp(id)}
         services={services}
         selectedService={filterServ}
-        onServiceChange={setFilterServ}
+        onServiceChange={(id) => setFilterServ(id)}
         groups={groups}
         selectedGroup={filterGrp}
-        onGroupChange={setFilterGrp}
-        currentUserEmail={yourEmail}
-        ownerEmail={yourEmail}
+        onGroupChange={(id) => setFilterGrp(id)}
+        currentUserId={currentUserId}
+        ownerUserId={currentUserId}
       />
 
       <div className="flex-1">
@@ -313,100 +282,109 @@ export const CustomCalendar: React.FC = () => {
           toolbar={false}
           view={view}
           date={date}
-          onNavigate={setDate}
-          onView={(v: View) => setView(v as CalendarViewOption)}
           selectable
+          onNavigate={setDate}
+          onView={(v) => setView(v as CalendarViewOption)}
           onSelectSlot={handleSelectSlot}
-          onSelectEvent={(ev: BigCalendarEvent) =>
-            setAppointmentModalData(ev.resource)
-          }
-          onEventDrop={({ event, start, end }) =>
-            void handleDropResize({
-              event,
-              start: typeof start === "string" ? new Date(start) : start,
-              end: typeof end === "string" ? new Date(end) : end,
-            })
-          }
+          onEventDrop={handleDropResize}
+          onEventResize={handleDropResize}
+          onSelectEvent={(ev: any) => setAppointmentModalData(ev.resource)}
           components={{
-            event: CalendarEventComponent,
+            event: (props: EventProps<BigCalendarEvent>) => (
+              <div className="truncate text-xs font-semibold">
+                {props.event.title}
+              </div>
+            ),
           }}
           resizable
           draggableAccessor={() => true}
-          eventPropGetter={eventPropGetter}
+          eventPropGetter={(event) => ({
+            style: {
+              backgroundColor:
+                (event as BigCalendarEvent).end < new Date() ? PAST : ACCENT,
+              color: "#fff",
+              borderRadius: 6,
+              fontSize: "0.75rem",
+              padding: "2px 4px",
+            },
+          })}
           min={minTime}
           max={maxTime}
           step={30}
           timeslots={2}
-          dayLayoutAlgorithm="no-overlap"
         />
+
+        {modalDay && (
+          <NewAppointmentModal
+            show={modalDay !== null}
+            patients={patients}
+            employees={employees}
+            services={services}
+            groups={groups}
+            currentUserId={currentUserId}
+            currentUserName={user?.name ?? ""}
+            selectedPatient={newPatient}
+            setSelectedPatient={setNewPatient}
+            selectedEmployee={newEmployee}
+            setSelectedEmployee={setNewEmployee}
+            selectedService={newService}
+            setSelectedService={setNewService}
+            selectedGroup={newGroup}
+            setSelectedGroup={setNewGroup}
+            modalDay={modalDay}
+            startStr={newStart}
+            setStartStr={setNewStart}
+            endStr={newEnd}
+            setEndStr={setNewEnd}
+            onClose={() => setModalDay(null)}
+            isOwner={isOwner}
+            onSubmitIndividual={(start, end, empId, svcId) =>
+              handleNewAppointment({
+                appointmentType: "individual",
+                start,
+                end,
+                employeeId: empId,
+                serviceId: svcId,
+                patientId: newPatient,
+              })
+            }
+            onSubmitGroup={(grpId, start, end, empId, svcId) =>
+              handleNewAppointment({
+                appointmentType: "group",
+                start,
+                end,
+                employeeId: empId,
+                serviceId: svcId,
+                groupId: grpId,
+              })
+            }
+            onSubmitCustom={(start, end, empId) =>
+              handleNewAppointment({
+                appointmentType: "ozel",
+                start,
+                end,
+                employeeId: empId,
+              })
+            }
+            onAddPatient={() => setPatients([...patients])}
+          />
+        )}
+
+        {appointmentModalData && (
+          <AppointmentModal
+            event={appointmentModalData}
+            onClose={() => setAppointmentModalData(null)}
+            onCancel={() =>
+              appointmentModalData && handleDelete(appointmentModalData.id)
+            }
+            onUpdate={handleUpdate}
+            // don’t forget to pass services and employees props as well!
+            services={services}
+            employees={employees}
+            // any other required props
+          />
+        )}
       </div>
-
-      <NewAppointmentModal
-        show={!!modalDay}
-        onClose={resetForm}
-        patients={patients}
-        employees={employees}
-        services={services}
-        groups={groups}
-        isOwner={isOwner}
-        currentUserId={yourEmail}
-        currentUserName={user?.name ?? ""}
-        selectedPatient={newPatient}
-        setSelectedPatient={setNewPatient}
-        selectedEmployee={newEmployee}
-        setSelectedEmployee={setNewEmployee}
-        selectedService={newService}
-        setSelectedService={setNewService}
-        selectedGroup={newGroup}
-        setSelectedGroup={setNewGroup}
-        modalDay={modalDay ?? undefined}
-        startStr={newStart}
-        setStartStr={setNewStart}
-        endStr={newEnd}
-        setEndStr={setNewEnd}
-        onSubmitIndividual={(start, end, empId, svcId) =>
-          handleNewAppointment({
-            appointmentType: "individual",
-            start,
-            end,
-            employeeId: empId,
-            serviceId: svcId,
-            patientId: newPatient,
-          })
-        }
-        onSubmitGroup={(grpId, start, end, empId, svcId) =>
-          handleNewAppointment({
-            appointmentType: "group",
-            start,
-            end,
-            employeeId: empId,
-            serviceId: svcId,
-            groupId: grpId,
-          })
-        }
-        onSubmitCustom={(start, end, empId) =>
-          handleNewAppointment({
-            appointmentType: "ozel",
-            start,
-            end,
-            employeeId: empId,
-          })
-        }
-        onAddPatient={() => setPatients([...patients])}
-      />
-
-      {appointmentModalData && (
-        <AppointmentModal
-          event={appointmentModalData}
-          services={services}
-          employees={employees}
-          onClose={() => setAppointmentModalData(null)}
-          onCancel={() => handleDelete(appointmentModalData.id)}
-          onUpdate={handleUpdate}
-        />
-      )}
     </div>
   );
 };
-
-export default CustomCalendar;

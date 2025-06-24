@@ -1,13 +1,13 @@
 // src/components/Forms/CreatePatientForm.tsx
-import React, { useState, useEffect, FormEvent } from "react";
-import AppModal from "../Modals/AppModal";
+import React, { useState, useEffect, useRef } from "react";
+import AppModal, { ModalForm } from "../Modals/AppModal";
 import { createPatient } from "../../api/patientApi";
 import { listGroups } from "../../api/groupApi";
 import type { Patient, Group } from "../../types/sharedTypes";
 import GroupPreviewList from "../Lists/GroupPreviewList";
 import CountryCodes from "../../data/CountryCodes.json";
 
-// helper: country code to flag
+// helper to render flag emoji from country code
 function countryCodeToFlag(code: string) {
   return code
     .toUpperCase()
@@ -15,19 +15,11 @@ function countryCodeToFlag(code: string) {
 }
 
 interface PhoneInputProps {
-  readonly phone: string;
-  readonly setPhone: React.Dispatch<React.SetStateAction<string>>;
-  readonly phoneCode: {
-    readonly code: string;
-    readonly dial_code: string;
-    readonly name: string;
-  };
-  readonly setPhoneCode: React.Dispatch<
-    React.SetStateAction<{
-      readonly code: string;
-      readonly dial_code: string;
-      readonly name: string;
-    }>
+  phone: string;
+  setPhone: React.Dispatch<React.SetStateAction<string>>;
+  phoneCode: (typeof CountryCodes)[number];
+  setPhoneCode: React.Dispatch<
+    React.SetStateAction<(typeof CountryCodes)[number]>
   >;
 }
 
@@ -38,7 +30,7 @@ function PhoneInput({
   setPhoneCode,
 }: PhoneInputProps) {
   const [open, setOpen] = useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -100,12 +92,12 @@ function PhoneInput({
 }
 
 export interface CreatePatientFormProps {
-  readonly show: boolean;
-  readonly onClose: () => void;
-  readonly idToken: string;
-  readonly companyId: string;
-  readonly clinicId: string;
-  readonly onCreated?: () => void;
+  show: boolean;
+  onClose: () => void;
+  idToken: string;
+  companyId: string;
+  clinicId: string;
+  onCreated?: () => void;
 }
 
 export default function CreatePatientForm({
@@ -121,15 +113,17 @@ export default function CreatePatientForm({
     age: "",
     credit: "",
     note: "",
-    status: "active", // add required status field
+    status: "active",
     groups: [] as string[],
   });
   const [groups, setGroups] = useState<Group[]>([]);
-  const [message, setMessage] = useState("");
   const [phoneCode, setPhoneCode] = useState(
     CountryCodes.find((c) => c.code === "TR")!
   );
   const [phone, setPhone] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const createdRef = useRef<Patient | null>(null);
 
   useEffect(() => {
     if (show) {
@@ -139,18 +133,21 @@ export default function CreatePatientForm({
     }
   }, [show, idToken, companyId, clinicId]);
 
-  const handleToggleGroup = (groupId: string) => {
+  const handleToggleGroup = (gid: string) => {
     setForm((f) => ({
       ...f,
-      groups: f.groups.includes(groupId)
-        ? f.groups.filter((id) => id !== groupId)
-        : [...f.groups, groupId],
+      groups: f.groups.includes(gid)
+        ? f.groups.filter((id) => id !== gid)
+        : [...f.groups, gid],
     }));
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    // match API signature: Omit<Patient,...> requires status
+  const handleSubmit = async (): Promise<boolean> => {
+    setError(null);
+    if (!form.name.trim()) {
+      setError("İsim zorunlu.");
+      return false;
+    }
     const payload: Omit<Patient, "_id" | "companyId" | "clinicId"> = {
       name: form.name,
       age: form.age ? Number(form.age) : undefined,
@@ -161,150 +158,138 @@ export default function CreatePatientForm({
       createdAt: new Date().toISOString(),
       services: [],
       paymentHistory: [],
-      // groups handled separately via assignment endpoint if needed
     };
     try {
-      await createPatient(idToken, companyId, clinicId, payload);
-      setForm({
-        name: "",
-        age: "",
-        credit: "",
-        note: "",
-        status: "active",
-        groups: [],
-      });
-      setPhone("");
-      onClose();
-      onCreated?.();
+      const created = await createPatient(
+        idToken,
+        companyId,
+        clinicId,
+        payload
+      );
+      createdRef.current = created;
+      return true;
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setMessage(err.message);
-      } else {
-        setMessage("Hata oluştu");
-      }
+      const errorMessage =
+        err instanceof Error ? err.message : "Oluşturma başarısız.";
+      setError(errorMessage);
+      return false;
     }
   };
 
   return (
-    <AppModal open={show} onClose={onClose} title="Yeni Müşteri Oluştur">
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Name */}
-        <div>
-          <label
-            htmlFor="create-patient-name"
-            className="block text-sm font-semibold text-brand-main mb-1"
-          >
-            İsim
-          </label>
-          <input
-            id="create-patient-name"
-            value={form.name}
-            required
-            placeholder="İsim"
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            className="w-full border px-3 py-2 rounded-xl"
-          />
-        </div>
+    <AppModal
+      open={show}
+      onClose={onClose}
+      title="Yeni Müşteri Oluştur"
+      onSuccess={() => {
+        onCreated?.();
+      }}
+    >
+      <ModalForm onSubmit={handleSubmit}>
+        <div className="space-y-4">
+          {error && <div className="text-red-600 text-sm">{error}</div>}
 
-        {/* Age + Phone */}
-        <div className="flex gap-3 flex-wrap">
-          <div className="flex-shrink-0 w-24">
-            <label
-              htmlFor="create-patient-age"
-              className="block text-sm font-semibold text-brand-main mb-1"
-            >
-              Yaş
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-semibold text-brand-main mb-1">
+              İsim
             </label>
             <input
-              id="create-patient-age"
-              value={form.age}
-              type="number"
-              min={0}
-              onChange={(e) => setForm((f) => ({ ...f, age: e.target.value }))}
+              value={form.name}
+              required
+              placeholder="İsim"
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               className="w-full border px-3 py-2 rounded-xl"
             />
           </div>
-          <div className="flex-1 min-w-0">
+
+          {/* Age & Phone */}
+          <div className="flex gap-3 flex-wrap">
+            <div className="flex-shrink-0 w-24">
+              <label className="block text-sm font-semibold text-brand-main mb-1">
+                Yaş
+              </label>
+              <input
+                value={form.age}
+                type="number"
+                min={0}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, age: e.target.value }))
+                }
+                className="w-full border px-3 py-2 rounded-xl"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <label className="block text-sm font-semibold text-brand-main mb-1">
+                Telefon
+              </label>
+              <PhoneInput
+                phone={phone}
+                setPhone={setPhone}
+                phoneCode={phoneCode}
+                setPhoneCode={setPhoneCode}
+              />
+            </div>
+          </div>
+
+          {/* Credit */}
+          <div>
             <label className="block text-sm font-semibold text-brand-main mb-1">
-              Telefon
+              Kalan Seans Kredisi
             </label>
-            <PhoneInput
-              phone={phone}
-              setPhone={setPhone}
-              phoneCode={phoneCode}
-              setPhoneCode={setPhoneCode}
+            <input
+              value={form.credit}
+              type="number"
+              min={0}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, credit: e.target.value }))
+              }
+              className="w-full border px-3 py-2 rounded-xl"
             />
           </div>
-        </div>
 
-        {/* Credit */}
-        <div>
-          <label
-            htmlFor="create-patient-credit"
-            className="block text-sm font-semibold text-brand-main mb-1"
-          >
-            Kredi
-          </label>
-          <input
-            id="create-patient-credit"
-            value={form.credit}
-            type="number"
-            min={0}
-            onChange={(e) => setForm((f) => ({ ...f, credit: e.target.value }))}
-            className="w-full border px-3 py-2 rounded-xl"
-          />
-        </div>
+          {/* Note */}
+          <div>
+            <label className="block text-sm font-semibold text-brand-main mb-1">
+              Not
+            </label>
+            <textarea
+              value={form.note}
+              onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+              className="w-full border px-3 py-2 rounded-xl"
+            />
+          </div>
 
-        {/* Note */}
-        <div>
-          <label
-            htmlFor="create-patient-note"
-            className="block text-sm font-semibold text-brand-main mb-1"
-          >
-            Not
-          </label>
-          <textarea
-            id="create-patient-note"
-            value={form.note}
-            onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-            className="w-full border px-3 py-2 rounded-xl"
-          />
-        </div>
+          {/* Groups */}
+          <div>
+            <label className="block text-sm font-semibold text-brand-main mb-1">
+              Gruplar
+            </label>
+            <GroupPreviewList
+              groups={groups}
+              selectedIds={form.groups}
+              onToggleSelect={handleToggleGroup}
+            />
+          </div>
 
-        {/* Groups */}
-        <div>
-          <label
-            htmlFor="create-patient-groups"
-            className="block text-sm font-semibold text-brand-main mb-1"
-          >
-            Gruplar
-          </label>
-          <GroupPreviewList
-            groups={groups}
-            selectedIds={form.groups}
-            onToggleSelect={handleToggleGroup}
-          />
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-200 rounded-xl"
+            >
+              İptal
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-brand-main text-white rounded-xl"
+            >
+              Oluştur
+            </button>
+          </div>
         </div>
-
-        <div className="flex gap-2 justify-end pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 bg-brand-gray-200 rounded-xl"
-          >
-            İptal
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-brand-main text-white rounded-xl"
-          >
-            Oluştur
-          </button>
-        </div>
-        {message && (
-          <p className="mt-2 text-center text-sm text-brand-red">{message}</p>
-        )}
-      </form>
+      </ModalForm>
     </AppModal>
   );
 }

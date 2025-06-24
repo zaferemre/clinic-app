@@ -25,6 +25,7 @@ const SlotPicker: React.FC<SlotPickerProps> = ({
   isPastDay,
   isToday,
 }) => {
+  // generate all possible slots for the day
   const slots = useMemo(() => {
     const arr: Date[] = [];
     const totalMins = (CLOSE_HOUR - OPEN_HOUR) * 60;
@@ -40,8 +41,10 @@ const SlotPicker: React.FC<SlotPickerProps> = ({
 
   const now = new Date();
 
+  // check if a slot overlaps any busy interval
   const slotBusy = (s: Date, e: Date) =>
     busy.some((b) => s < b.end && e > b.start);
+  // check if slot is in past relative to today
   const slotPast = (_: Date, e: Date) => isPastDay || (isToday && e <= now);
 
   return (
@@ -61,8 +64,7 @@ const SlotPicker: React.FC<SlotPickerProps> = ({
               setEndValue(end.toISOString());
             }}
             className={`
-              min-w-[108px] flex flex-col items-center px-3 py-3 rounded-xl border-2 font-bold relative transition-all
-              shadow-sm
+              min-w-[108px] flex flex-col items-center px-3 py-3 rounded-xl border-2 font-bold relative transition-all shadow-sm
               ${
                 selected
                   ? "bg-brand-main text-white border-brand-main shadow-lg scale-105"
@@ -70,12 +72,12 @@ const SlotPicker: React.FC<SlotPickerProps> = ({
               }
               ${
                 busySlot
-                  ? "bg-brand-red/10 border-brand-red text-brand-red cursor-not-allowed"
+                  ? "bg-red-100 border-red-300 text-red-600 cursor-not-allowed"
                   : ""
               }
               ${
-                pastSlot && !busySlot
-                  ? "bg-brand-gray-100 border-brand-gray-300 text-brand-gray-400 cursor-not-allowed"
+                !busySlot && pastSlot
+                  ? "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed"
                   : ""
               }
               ${
@@ -83,7 +85,7 @@ const SlotPicker: React.FC<SlotPickerProps> = ({
                   ? "bg-brand-bg border-brand-main text-brand-main hover:bg-brand-main/10"
                   : ""
               }
-              `}
+            `}
           >
             <span className="text-lg tracking-tight">
               {slot.toLocaleTimeString("tr-TR", {
@@ -98,14 +100,13 @@ const SlotPicker: React.FC<SlotPickerProps> = ({
                 hour12: false,
               })}
             </span>
-            {/* Show busy or past icons/text */}
             {busySlot && (
-              <span className="flex items-center gap-1 mt-1 text-xs text-brand-red font-semibold">
+              <span className="flex items-center gap-1 mt-1 text-xs text-red-600 font-semibold">
                 <XCircleIcon className="w-4 h-4" /> DOLU
               </span>
             )}
-            {pastSlot && !busySlot && (
-              <span className="flex items-center gap-1 mt-1 text-xs text-brand-gray-400 font-medium">
+            {!busySlot && pastSlot && (
+              <span className="flex items-center gap-1 mt-1 text-xs text-gray-400 font-medium">
                 <ClockIcon className="w-4 h-4" /> Geçti
               </span>
             )}

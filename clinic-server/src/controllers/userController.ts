@@ -1,24 +1,85 @@
-// src/controllers/userController.ts
 import { RequestHandler } from "express";
-import Company from "../models/Company";
-import admin from "firebase-admin";
+import * as userService from "../services/userService";
 
-// DELETE /company/user
-export const deleteUserAccount: RequestHandler = async (req, res, next) => {
+// POST /user/register
+export const registerUser: RequestHandler = async (req, res, next) => {
   try {
-    const email = (req.user as any).email as string;
-    const uid = (req.user as any).uid as string;
+    const uid = (req.user as any).uid;
+    const { email, name, photoUrl } = req.body;
 
-    // Remove from all companies
-    await Company.updateMany(
-      { employees: email },
-      { $pull: { employees: email } }
-    );
+    // service will throw if name missing
+    const user = await userService.registerUser(uid, { email, name, photoUrl });
+    res.status(201).json(user);
+  } catch (err) {
+    next(err);
+  }
+};
 
-    // Delete from Firebase
-    await admin.auth().deleteUser(uid);
+// GET /user/me — only returns if already registered
+export const getMe: RequestHandler = async (req, res, next) => {
+  try {
+    const uid = (req.user as any).uid;
+    const user = await userService.getUserProfile(uid);
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+};
 
+// PATCH /user/me
+export const updateMe: RequestHandler = async (req, res, next) => {
+  try {
+    const uid = (req.user as any).uid;
+    const user = await userService.updateUserSettings(uid, req.body);
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// DELETE /user/me
+export const deleteUserAccount: RequestHandler = async (_req, res, next) => {
+  try {
+    const uid = (_req.user as any).uid;
+    await userService.deleteUser(uid);
     res.sendStatus(204);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// List companies, clinics, leave membership omitted for brevity
+export const listUserCompanies: RequestHandler = async (req, res, next) => {
+  try {
+    const uid = (req.user as any).uid;
+    const companies = await userService.getUserMemberships(uid);
+    res.json(companies);
+  } catch (err) {
+    next(err);
+  }
+};
+export const listUserClinics: RequestHandler = async (req, res, next) => {
+  try {
+    const uid = (req.user as any).uid;
+    const clinics = await userService.getUserClinics(uid);
+    res.json(clinics);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /user/membership
+export const addMembership: RequestHandler = async (req, res, next) => {
+  try {
+    const uid = (req.user as any).uid;
+    const { companyId, companyName, clinicId, clinicName, roles } = req.body;
+    if (!companyId || !companyName) {
+      res.status(400).json({ message: "companyId and companyName required" });
+      return;
+    }
+    const membership = { companyId, companyName, clinicId, clinicName, roles };
+    const user = await userService.addUserMembership(uid, membership);
+    res.status(200).json(user);
   } catch (err) {
     next(err);
   }

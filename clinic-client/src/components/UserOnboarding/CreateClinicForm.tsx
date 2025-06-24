@@ -123,7 +123,6 @@ export default function CreateClinicForm({
 }) {
   const { idToken, selectedCompanyId } = useAuth();
   const [clinicName, setClinicName] = useState("");
-
   const [provQuery, setProvQuery] = useState("");
   const [provSug, setProvSug] = useState<string[]>([]);
   const [districtQuery, setDistrictQuery] = useState("");
@@ -148,16 +147,11 @@ export default function CreateClinicForm({
     Province: string;
     Districts: {
       District: string;
-      Towns: {
-        Town: string;
-        Neighbourhoods: string[];
-      }[];
+      Towns: { Town: string; Neighbourhoods: string[] }[];
     }[];
   }
-
   const provinces: NeighbourhoodData[] = turkeyGeo;
 
-  // Address autocomplete
   useEffect(() => {
     setProvSug(
       provinces
@@ -167,79 +161,38 @@ export default function CreateClinicForm({
     setDistrictSug([]);
     setTownSug([]);
     setNeighSug([]);
-  }, [provQuery, provinces]);
+  }, [provQuery]);
 
   useEffect(() => {
     const p = provinces.find((p) => p.Province === provQuery);
-    const list =
-      p?.Districts.map(
-        (d: {
-          District: string;
-          Towns: { Town: string; Neighbourhoods: string[] }[];
-        }) => d.District
-      ) || [];
+    const list = p?.Districts.map((d) => d.District) || [];
     setDistrictSug(
-      list.filter((n: string) =>
-        n.toLowerCase().includes(districtQuery.toLowerCase())
-      )
+      list.filter((n) => n.toLowerCase().includes(districtQuery.toLowerCase()))
     );
     setTownSug([]);
     setNeighSug([]);
-  }, [districtQuery, provQuery, provinces]);
+  }, [districtQuery, provQuery]);
 
   useEffect(() => {
     const p = provinces.find((p) => p.Province === provQuery);
-    const d = p?.Districts.find(
-      (d: {
-        District: string;
-        Towns: { Town: string; Neighbourhoods: string[] }[];
-      }) => d.District === districtQuery
-    );
-    const list =
-      d?.Towns.map((t: { Town: string; Neighbourhoods: string[] }) => t.Town) ||
-      [];
+    const d = p?.Districts.find((d) => d.District === districtQuery);
+    const list = d?.Towns.map((t) => t.Town) || [];
     setTownSug(
-      list.filter((n: string) =>
-        n.toLowerCase().includes(townQuery.toLowerCase())
-      )
+      list.filter((n) => n.toLowerCase().includes(townQuery.toLowerCase()))
     );
     setNeighSug([]);
-  }, [townQuery, districtQuery, provQuery, provinces]);
+  }, [townQuery, districtQuery, provQuery]);
 
   useEffect(() => {
     const p = provinces.find((p) => p.Province === provQuery);
-    const d = p?.Districts.find(
-      (d: {
-        District: string;
-        Towns: { Town: string; Neighbourhoods: string[] }[];
-      }) => d.District === districtQuery
-    );
-    const t = d?.Towns.find(
-      (t: { Town: string; Neighbourhoods: string[] }) => t.Town === townQuery
-    );
+    const d = p?.Districts.find((d) => d.District === districtQuery);
+    const t = d?.Towns.find((t) => t.Town === townQuery);
     const list = t?.Neighbourhoods || [];
     setNeighSug(
-      list.filter((n: string) =>
-        n.toLowerCase().includes(neighQuery.toLowerCase())
-      )
+      list.filter((n) => n.toLowerCase().includes(neighQuery.toLowerCase()))
     );
-  }, [neighQuery, townQuery, districtQuery, provQuery, provinces]);
+  }, [neighQuery, townQuery, districtQuery, provQuery]);
 
-  // Geocode selected address
-  useEffect(() => {
-    if (provQuery && districtQuery && townQuery && neighQuery) {
-      const query = `${neighQuery}, ${townQuery}, ${districtQuery}, ${provQuery}, Turkey`;
-      fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          query
-        )}&limit=1`
-      )
-        .then((res) => res.json())
-        .then((data: { lat: string; lon: string }[]) => {
-          if (data[0]) setMapLocation({ lat: +data[0].lat, lng: +data[0].lon });
-        });
-    }
-  }, [provQuery, districtQuery, townQuery, neighQuery]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
@@ -249,35 +202,31 @@ export default function CreateClinicForm({
     if (!mapLocation) return setMessage("Konum seçin.");
     if (!phone) return setMessage("Telefon gerekli.");
 
-    const payload = {
-      name: clinicName,
-      address: {
-        province: provQuery,
-        district: districtQuery,
-        town: townQuery,
-        neighborhood: neighQuery,
-      },
-      phoneNumber: `${phoneCode.dial_code}${phone}`,
-      location: {
-        type: "Point" as const,
-        coordinates: [mapLocation.lng, mapLocation.lat],
-      },
-      workingHours,
-      services: [] as string[],
-    };
-
     try {
+      const payload = {
+        name: clinicName,
+        address: {
+          province: provQuery,
+          district: districtQuery,
+          town: townQuery,
+          neighborhood: neighQuery,
+        },
+        phoneNumber: `${phoneCode.dial_code}${phone}`,
+        location: {
+          type: "Point" as const,
+          coordinates: [mapLocation.lng, mapLocation.lat],
+        },
+        workingHours,
+        services: [] as string[],
+      };
       const created = await createClinic(idToken!, selectedCompanyId!, payload);
       onCreated(created._id, created.name);
     } catch (err: unknown) {
       console.error("[CreateClinicForm] Error creating clinic:", err);
-      if (err instanceof Error) {
-        setMessage(err.message || "Hata oluştu.");
-      } else {
-        setMessage("Hata oluştu.");
-      }
+      setMessage(err instanceof Error ? err.message : "Hata oluştu.");
     }
   };
+
   const fields = [
     {
       value: provQuery,
@@ -304,6 +253,7 @@ export default function CreateClinicForm({
       placeholder: "Mahalle",
     },
   ];
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <input

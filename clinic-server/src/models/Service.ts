@@ -14,11 +14,7 @@ export interface ServiceDocument extends Document {
 
 const ServiceSchema = new Schema<ServiceDocument>(
   {
-    companyId: {
-      type: Schema.Types.ObjectId,
-      ref: "Company",
-      required: true,
-    },
+    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
     clinicId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
     serviceName: { type: String, required: true },
     servicePrice: { type: Number, required: true, min: 0 },

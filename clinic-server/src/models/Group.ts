@@ -12,7 +12,7 @@ export interface GroupDocument extends Document {
   status: "active" | "inactive" | "archived";
   groupType?: string;
   appointments: Types.ObjectId[];
-  createdBy: string;
+  createdBy: string; // Firebase UID
   customFields?: any;
   createdAt: Date;
   updatedAt: Date;
@@ -20,11 +20,7 @@ export interface GroupDocument extends Document {
 
 const GroupSchema = new Schema<GroupDocument>(
   {
-    companyId: {
-      type: Schema.Types.ObjectId,
-      ref: "company",
-      required: true,
-    },
+    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
     clinicId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
     name: { type: String, required: true },
     patients: [{ type: Schema.Types.ObjectId, ref: "Patient" }],
@@ -40,7 +36,7 @@ const GroupSchema = new Schema<GroupDocument>(
     groupType: { type: String },
     appointments: [{ type: Schema.Types.ObjectId, ref: "Appointment" }],
     customFields: { type: Schema.Types.Mixed },
-    createdBy: { type: String, required: true }, // user ID or name
+    createdBy: { type: String, required: true }, // Firebase UID
   },
   { timestamps: true }
 );

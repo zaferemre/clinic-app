@@ -1,30 +1,28 @@
 import { Router } from "express";
-import * as companyController from "../controllers/companyController";
+import * as companyCtrl from "../controllers/companyController";
 import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
 import { authorizeCompanyAccess } from "../middlewares/authorizeCompanyAccess";
 
 const router = Router();
 
-// 1) auth middleware for *all* company routes
 router.use(verifyFirebaseToken);
 
-// 2) public/before-membership routes
-router.post("/join", companyController.joinByCode);
-router.post("/:companyId/clinics/:clinicId/join", companyController.joinClinic);
-router.post("/", companyController.createCompany);
-router.get("/", companyController.listCompanies);
-router.get("/:companyId", companyController.getCompanyById);
+router.post("/", companyCtrl.createCompany);
+router.get("/", companyCtrl.listCompanies);
 
-// this one doesn’t include a companyId, so leave it here:
-router.delete("/user", companyController.deleteUserAccount);
+// Join a company via code
+router.post("/join", companyCtrl.joinByCode);
 
-// 3) everything below now requires a real :companyId
+// All below require :companyId in params!
 router.use("/:companyId", authorizeCompanyAccess);
 
-// Company-scoped actions
-router.patch("/:companyId", companyController.updateCompany);
-router.delete("/:companyId", companyController.deleteCompany);
-router.get("/:companyId/employees", companyController.listEmployees);
-router.post("/:companyId/leave", companyController.leaveCompany);
+router.get("/:companyId", companyCtrl.getCompany);
+router.patch("/:companyId", companyCtrl.updateCompany);
+router.delete("/:companyId", companyCtrl.deleteCompany);
+
+router.post("/:companyId/leave", companyCtrl.leaveCompany);
+
+// List company employees (optionally filter by clinic)
+router.get("/:companyId/employees", companyCtrl.listEmployees);
 
 export default router;

@@ -1,9 +1,8 @@
-// services/notificationService.ts
-import * as repoNotif from "../dataAccess/notificationRepository";
+import * as notifRepo from "../dataAccess/notificationRepository";
 import createError from "http-errors";
 
 export async function listNotifications(companyId: string, clinicId: string) {
-  return repoNotif.listNotifications(companyId, clinicId);
+  return notifRepo.listNotifications(companyId, clinicId);
 }
 
 export async function markNotificationDone(
@@ -11,9 +10,13 @@ export async function markNotificationDone(
   clinicId: string,
   notificationId: string
 ) {
-  const n = await repoNotif.updateNotificationStatus(notificationId, "done");
-  if (!n) throw createError(404, "Notification not found");
-  return n;
+  // You might want to check companyId/clinicId for permission, but for now:
+  const notif = await notifRepo.updateNotificationStatus(
+    notificationId,
+    "done"
+  );
+  if (!notif) throw createError(404, "Notification not found");
+  return notif;
 }
 export function processPending() {
   throw new Error("Function not implemented.");

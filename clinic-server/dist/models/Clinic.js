@@ -3,11 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
 const WorkingHour_1 = require("./WorkingHour");
 const ClinicSchema = new mongoose_1.Schema({
-    companyId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "company",
-        required: true,
-    },
+    companyId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Company", required: true },
     name: { type: String, required: true },
     address: {
         province: { type: String, default: "" },

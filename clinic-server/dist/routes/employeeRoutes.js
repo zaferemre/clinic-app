@@ -33,13 +33,16 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/routes/employeeRoutes.ts
 const express_1 = require("express");
-const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
 const empCtrl = __importStar(require("../controllers/employeeController"));
+const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
 const router = (0, express_1.Router)({ mergeParams: true });
 router.use(verifyFirebaseToken_1.verifyFirebaseToken);
+// Flexible (recommended for app)
 router.get("/", empCtrl.listEmployees);
+router.post("/upsert", empCtrl.upsertEmployee);
+router.delete("/remove/:userUid", empCtrl.removeEmployee);
+// Admin CRUD (optional)
 router.post("/", empCtrl.addEmployee);
 router.patch("/:employeeId", empCtrl.updateEmployee);
 router.delete("/:employeeId", empCtrl.deleteEmployee);

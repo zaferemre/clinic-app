@@ -1,8 +1,12 @@
+// src/firebase.ts
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  OAuthProvider,
+  RecaptchaVerifier,
+} from "firebase/auth";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyDGgVId-ip7kazAYXePFpKjX1hrcsI0bMU",
   authDomain: "clinic-app-d4498.firebaseapp.com",
@@ -14,4 +18,11 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
 export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+export const appleProvider = new OAuthProvider("apple.com");
+
+export function setupRecaptcha(containerId: string) {
+  return new RecaptchaVerifier(auth, containerId, { size: "invisible" });
+}

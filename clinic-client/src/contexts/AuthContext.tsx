@@ -10,22 +10,18 @@ import React, {
 } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
-import { getCompanies } from "../api/companyApi";
-import { getClinics } from "../api/clinicApi";
-import { listEmployees } from "../api/employeeApi";
-import type { EmployeeInfo, Clinic, Company } from "../types/sharedTypes";
-
-interface User {
-  uid: string;
-  email: string;
-  name: string;
-  imageUrl: string;
-  role: string; // "owner" | "admin" | "manager" | "staff" | "other"
-}
+import { getCurrentUser } from "../api/userApi";
+import type {
+  User,
+  Company,
+  Clinic,
+  UserMembership,
+} from "../types/sharedTypes";
 
 export interface AuthContextProps {
   idToken: string | null;
   user: User | null;
+  memberships: UserMembership[];
   companies: Company[];
   setCompanies: React.Dispatch<React.SetStateAction<Company[]>>;
   selectedCompanyId: string | null;
@@ -38,10 +34,8 @@ export interface AuthContextProps {
   setSelectedClinicId: (id: string | null) => void;
   selectedClinicName: string | null;
   setSelectedClinicName: (name: string | null) => void;
-  subscriptionPlan: Company["subscription"]["plan"] | null;
-  allowedFeatures: string[];
-  maxClinics: number;
   checkingCompany: boolean;
+  needsSignup: boolean;
   signOut: () => void;
 }
 
@@ -58,66 +52,41 @@ const setLS = (key: string, val: string | null) => {
   try {
     if (val) localStorage.setItem(key, val);
     else localStorage.removeItem(key);
-  } catch {
-    // no-op
-  }
+  } catch {}
 };
-
-// --- Helper: Detect owner ---
-function isOwner(company: Company | null, email: string): boolean {
-  return company?.ownerEmail === email;
-}
-
-// --- Helper: Find user role in clinic ---
-async function fetchClinicRole(
-  idToken: string,
-  companyId: string,
-  clinicId: string,
-  email: string
-): Promise<string> {
-  try {
-    const emps: EmployeeInfo[] = await listEmployees(
-      idToken,
-      companyId,
-      clinicId
-    );
-    const me = emps.find((e) => e.email === email);
-    return me?.role ?? "staff";
-  } catch (error) {
-    // Optionally log
-    console.error("fetchClinicRole failed:", error);
-    return "staff";
-  }
-}
 
 export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [idToken, setIdToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
-
+  const [memberships, setMemberships] = useState<UserMembership[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [clinics, setClinics] = useState<Clinic[]>([]);
   const [selectedCompanyId, setSelectedCompanyIdRaw] = useState<string | null>(
-    getLS("selectedCompanyId") ?? null
+    getLS("selectedCompanyId")
   );
   const [selectedCompanyName, setSelectedCompanyNameRaw] = useState<
     string | null
-  >(getLS("selectedCompanyName") ?? null);
-
-  const [clinics, setClinics] = useState<Clinic[]>([]);
+  >(getLS("selectedCompanyName"));
   const [selectedClinicId, setSelectedClinicIdRaw] = useState<string | null>(
-    getLS("selectedClinicId") ?? null
+    getLS("selectedClinicId")
   );
   const [selectedClinicName, setSelectedClinicNameRaw] = useState<
     string | null
-  >(getLS("selectedClinicName") ?? null);
-
+  >(getLS("selectedClinicName"));
   const [checkingCompany, setCheckingCompany] = useState(false);
+  const [needsSignup, setNeedsSignup] = useState(false);
 
-  // LocalStorage-wrapped setters (no empty blocks)
+  // --- SETTERS (wrap with LS) ---
   const setSelectedCompanyId = useCallback((id: string | null) => {
     setSelectedCompanyIdRaw(id);
     setLS("selectedCompanyId", id);
+    // Clear clinic when switching company
+    setSelectedClinicIdRaw(null);
+    setLS("selectedClinicId", null);
+    setSelectedClinicNameRaw(null);
+    setLS("selectedClinicName", null);
   }, []);
   const setSelectedCompanyName = useCallback((name: string | null) => {
     setSelectedCompanyNameRaw(name);
@@ -132,16 +101,7 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
     setLS("selectedClinicName", name);
   }, []);
 
-  // Derived company info
-  const selectedCompany = useMemo(
-    () => companies.find((c) => c._id === selectedCompanyId) || null,
-    [companies, selectedCompanyId]
-  );
-  const subscriptionPlan = selectedCompany?.subscription.plan ?? null;
-  const allowedFeatures = selectedCompany?.subscription.allowedFeatures ?? [];
-  const maxClinics = selectedCompany?.subscription.maxClinics ?? 0;
-
-  // Firebase Auth
+  // --- AUTH EFFECT ---
   useEffect(() => {
     const unsub = onAuthStateChanged(
       auth,
@@ -149,119 +109,99 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
         if (!fbUser) {
           setIdToken(null);
           setUser(null);
+          setMemberships([]);
+          setCompanies([]);
+          setClinics([]);
+          setSelectedCompanyIdRaw(null);
+          setSelectedCompanyNameRaw(null);
+          setSelectedClinicIdRaw(null);
+          setSelectedClinicNameRaw(null);
+          setCheckingCompany(false);
+          setNeedsSignup(false);
           return;
         }
+        setCheckingCompany(true);
         const token = await fbUser.getIdToken();
         setIdToken(token);
-        setUser({
-          uid: fbUser.uid,
-          email: fbUser.email ?? "",
-          name: fbUser.displayName ?? "",
-          imageUrl: fbUser.photoURL ?? "",
-          role: "staff",
-        });
+
+        try {
+          const userDataRaw = await getCurrentUser(token);
+          const safeMemberships: UserMembership[] = Array.isArray(
+            userDataRaw?.memberships
+          )
+            ? userDataRaw.memberships
+            : [];
+          setUser({ ...userDataRaw, photoUrl: userDataRaw.photoUrl ?? "" });
+          setMemberships(safeMemberships);
+
+          // Build companies
+          const companiesMap = new Map<string, Company>();
+          safeMemberships.forEach((m) => {
+            if (m.companyId && !companiesMap.has(m.companyId)) {
+              companiesMap.set(m.companyId, {
+                _id: m.companyId,
+                name: m.companyName,
+              } as Company);
+            }
+          });
+          const companiesArr = Array.from(companiesMap.values());
+          setCompanies(companiesArr);
+
+          // Select company if needed
+          const storedCompanyId = getLS("selectedCompanyId");
+          const compId =
+            storedCompanyId &&
+            companiesArr.some((c) => c._id === storedCompanyId)
+              ? storedCompanyId
+              : companiesArr[0]?._id ?? null;
+          setSelectedCompanyIdRaw(compId);
+          setSelectedCompanyNameRaw(
+            companiesArr.find((c) => c._id === compId)?.name ?? null
+          );
+
+          // Clinics for that company
+          const clinicsArr = safeMemberships
+            .filter((m) => m.companyId === compId && m.clinicId)
+            .map(
+              (m) =>
+                ({
+                  _id: m.clinicId!,
+                  name: m.clinicName,
+                  companyId: m.companyId,
+                } as Clinic)
+            );
+          setClinics(clinicsArr);
+
+          // Clinic selection
+          const storedClinicId = getLS("selectedClinicId");
+          const clinicId =
+            storedClinicId && clinicsArr.some((cl) => cl._id === storedClinicId)
+              ? storedClinicId
+              : clinicsArr[0]?._id ?? null;
+          setSelectedClinicIdRaw(clinicId);
+          setSelectedClinicNameRaw(
+            clinicsArr.find((cl) => cl._id === clinicId)?.name ?? null
+          );
+
+          setNeedsSignup(false);
+        } catch (error: any) {
+          if (error.status === 500) setNeedsSignup(true);
+          else setNeedsSignup(false);
+          setUser(null);
+          setMemberships([]);
+          setCompanies([]);
+          setClinics([]);
+          setIdToken(token);
+          setSelectedCompanyIdRaw(null);
+          setSelectedCompanyNameRaw(null);
+          setSelectedClinicIdRaw(null);
+          setSelectedClinicNameRaw(null);
+        }
+        setCheckingCompany(false);
       }
     );
     return unsub;
-  }, []);
-
-  // --- Core company/clinic/role detection logic ---
-  useEffect(() => {
-    let mounted = true;
-    async function loadAll() {
-      if (!idToken) {
-        setCompanies([]);
-        setSelectedCompanyId(null);
-        setSelectedCompanyName(null);
-        setClinics([]);
-        setSelectedClinicId(null);
-        setSelectedClinicName(null);
-        setUser((u) => (u ? { ...u, role: "staff" } : u));
-        setCheckingCompany(false);
-        return;
-      }
-      setCheckingCompany(true);
-
-      try {
-        const comps = await getCompanies(idToken);
-        if (!mounted) return;
-        setCompanies(comps);
-
-        // select company
-        const compId =
-          selectedCompanyId && comps.some((c) => c._id === selectedCompanyId)
-            ? selectedCompanyId
-            : comps[0]?._id ?? null;
-        setSelectedCompanyId(compId);
-        setSelectedCompanyName(
-          comps.find((c) => c._id === compId)?.name ?? null
-        );
-
-        // fetch clinics
-        const compClinics = compId ? await getClinics(idToken, compId) : [];
-        setClinics(compClinics);
-
-        // Owner check
-        const email = auth.currentUser?.email ?? "";
-        const companyObj = comps.find((c) => c._id === compId) || null;
-        const isUserOwner = isOwner(companyObj, email);
-
-        // select clinic
-        let clinicId = selectedClinicId;
-        if (compClinics.length > 0) {
-          if (
-            !selectedClinicId ||
-            !compClinics.some((cl) => cl._id === selectedClinicId)
-          ) {
-            clinicId = compClinics[0]._id;
-            setSelectedClinicId(clinicId);
-            setSelectedClinicName(compClinics[0].name ?? null);
-          }
-        }
-
-        // set user role
-        setUser((u) =>
-          u
-            ? {
-                ...u,
-                role: isUserOwner ? "owner" : u.role ?? "staff", // will be refined below if not owner
-              }
-            : null
-        );
-
-        // if not owner, check user's actual clinic role
-        if (!isUserOwner && compId && clinicId && email) {
-          const clinicRole = await fetchClinicRole(
-            idToken,
-            compId,
-            clinicId,
-            email
-          );
-          setUser((u) => (u ? { ...u, role: clinicRole } : u));
-        }
-      } catch (err) {
-        // handle error
-        console.error("Auth context error:", err);
-        setCompanies([]);
-        setSelectedCompanyId(null);
-        setSelectedCompanyName(null);
-        setClinics([]);
-        setSelectedClinicId(null);
-        setSelectedClinicName(null);
-        setUser((u) => (u ? { ...u, role: "staff" } : u));
-      } finally {
-        if (mounted) setCheckingCompany(false);
-      }
-    }
-    loadAll();
-    return () => {
-      mounted = false;
-    };
-    // all referenced in body or setters
   }, [
-    idToken,
-    selectedCompanyId,
-    selectedClinicId,
     setSelectedCompanyId,
     setSelectedCompanyName,
     setSelectedClinicId,
@@ -272,29 +212,22 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
     auth.signOut();
     setIdToken(null);
     setUser(null);
+    setMemberships([]);
     setCompanies([]);
-    setSelectedCompanyId(null);
-    setSelectedCompanyName(null);
     setClinics([]);
-    setSelectedClinicId(null);
-    setSelectedClinicName(null);
     setCheckingCompany(false);
-    setLS("selectedCompanyId", null);
-    setLS("selectedCompanyName", null);
-    setLS("selectedClinicId", null);
-    setLS("selectedClinicName", null);
-  }, [
-    setSelectedCompanyId,
-    setSelectedCompanyName,
-    setSelectedClinicId,
-    setSelectedClinicName,
-  ]);
+    setNeedsSignup(false);
+    setSelectedCompanyIdRaw(null);
+    setSelectedCompanyNameRaw(null);
+    setSelectedClinicIdRaw(null);
+    setSelectedClinicNameRaw(null);
+  }, []);
 
-  // Use useMemo for contextValue to avoid unnecessary rerenders
   const contextValue = useMemo(
     () => ({
       idToken,
       user,
+      memberships,
       companies,
       setCompanies,
       selectedCompanyId,
@@ -307,15 +240,14 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
       setSelectedClinicId,
       selectedClinicName,
       setSelectedClinicName,
-      subscriptionPlan,
-      allowedFeatures,
-      maxClinics,
       checkingCompany,
+      needsSignup,
       signOut: handleSignOut,
     }),
     [
       idToken,
       user,
+      memberships,
       companies,
       setCompanies,
       selectedCompanyId,
@@ -328,10 +260,8 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
       setSelectedClinicId,
       selectedClinicName,
       setSelectedClinicName,
-      subscriptionPlan,
-      allowedFeatures,
-      maxClinics,
       checkingCompany,
+      needsSignup,
       handleSignOut,
     ]
   );

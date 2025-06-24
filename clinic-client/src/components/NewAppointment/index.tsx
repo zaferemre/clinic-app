@@ -1,5 +1,6 @@
 // src/components/CalendarView/NewAppointment/index.tsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import AppModal, { ModalForm } from "../Modals/AppModal";
 import AppointmentTypeTabs from "./AppointmentTypeTabs";
 import PatientSelect from "./PatientSelect";
 import GroupSelect from "./GroupSelect";
@@ -9,11 +10,10 @@ import OzelDurationPicker from "./OzelDurationPicker";
 import DateNavigation from "./DateNavigation";
 import SlotPickerSection from "./SlotPickerSection";
 import ModalActions from "./ModalActions";
-import AppModal from "../Modals/AppModal";
 import ServiceModal from "../Modals/ServiceModal/ServiceModal";
 import CreatePatientForm from "../Forms/CreatePatientForm";
-
 import { useAuth } from "../../contexts/AuthContext";
+import { getAppointments } from "../../api/appointmentApi";
 import type {
   Patient,
   EmployeeInfo,
@@ -22,6 +22,14 @@ import type {
 } from "../../types/sharedTypes";
 
 type Kind = "individual" | "group" | "ozel";
+const DEFAULT_SERVICE_DURATION = 30;
+
+// Raw appointment shape returned by your API
+interface RawAppointment {
+  start: string; // ISO string
+  end: string; // ISO string
+  // ...other fields
+}
 
 interface Props {
   show: boolean;
@@ -65,9 +73,7 @@ interface Props {
   onServiceAdded?: () => void;
 }
 
-const DEFAULT_SERVICE_DURATION = 30;
-
-const NewAppointmentModal: React.FC<Props> = ({
+export default function NewAppointmentModal({
   show,
   onClose,
   patients,
@@ -96,20 +102,89 @@ const NewAppointmentModal: React.FC<Props> = ({
   onSubmitCustom,
   onAddPatient,
   onServiceAdded,
-}) => {
+}: Props) {
   const { idToken, selectedCompanyId, selectedClinicId } = useAuth();
+
+  // State for showing sub‐flows
   const [flow, setFlow] = useState<"main" | "patient" | "service">("main");
   const [kind, setKind] = useState<Kind>(tab ?? "individual");
   const [ozelDuration, setOzelDuration] = useState(DEFAULT_SERVICE_DURATION);
   const [internalDay, setInternalDay] = useState<Date>(modalDay ?? new Date());
 
-  useEffect(() => {
-    setKind(tab ?? "individual");
-  }, [tab, show]);
+  // ---- NEW: busy intervals for this clinic ----
+  const [busyIntervals, setBusyIntervals] = useState<
+    { start: Date; end: Date }[]
+  >([]);
 
   useEffect(() => {
-    if (modalDay) setInternalDay(modalDay);
-  }, [modalDay]);
+    // Whenever the modal opens or the selected day changes, fetch appointments
+    if (!show || !idToken || !selectedCompanyId || !selectedClinicId) return;
+
+    getAppointments(idToken, selectedCompanyId, selectedClinicId)
+      .then((appts: RawAppointment[]) => {
+        // Map raw ISO strings into Date objects
+        const intervals = appts.map((a) => ({
+          start: new Date(a.start),
+          end: new Date(a.end),
+        }));
+        setBusyIntervals(intervals);
+      })
+      .catch(() => {
+        setBusyIntervals([]); // fallback
+      });
+  }, [show, idToken, selectedCompanyId, selectedClinicId, internalDay]);
+
+  // Reset tab/kind when reopening
+  useEffect(() => {
+    if (show) {
+      setKind(tab ?? "individual");
+      setInternalDay(modalDay ?? new Date());
+    }
+  }, [show, tab, modalDay]);
+
+  const handleSubmit = useCallback(async (): Promise<boolean> => {
+    try {
+      if (kind === "individual" && onSubmitIndividual) {
+        onSubmitIndividual(
+          startStr,
+          endStr,
+          isOwner ? selectedEmployee : currentUserId,
+          selectedService
+        );
+      } else if (kind === "group" && onSubmitGroup) {
+        onSubmitGroup(
+          selectedGroup,
+          startStr,
+          endStr,
+          isOwner ? selectedEmployee : currentUserId,
+          selectedService
+        );
+      } else if (kind === "ozel" && onSubmitCustom) {
+        onSubmitCustom(
+          startStr,
+          endStr,
+          isOwner ? selectedEmployee : currentUserId
+        );
+      } else {
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }, [
+    kind,
+    onSubmitIndividual,
+    onSubmitGroup,
+    onSubmitCustom,
+    startStr,
+    endStr,
+    isOwner,
+    selectedEmployee,
+    currentUserId,
+    selectedService,
+    selectedGroup,
+  ]);
 
   if (!show) return null;
 
@@ -141,104 +216,83 @@ const NewAppointmentModal: React.FC<Props> = ({
         )}
 
       {flow === "main" && (
-        <AppModal open title="Yeni Randevu Oluştur" onClose={onClose}>
+        <AppModal
+          open
+          title="Yeni Randevu Oluştur"
+          onClose={onClose}
+          onSuccess={onClose}
+        >
           <AppointmentTypeTabs kind={kind} setKind={setKind} />
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (kind === "individual" && onSubmitIndividual) {
-                onSubmitIndividual(
-                  startStr,
-                  endStr,
-                  isOwner ? selectedEmployee : currentUserId,
-                  selectedService
-                );
-              } else if (kind === "group" && onSubmitGroup) {
-                onSubmitGroup(
-                  selectedGroup,
-                  startStr,
-                  endStr,
-                  isOwner ? selectedEmployee : currentUserId,
-                  selectedService
-                );
-              } else if (kind === "ozel" && onSubmitCustom) {
-                onSubmitCustom(
-                  startStr,
-                  endStr,
-                  isOwner ? selectedEmployee : currentUserId
-                );
-              }
-            }}
-            className="space-y-5"
-          >
-            {kind === "individual" && (
-              <PatientSelect
-                patients={patients}
-                value={selectedPatient}
-                setValue={setSelectedPatient}
-                onNewPatient={() => setFlow("patient")}
-              />
-            )}
 
-            {kind === "group" && (
-              <GroupSelect
-                groups={groups}
-                value={selectedGroup}
-                setValue={setSelectedGroup}
-              />
-            )}
-
-            <EmployeeSelect
-              employees={employees}
-              isOwner={isOwner}
-              value={selectedEmployee}
-              setValue={setSelectedEmployee}
-              currentUserId={currentUserId}
-              currentUserName={currentUserName}
+          {kind === "individual" && (
+            <PatientSelect
+              patients={patients}
+              value={selectedPatient}
+              setValue={setSelectedPatient}
+              onNewPatient={() => setFlow("patient")}
             />
+          )}
 
-            {kind !== "ozel" && (
-              <ServiceSelect
-                services={services}
-                value={selectedService}
-                setValue={setSelectedService}
-                onNewService={() => setFlow("service")}
-              />
-            )}
+          {kind === "group" && (
+            <GroupSelect
+              groups={groups}
+              value={selectedGroup}
+              setValue={setSelectedGroup}
+            />
+          )}
 
-            {kind === "ozel" && (
-              <OzelDurationPicker
-                duration={ozelDuration}
-                setDuration={setOzelDuration}
-                setStartStr={setStartStr}
-                setEndStr={setEndStr}
-                day={internalDay}
-              />
-            )}
+          <EmployeeSelect
+            employees={employees}
+            isOwner={isOwner}
+            value={selectedEmployee}
+            setValue={setSelectedEmployee}
+            currentUserId={currentUserId}
+            currentUserName={currentUserName}
+          />
 
-            <DateNavigation
-              day={internalDay}
-              setDay={setInternalDay}
-              setModalDay={(d) => setInternalDay(d)}
+          {kind !== "ozel" ? (
+            <ServiceSelect
+              services={services}
+              value={selectedService}
+              setValue={setSelectedService}
+              onNewService={() => setFlow("service")}
+            />
+          ) : (
+            <OzelDurationPicker
+              duration={ozelDuration}
+              setDuration={setOzelDuration}
               setStartStr={setStartStr}
               setEndStr={setEndStr}
-            />
-
-            <SlotPickerSection
-              kind={kind}
-              selectedService={selectedService}
-              serviceDuration={
-                kind === "ozel"
-                  ? ozelDuration
-                  : services.find((s) => s._id === selectedService)
-                      ?.serviceDuration ?? DEFAULT_SERVICE_DURATION
-              }
               day={internalDay}
-              startStr={startStr}
-              setStartStr={setStartStr}
-              setEndStr={setEndStr}
             />
+          )}
 
+          <DateNavigation
+            day={internalDay}
+            setDay={setInternalDay}
+            setModalDay={setInternalDay}
+            setStartStr={setStartStr}
+            setEndStr={setEndStr}
+          />
+
+          {/* Pass the newly fetched busy intervals */}
+          <SlotPickerSection
+            kind={kind}
+            selectedService={selectedService}
+            serviceDuration={
+              kind === "ozel"
+                ? ozelDuration
+                : services.find((s) => s._id === selectedService)
+                    ?.serviceDuration ?? DEFAULT_SERVICE_DURATION
+            }
+            day={internalDay}
+            startStr={startStr}
+            setStartStr={setStartStr}
+            setEndStr={setEndStr}
+            busy={busyIntervals}
+          />
+
+          <ModalForm onSubmit={handleSubmit}>
             <ModalActions
               onClose={onClose}
               creating={false}
@@ -253,11 +307,9 @@ const NewAppointmentModal: React.FC<Props> = ({
                   kind === "ozel")
               }
             />
-          </form>
+          </ModalForm>
         </AppModal>
       )}
     </>
   );
-};
-
-export default NewAppointmentModal;
+}

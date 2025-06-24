@@ -29,14 +29,9 @@ export interface PatientDocument extends Document {
 
 const PatientSchema = new Schema<PatientDocument>(
   {
-    companyId: {
-      type: Schema.Types.ObjectId,
-      ref: "company",
-      required: true,
-    },
+    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
     clinicId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
     name: { type: String, required: true },
-
     age: { type: Number },
     phone: { type: String },
     email: { type: String },

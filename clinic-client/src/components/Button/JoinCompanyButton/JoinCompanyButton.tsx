@@ -1,12 +1,14 @@
 // src/components/Button/JoinCompanyButton/JoinCompanyButton.tsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
 import AppModal from "../../Modals/AppModal";
 import JoinCompanyForm from "../../UserOnboarding/JoinCompanyForm";
 
-const JoinCompanyButton: React.FC<{
+interface Props {
   onJoined: (id: string, name: string) => void;
-}> = ({ onJoined }) => {
+}
+
+export default function JoinCompanyButton({ onJoined }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -40,6 +42,4 @@ const JoinCompanyButton: React.FC<{
       </AppModal>
     </>
   );
-};
-
-export default JoinCompanyButton;
+}

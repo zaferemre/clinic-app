@@ -22,7 +22,7 @@ const EmptyPatients = ({ onAdd }: { onAdd: () => void }) => (
     </div>
     <button
       onClick={onAdd}
-      className="mt-2 bg-brand-main text-white px-5 py-2 rounded-xl  font-semibold hover:bg-brand-red-300 transition"
+      className="mt-2 bg-brand-main text-white px-5 py-2 rounded-xl font-semibold hover:bg-brand-red-300 transition"
     >
       + Müşteri Ekle
     </button>
@@ -30,7 +30,7 @@ const EmptyPatients = ({ onAdd }: { onAdd: () => void }) => (
 );
 
 const EmptyGroups = ({ onAdd }: { onAdd: () => void }) => (
-  <div className="mx-4 flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl  mb-8">
+  <div className="mx-4 flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl mb-8">
     <UserGroupIcon className="w-16 h-16 text-brand-main mb-4" />
     <div className="text-lg font-semibold text-brand-gray-700 mb-2">
       Henüz hiç grup eklenmemiş.
@@ -40,7 +40,7 @@ const EmptyGroups = ({ onAdd }: { onAdd: () => void }) => (
     </div>
     <button
       onClick={onAdd}
-      className="mt-2 bg-brand-main text-white px-5 py-2 rounded-xl  font-semibold hover:bg-brand-red-300 transition"
+      className="mt-2 bg-brand-main text-white px-5 py-2 rounded-xl font-semibold hover:bg-brand-red-300 transition"
     >
       + Grup Oluştur
     </button>
@@ -77,16 +77,33 @@ const PatientsPage: React.FC = () => {
     !selectedClinicName ||
     !user
   ) {
+    console.log({
+      idToken,
+      selectedCompanyId,
+      selectedClinicId,
+      selectedCompanyName,
+      selectedClinicName,
+      user,
+    });
     return null;
   }
+
+  // New: Use `photoUrl` (fallback to initials if not present)
+  const avatarUrl =
+    user.photoUrl ||
+    (user.name
+      ? `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          user.name
+        )}&background=E2725B&color=fff`
+      : "");
 
   return (
     <div className="flex flex-col h-screen pb-16 bg-brand-gray-100 relative">
       {/* Unified Header */}
       <div className="px-4 pt-4">
         <GreetingHeader
-          userAvatarUrl={user?.imageUrl || ""}
-          clinicName={selectedClinicName || ""}
+          userAvatarUrl={avatarUrl}
+          clinicName={selectedClinicName}
           pageTitle={tabName}
           showBackButton={true}
         />

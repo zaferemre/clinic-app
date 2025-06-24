@@ -38,7 +38,7 @@ export const EmployeesPage: React.FC = () => {
     <div className="flex flex-col h-screen bg-brand-gray-100">
       <div className="flex-1 overflow-auto p-4">
         <GreetingHeader
-          userAvatarUrl={user?.imageUrl ?? ""}
+          userAvatarUrl={user?.photoUrl ?? ""}
           clinicName={selectedClinicName ?? selectedClinic?.name ?? ""}
           pageTitle="Çalışanlar"
           showBackButton={true}

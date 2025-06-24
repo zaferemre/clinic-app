@@ -42,7 +42,7 @@ export function createAppointment(
     patientId?: string;
     groupId?: string;
     employeeId: string;
-    serviceId: string;
+    serviceId?: string;
     start: string;
     end: string;
     appointmentType: "individual" | "group";

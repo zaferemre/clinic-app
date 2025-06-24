@@ -35,43 +35,45 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteRole = exports.updateRole = exports.addRole = exports.listRoles = void 0;
 const roleService = __importStar(require("../services/roleService"));
+// List roles
 const listRoles = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        const roles = await roleService.listRoles(companyId, clinicId);
-        res.status(200).json(roles);
+        const roles = await roleService.listRoles(req.params.companyId, req.params.clinicId);
+        res.json(roles);
     }
     catch (err) {
         next(err);
     }
 };
 exports.listRoles = listRoles;
+// Create role
 const addRole = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        const created = await roleService.addRole(companyId, clinicId, req.body);
-        res.status(201).json(created);
+        // Use authenticated UID, fallback to request if necessary
+        const uid = req.user?.uid ?? req.body.createdBy;
+        const role = await roleService.addRole(req.params.companyId, req.params.clinicId, { ...req.body, createdBy: uid });
+        res.status(201).json(role);
     }
     catch (err) {
         next(err);
     }
 };
 exports.addRole = addRole;
+// Update role
 const updateRole = async (req, res, next) => {
     try {
-        const { companyId, clinicId, roleId } = req.params;
-        const updated = await roleService.updateRole(companyId, clinicId, roleId, req.body);
-        res.status(200).json(updated);
+        const updated = await roleService.updateRole(req.params.companyId, req.params.clinicId, req.params.roleId, req.body);
+        res.json(updated);
     }
     catch (err) {
         next(err);
     }
 };
 exports.updateRole = updateRole;
+// Delete role
 const deleteRole = async (req, res, next) => {
     try {
-        const { companyId, clinicId, roleId } = req.params;
-        await roleService.deleteRole(companyId, clinicId, roleId);
+        await roleService.deleteRole(req.params.companyId, req.params.clinicId, req.params.roleId);
         res.sendStatus(204);
     }
     catch (err) {

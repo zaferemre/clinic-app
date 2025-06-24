@@ -2,11 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
 const NotificationSchema = new mongoose_1.Schema({
-    companyId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "company",
-        required: true,
-    },
+    companyId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Company", required: true },
     clinicId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Clinic", required: true },
     patientId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Patient" },
     groupId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Group" },
@@ -22,7 +18,7 @@ const NotificationSchema = new mongoose_1.Schema({
     },
     message: { type: String, required: true },
     trigger: { type: String },
-    workerId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Employee" },
+    workerUid: { type: String }, // Firebase UID
     note: { type: String },
     sentAt: { type: Date },
 }, { timestamps: true });

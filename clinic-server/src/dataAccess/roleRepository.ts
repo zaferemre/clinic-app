@@ -1,7 +1,7 @@
 import Role, { RoleDocument } from "../models/Role";
 import { Types } from "mongoose";
 
-export function listRoles(
+export async function listRoles(
   companyId: string,
   clinicId: string
 ): Promise<RoleDocument[]> {
@@ -11,23 +11,21 @@ export function listRoles(
   }).exec();
 }
 
-export function createRole(doc: {
-  companyId: Types.ObjectId;
-  clinicId: Types.ObjectId;
-  name: string;
-  createdBy?: Types.ObjectId;
-  isDefault?: boolean;
-}): Promise<RoleDocument> {
+export async function createRole(
+  doc: Partial<RoleDocument>
+): Promise<RoleDocument> {
   return new Role(doc).save();
 }
 
-export function updateRoleById(
+export async function updateRoleById(
   roleId: string,
-  updates: Partial<Pick<RoleDocument, "name" | "isDefault">>
+  updates: Partial<RoleDocument>
 ): Promise<RoleDocument | null> {
   return Role.findByIdAndUpdate(roleId, updates, { new: true }).exec();
 }
 
-export function deleteRoleById(roleId: string): Promise<RoleDocument | null> {
+export async function deleteRoleById(
+  roleId: string
+): Promise<RoleDocument | null> {
   return Role.findByIdAndDelete(roleId).exec();
 }

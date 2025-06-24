@@ -1,87 +1,83 @@
-// src/controllers/patientController.ts
 import { RequestHandler } from "express";
 import * as patientService from "../services/patientService";
-import mongoose from "mongoose";
-import Employee from "../models/Employee";
 
-export const createPatient: RequestHandler = async (req, res, next) => {
-  try {
-    const { companyId, clinicId } = req.params as {
-      companyId: string;
-      clinicId: string;
-    };
-    const created = await patientService.createPatient(
-      companyId,
-      clinicId,
-      req.body
-    );
-    res.status(201).json(created);
-  } catch (err) {
-    next(err);
-  }
-};
-
+// List all patients in clinic
 export const listPatients: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId } = req.params as {
-      companyId: string;
-      clinicId: string;
-    };
-    const patients = await patientService.getPatients(companyId, clinicId);
-    res.status(200).json(patients);
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const getPatientById: RequestHandler = async (req, res, next) => {
-  try {
-    const { companyId, clinicId, patientId } = req.params as {
-      companyId: string;
-      clinicId: string;
-      patientId: string;
-    };
-    const patient = await patientService.getPatientById(
-      companyId,
-      clinicId,
-      patientId
+    const patients = await patientService.getPatients(
+      req.params.companyId,
+      req.params.clinicId
     );
-    res.status(200).json(patient);
+    res.json(patients);
   } catch (err) {
     next(err);
   }
 };
 
-export const updatePatient: RequestHandler = async (req, res, next) => {
+// Create patient
+export const createPatient: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId, patientId } = req.params as {
-      companyId: string;
-      clinicId: string;
-      patientId: string;
-    };
-    const updated = await patientService.updatePatient(
-      companyId,
-      clinicId,
-      patientId,
+    const patient = await patientService.createPatient(
+      req.params.companyId,
+      req.params.clinicId,
       req.body
     );
-    res.status(200).json(updated);
+    res.status(201).json(patient);
   } catch (err) {
     next(err);
   }
 };
 
+// Get one patient
+export const getPatient: RequestHandler = async (req, res, next) => {
+  try {
+    const patient = await patientService.getPatientById(
+      req.params.companyId,
+      req.params.clinicId,
+      req.params.patientId
+    );
+    res.json(patient);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Update patient
+export const updatePatient: RequestHandler = async (req, res, next) => {
+  try {
+    const updated = await patientService.updatePatient(
+      req.params.companyId,
+      req.params.clinicId,
+      req.params.patientId,
+      req.body
+    );
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Delete patient
+export const deletePatient: RequestHandler = async (req, res, next) => {
+  try {
+    await patientService.deletePatient(
+      req.params.companyId,
+      req.params.clinicId,
+      req.params.patientId
+    );
+    res.sendStatus(204);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Record payment for patient
 export const recordPayment: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId, patientId } = req.params as {
-      companyId: string;
-      clinicId: string;
-      patientId: string;
-    };
     const record = await patientService.recordPayment(
-      companyId,
-      clinicId,
-      patientId,
+      req.params.companyId,
+      req.params.clinicId,
+      req.params.patientId,
       req.body
     );
     res.status(201).json(record);
@@ -90,23 +86,21 @@ export const recordPayment: RequestHandler = async (req, res, next) => {
   }
 };
 
+export { getPatient as getPatientById };
+
+// --- NEW/COMPLETE:
 export const getPatientAppointments: RequestHandler = async (
   req,
   res,
   next
 ) => {
   try {
-    const { companyId, clinicId, patientId } = req.params as {
-      companyId: string;
-      clinicId: string;
-      patientId: string;
-    };
     const appts = await patientService.getPatientAppointments(
-      companyId,
-      clinicId,
-      patientId
+      req.params.companyId,
+      req.params.clinicId,
+      req.params.patientId
     );
-    res.status(200).json(appts);
+    res.json(appts);
   } catch (err) {
     next(err);
   }
@@ -114,49 +108,13 @@ export const getPatientAppointments: RequestHandler = async (
 
 export const flagPatientCall: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId, patientId } = req.params as {
-      companyId: string;
-      clinicId: string;
-      patientId: string;
-    };
-    const { note } = req.body as { note: string };
-    const firebaseUid = (req as any).user?.uid as string;
-
-    const emp = await Employee.findOne({
-      userId: firebaseUid,
-      companyId: new mongoose.Types.ObjectId(companyId),
-      clinicId: new mongoose.Types.ObjectId(clinicId),
-    }).exec();
-
-    if (!emp) {
-      res
-        .status(404)
-        .json({ error: "Employee not found for current user and clinic" });
-      return;
-    }
-
-    const notif = await patientService.flagPatientCall(
-      companyId,
-      clinicId,
-      patientId,
-      note,
-      (emp._id as mongoose.Types.ObjectId).toString()
+    const flagged = await patientService.flagPatientCall(
+      req.params.companyId,
+      req.params.clinicId,
+      req.params.patientId,
+      req.body.flagType ?? "called"
     );
-    res.status(201).json(notif);
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const deletePatient: RequestHandler = async (req, res, next) => {
-  try {
-    const { companyId, clinicId, patientId } = req.params as {
-      companyId: string;
-      clinicId: string;
-      patientId: string;
-    };
-    await patientService.deletePatient(companyId, clinicId, patientId);
-    res.sendStatus(204);
+    res.json(flagged);
   } catch (err) {
     next(err);
   }

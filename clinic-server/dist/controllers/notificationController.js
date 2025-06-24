@@ -33,24 +33,24 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.markNotificationDone = exports.getNotifications = void 0;
-const notifService = __importStar(require("../services/notificationService"));
-const getNotifications = async (req, res, next) => {
+exports.markNotificationDone = exports.listNotifications = void 0;
+const notificationService = __importStar(require("../services/notificationService"));
+// List notifications for a company & clinic
+const listNotifications = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        const notifications = await notifService.listNotifications(companyId, clinicId);
-        res.status(200).json(notifications);
+        const notifications = await notificationService.listNotifications(req.params.companyId, req.params.clinicId);
+        res.json(notifications);
     }
     catch (err) {
         next(err);
     }
 };
-exports.getNotifications = getNotifications;
+exports.listNotifications = listNotifications;
+// Mark a notification as done
 const markNotificationDone = async (req, res, next) => {
     try {
-        const { companyId, clinicId, notificationId } = req.params;
-        await notifService.markNotificationDone(companyId, clinicId, notificationId);
-        res.status(200).json({ message: "Notification marked done" });
+        const updated = await notificationService.markNotificationDone(req.params.companyId, req.params.clinicId, req.params.notificationId);
+        res.json(updated);
     }
     catch (err) {
         next(err);

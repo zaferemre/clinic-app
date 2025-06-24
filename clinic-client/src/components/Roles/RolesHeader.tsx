@@ -7,7 +7,7 @@ const RolesHeader: React.FC = () => {
 
   return (
     <GreetingHeader
-      userAvatarUrl={user?.imageUrl ?? ""}
+      userAvatarUrl={user?.photoUrl ?? ""}
       clinicName={selectedClinicName ?? ""}
       pageTitle="Roller"
       showBackButton={true}

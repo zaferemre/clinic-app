@@ -32,86 +32,60 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createGroupAppointment = exports.listGroupAppointments = exports.removePatientFromGroup = exports.addPatientToGroup = exports.deleteGroup = exports.updateGroup = exports.getGroupById = exports.createGroup = exports.listGroups = void 0;
-const mongoose_1 = require("mongoose");
+exports.getGroupById = exports.createGroupAppointment = exports.listGroupAppointments = exports.removePatientFromGroup = exports.addPatientToGroup = exports.deleteGroup = exports.updateGroup = exports.getGroup = exports.createGroup = exports.listGroups = void 0;
 const groupService = __importStar(require("../services/groupService"));
-const Appointment_1 = __importDefault(require("../models/Appointment"));
-const Group_1 = __importDefault(require("../models/Group"));
-const http_errors_1 = __importDefault(require("http-errors"));
-// Helper for safe ObjectId conversion
-function safeObjectId(val) {
-    if (typeof val === "string" && val.length === 24)
-        return new mongoose_1.Types.ObjectId(val);
-    return undefined;
-}
-/**
- * GET /company/:companyId/clinics/:clinicId/groups
- */
+const appointmentService = __importStar(require("../services/appointmentService")); // assumed
+// List all groups in a clinic
 const listGroups = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        const groups = await groupService.listGroups(companyId, clinicId);
-        res.status(200).json(groups);
+        const groups = await groupService.listGroups(req.params.companyId, req.params.clinicId);
+        res.json(groups);
     }
     catch (err) {
         next(err);
     }
 };
 exports.listGroups = listGroups;
-/**
- * POST /company/:companyId/clinics/:clinicId/groups
- */
+// Create a new group
 const createGroup = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        const user = req.user;
-        const created = await groupService.createGroup(companyId, clinicId, req.body, user.uid);
-        res.status(201).json(created);
+        const uid = req.user?.uid;
+        const group = await groupService.createGroup(req.params.companyId, req.params.clinicId, req.body, uid);
+        res.status(201).json(group);
     }
     catch (err) {
         next(err);
     }
 };
 exports.createGroup = createGroup;
-/**
- * GET /company/:companyId/clinics/:clinicId/groups/:groupId
- */
-const getGroupById = async (req, res, next) => {
+// Get group by ID
+const getGroup = async (req, res, next) => {
     try {
-        const { companyId, clinicId, groupId } = req.params;
-        const group = await groupService.getGroup(companyId, clinicId, groupId);
-        res.status(200).json(group);
+        const group = await groupService.getGroup(req.params.companyId, req.params.clinicId, req.params.groupId);
+        res.json(group);
     }
     catch (err) {
         next(err);
     }
 };
-exports.getGroupById = getGroupById;
-/**
- * PATCH /company/:companyId/clinics/:clinicId/groups/:groupId
- */
+exports.getGroup = getGroup;
+exports.getGroupById = exports.getGroup;
+// Update group
 const updateGroup = async (req, res, next) => {
     try {
-        const { companyId, clinicId, groupId } = req.params;
-        const updated = await groupService.updateGroup(companyId, clinicId, groupId, req.body);
-        res.status(200).json(updated);
+        const updated = await groupService.updateGroup(req.params.companyId, req.params.clinicId, req.params.groupId, req.body);
+        res.json(updated);
     }
     catch (err) {
         next(err);
     }
 };
 exports.updateGroup = updateGroup;
-/**
- * DELETE /company/:companyId/clinics/:clinicId/groups/:groupId
- */
+// Delete group
 const deleteGroup = async (req, res, next) => {
     try {
-        const { companyId, clinicId, groupId } = req.params;
-        await groupService.deleteGroup(companyId, clinicId, groupId);
+        await groupService.deleteGroup(req.params.companyId, req.params.clinicId, req.params.groupId);
         res.sendStatus(204);
     }
     catch (err) {
@@ -119,95 +93,52 @@ const deleteGroup = async (req, res, next) => {
     }
 };
 exports.deleteGroup = deleteGroup;
-/**
- * POST /company/:companyId/clinics/:clinicId/groups/:groupId/patients
- */
+// Add patient to group
 const addPatientToGroup = async (req, res, next) => {
     try {
-        const { companyId, clinicId, groupId } = req.params;
-        const { patientId } = req.body;
-        const updated = await groupService.addPatientToGroup(companyId, clinicId, groupId, patientId);
-        res.status(200).json(updated);
+        const updated = await groupService.addPatientToGroup(req.params.companyId, req.params.clinicId, req.params.groupId, req.body.patientId);
+        res.json(updated);
     }
     catch (err) {
         next(err);
     }
 };
 exports.addPatientToGroup = addPatientToGroup;
-/**
- * DELETE /company/:companyId/clinics/:clinicId/groups/:groupId/patients/:patientId
- */
+// Remove patient from group
 const removePatientFromGroup = async (req, res, next) => {
     try {
-        const { companyId, clinicId, groupId, patientId } = req.params;
-        const updated = await groupService.removePatientFromGroup(companyId, clinicId, groupId, patientId);
-        res.status(200).json(updated);
+        const updated = await groupService.removePatientFromGroup(req.params.companyId, req.params.clinicId, req.params.groupId, req.params.patientId);
+        res.json(updated);
     }
     catch (err) {
         next(err);
     }
 };
 exports.removePatientFromGroup = removePatientFromGroup;
-/**
- * GET /company/:companyId/clinics/:clinicId/groups/:groupId/appointments
- */
+// --- NEW: List appointments for a group
 const listGroupAppointments = async (req, res, next) => {
     try {
         const { companyId, clinicId, groupId } = req.params;
-        const appts = await Appointment_1.default.find({
-            companyId: safeObjectId(companyId),
-            clinicId: safeObjectId(clinicId),
-            groupId: safeObjectId(groupId),
-        })
-            .lean()
-            .exec();
-        res.status(200).json(appts);
+        // If your appointmentService uses a groupId filter, use it directly:
+        const appointments = await appointmentService.getAppointments(companyId, clinicId, { groupId });
+        res.json(appointments);
     }
     catch (err) {
         next(err);
     }
 };
 exports.listGroupAppointments = listGroupAppointments;
-/**
- * POST /company/:companyId/clinics/:clinicId/groups/:groupId/appointments
- * Body: { start, end, employeeId, serviceId }
- */
+// --- NEW: Create an appointment for a group
 const createGroupAppointment = async (req, res, next) => {
     try {
         const { companyId, clinicId, groupId } = req.params;
-        const user = req.user;
-        const { start, end, employeeId, serviceId } = req.body;
-        // Validate
-        if (!start || !end || !employeeId || !serviceId || !groupId)
-            throw (0, http_errors_1.default)(400, "start, end, employeeId, serviceId, and groupId are required.");
-        // Validate ObjectIds
-        if (![companyId, clinicId, groupId, employeeId, serviceId].every(mongoose_1.Types.ObjectId.isValid))
-            throw (0, http_errors_1.default)(400, "Invalid ObjectId(s)");
-        // Optionally: check if employee, service, and group exist!
-        // Optionally: check overlap, credit, etc, if your business rules require it.
-        const doc = {
-            companyId: new mongoose_1.Types.ObjectId(companyId),
-            clinicId: new mongoose_1.Types.ObjectId(clinicId),
-            groupId: new mongoose_1.Types.ObjectId(groupId),
-            employeeId: new mongoose_1.Types.ObjectId(employeeId),
-            serviceId: new mongoose_1.Types.ObjectId(serviceId),
-            appointmentType: "group",
-            start: new Date(start),
-            end: new Date(end),
-            status: "scheduled",
-            createdBy: mongoose_1.Types.ObjectId.isValid(user.uid)
-                ? new mongoose_1.Types.ObjectId(user.uid)
-                : undefined, // or store as string if using Firebase UIDs!
+        const uid = req.user?.uid;
+        const data = {
+            ...req.body,
+            groupId, // tie to this group
         };
-        // Remove undefined for createdBy if not a MongoId
-        if (!doc.createdBy)
-            delete doc.createdBy;
-        const appt = await Appointment_1.default.create(doc);
-        // Link appointment to Group's appointment array
-        await Group_1.default.findByIdAndUpdate(groupId, {
-            $addToSet: { appointments: appt._id },
-        }).exec();
-        res.status(201).json(appt);
+        const created = await appointmentService.createAppointment(companyId, clinicId, data, uid);
+        res.status(201).json(created);
     }
     catch (err) {
         next(err);

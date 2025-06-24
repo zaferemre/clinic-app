@@ -32,40 +32,61 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listClinics = listClinics;
 exports.createClinic = createClinic;
-exports.getClinic = getClinic;
+exports.getClinicById = getClinicById;
 exports.updateClinic = updateClinic;
 exports.deleteClinic = deleteClinic;
-const http_errors_1 = __importDefault(require("http-errors"));
-const repo = __importStar(require("../dataAccess/clinicRepository"));
-const mongoose_1 = __importDefault(require("mongoose"));
+const clinicRepo = __importStar(require("../dataAccess/clinicRepository"));
+const userRepo = __importStar(require("../dataAccess/userRepository"));
+const employeeRepo = __importStar(require("../dataAccess/employeeRepository"));
+const companyRepo = __importStar(require("../dataAccess/companyRepository"));
+const mongoose_1 = require("mongoose");
+/**
+ * List all clinics for a company
+ */
 async function listClinics(companyId) {
-    return repo.listClinics(companyId);
+    return clinicRepo.listClinics(companyId);
 }
-async function createClinic(companyId, data) {
-    if (!data.name)
-        throw (0, http_errors_1.default)(400, "Clinic name is required");
-    const clinic = await repo.createClinic({
+/**
+ * Create a new clinic in the company, add the user as:
+ * - Clinic admin (employee)
+ * - UserMembership entry for the clinic
+ */
+async function createClinic(companyId, data, uid) {
+    // 1. Create the clinic
+    const clinic = await clinicRepo.createClinic({
         ...data,
-        companyId: new mongoose_1.default.Types.ObjectId(companyId),
+        companyId,
+    });
+    // 2. Fetch company for name
+    const company = await companyRepo.findCompanyById(companyId);
+    const companyName = company?.name ?? "";
+    // 3. Add employee (admin) to this clinic
+    await employeeRepo.createEmployee({
+        userUid: uid,
+        companyId: new mongoose_1.Types.ObjectId(companyId),
+        clinicId: clinic.id.toString(), // safer: always as ObjectId
+        roles: ["owner"],
         isActive: true,
+    });
+    // 4. Add clinic membership to the user
+    await userRepo.addMembership(uid, {
+        companyId,
+        companyName,
+        clinicId: clinic.id.toString(),
+        clinicName: clinic.name,
+        roles: ["owner"], // or "owner" if that's your convention
     });
     return clinic;
 }
-async function getClinic(companyId, clinicId) {
-    const clinic = await repo.findClinicById(companyId, clinicId);
-    if (!clinic)
-        throw (0, http_errors_1.default)(404, "Clinic not found");
-    return clinic;
+async function getClinicById(companyId, clinicId) {
+    return clinicRepo.findClinicById(companyId, clinicId);
 }
-async function updateClinic(companyId, clinicId, updates) {
-    return repo.updateClinicById(clinicId, updates);
+async function updateClinic(clinicId, updates) {
+    return clinicRepo.updateClinicById(clinicId, updates);
 }
-async function deleteClinic(companyId, clinicId) {
-    await repo.deleteClinicById(clinicId);
+async function deleteClinic(clinicId) {
+    return clinicRepo.deleteClinicById(clinicId);
 }

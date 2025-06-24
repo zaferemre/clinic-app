@@ -1,53 +1,58 @@
 import { RequestHandler } from "express";
 import * as roleService from "../services/roleService";
 
+// List roles
 export const listRoles: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId } = req.params;
-    const roles = await roleService.listRoles(companyId, clinicId);
-    res.status(200).json(roles);
+    const roles = await roleService.listRoles(
+      req.params.companyId,
+      req.params.clinicId
+    );
+    res.json(roles);
   } catch (err) {
     next(err);
   }
 };
 
+// Create role
 export const addRole: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId } = req.params;
-    const created = await roleService.addRole(companyId, clinicId, req.body);
-    res.status(201).json(created);
+    // Use authenticated UID, fallback to request if necessary
+    const uid = (req.user as any)?.uid ?? req.body.createdBy;
+    const role = await roleService.addRole(
+      req.params.companyId,
+      req.params.clinicId,
+      { ...req.body, createdBy: uid }
+    );
+    res.status(201).json(role);
   } catch (err) {
     next(err);
   }
 };
 
+// Update role
 export const updateRole: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId, roleId } = req.params as {
-      companyId: string;
-      clinicId: string;
-      roleId: string;
-    };
     const updated = await roleService.updateRole(
-      companyId,
-      clinicId,
-      roleId,
+      req.params.companyId,
+      req.params.clinicId,
+      req.params.roleId,
       req.body
     );
-    res.status(200).json(updated);
+    res.json(updated);
   } catch (err) {
     next(err);
   }
 };
 
+// Delete role
 export const deleteRole: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId, roleId } = req.params as {
-      companyId: string;
-      clinicId: string;
-      roleId: string;
-    };
-    await roleService.deleteRole(companyId, clinicId, roleId);
+    await roleService.deleteRole(
+      req.params.companyId,
+      req.params.clinicId,
+      req.params.roleId
+    );
     res.sendStatus(204);
   } catch (err) {
     next(err);

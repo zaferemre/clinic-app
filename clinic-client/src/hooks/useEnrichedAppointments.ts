@@ -1,4 +1,3 @@
-// src/hooks/useEnrichedAppointments.ts
 import { useState, useEffect, useCallback } from "react";
 import { getAppointments } from "../api/appointmentApi";
 import { listEmployees } from "../api/employeeApi";
@@ -46,7 +45,7 @@ export function useEnrichedAppointments(
 
       const patientMap = new Map<string, Patient>(pats.map((p) => [p._id, p]));
       const employeeMap = new Map<string, EmployeeInfo>(
-        emps.map((e) => [e._id!, e])
+        emps.map((e) => [e.userId, e])
       );
       const serviceMap = new Map<string, ServiceInfo>(
         srvs.map((s) => [s._id!, s])
@@ -61,9 +60,6 @@ export function useEnrichedAppointments(
             : undefined,
           employeeName: a.employeeId
             ? employeeMap.get(a.employeeId)?.name
-            : undefined,
-          employeeEmail: a.employeeId
-            ? employeeMap.get(a.employeeId)?.email
             : undefined,
           serviceName: a.serviceId
             ? serviceMap.get(a.serviceId)?.serviceName

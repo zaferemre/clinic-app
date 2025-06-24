@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const mongoose_1 = require("./config/mongoose");
+const verifyFirebaseToken_1 = require("./middlewares/verifyFirebaseToken");
 // Routers
 const companyRoutes_1 = __importDefault(require("./routes/companyRoutes"));
 const clinicRoutes_1 = __importDefault(require("./routes/clinicRoutes"));
@@ -17,9 +18,10 @@ const notificationRoutes_1 = __importDefault(require("./routes/notificationRoute
 const serviceRoutes_1 = __importDefault(require("./routes/serviceRoutes"));
 const groupRoutes_1 = __importDefault(require("./routes/groupRoutes"));
 const roleRoutes_1 = __importDefault(require("./routes/roleRoutes"));
+const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-// body parsing, before any routes
+// Body parsing, before any routes
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 // CORS
@@ -31,7 +33,11 @@ app.use((0, cors_1.default)({
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
 }));
-// --- Clinic-scoped sub-routes (mount before company routes) ---
+// --- Public/user-level routes (no auth required) ---
+app.use("/user", userRoutes_1.default);
+// --- All other routes require authentication ---
+app.use(verifyFirebaseToken_1.verifyFirebaseToken);
+// --- Clinic-scoped sub-routes ---
 app.use("/company/:companyId/clinics/:clinicId/appointments", appointmentRoutes_1.default);
 app.use("/company/:companyId/clinics/:clinicId/employees", employeeRoutes_1.default);
 app.use("/company/:companyId/clinics/:clinicId/patients", patientRoutes_1.default);
@@ -44,7 +50,7 @@ app.use("/company/:companyId/clinics/:clinicId/roles", roleRoutes_1.default);
 app.use("/company/:companyId/clinics", clinicRoutes_1.default);
 // --- Company-level routes ---
 app.use("/company", companyRoutes_1.default);
-// catch-all 404
+// --- Catch-all 404 handler ---
 app.use((req, res) => {
     res.status(404).json({ error: "Route not found" });
 });

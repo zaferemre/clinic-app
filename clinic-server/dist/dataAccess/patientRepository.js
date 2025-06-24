@@ -13,7 +13,9 @@ exports.addPaymentHistory = addPaymentHistory;
 exports.addGroupToPatients = addGroupToPatients;
 exports.removeGroupFromPatients = removeGroupFromPatients;
 exports.removeGroupFromAllPatients = removeGroupFromAllPatients;
-// dataAccess/patientRepository.ts
+exports.getPatientAppointments = getPatientAppointments;
+exports.flagPatientCall = flagPatientCall;
+const Appointment_1 = __importDefault(require("../models/Appointment"));
 const Patient_1 = __importDefault(require("../models/Patient"));
 const mongoose_1 = require("mongoose");
 async function listPatients(companyId, clinicId) {
@@ -38,6 +40,7 @@ async function updatePatientById(patientId, updates) {
 async function deletePatientById(patientId) {
     await Patient_1.default.findByIdAndDelete(patientId);
 }
+// Payment/history helpers:
 async function addPaymentHistory(companyId, clinicId, patientId, entry) {
     return Patient_1.default.findOneAndUpdate({
         _id: patientId,
@@ -45,16 +48,33 @@ async function addPaymentHistory(companyId, clinicId, patientId, entry) {
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
     }, { $push: { paymentHistory: entry } }, { new: true });
 }
-// Add groupId to multiple patients' groups array
+// Group helpers:
 async function addGroupToPatients(patientIds, groupId) {
     return Patient_1.default.updateMany({ _id: { $in: patientIds } }, { $addToSet: { groups: groupId } });
 }
-// Remove groupId from multiple patients' groups array
 async function removeGroupFromPatients(patientIds, groupId) {
     return Patient_1.default.updateMany({ _id: { $in: patientIds } }, { $pull: { groups: groupId } });
 }
-// Remove groupId from all patients (on group deletion)
 async function removeGroupFromAllPatients(groupId) {
     return Patient_1.default.updateMany({ groups: groupId }, { $pull: { groups: groupId } });
 }
 exports.findById = findPatientById;
+// Fetch all appointments for a patient in company/clinic
+async function getPatientAppointments(companyId, clinicId, patientId) {
+    return Appointment_1.default.find({
+        companyId: new mongoose_1.Types.ObjectId(companyId),
+        clinicId: new mongoose_1.Types.ObjectId(clinicId),
+        patientId: new mongoose_1.Types.ObjectId(patientId),
+    })
+        .sort({ start: -1 })
+        .exec();
+}
+// Flag that a patient was called (can be a call history array or just a status)
+async function flagPatientCall(companyId, clinicId, patientId, flagType) {
+    // Example: add entry to callFlags array
+    return Patient_1.default.findOneAndUpdate({
+        _id: new mongoose_1.Types.ObjectId(patientId),
+        companyId: new mongoose_1.Types.ObjectId(companyId),
+        clinicId: new mongoose_1.Types.ObjectId(clinicId),
+    }, { $push: { callFlags: { flagType, timestamp: new Date() } } }, { new: true }).exec();
+}

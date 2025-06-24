@@ -1,42 +1,24 @@
 import Clinic, { ClinicDocument } from "../models/Clinic";
-import mongoose from "mongoose";
 
-// List all clinics for a company
-export async function listClinics(
-  companyId: string
-): Promise<ClinicDocument[]> {
-  return Clinic.find({
-    companyId: new mongoose.Types.ObjectId(companyId),
-  }).exec();
-}
-
-// Create a new Clinic document
-export async function createClinic(
-  doc: Partial<ClinicDocument>
-): Promise<ClinicDocument> {
+export async function createClinic(doc: Partial<ClinicDocument>) {
   return Clinic.create(doc);
 }
 
-// Find clinic by ID and companyId
-export async function findClinicById(
-  companyId: string,
-  clinicId: string
-): Promise<ClinicDocument | null> {
-  return Clinic.findOne({
-    _id: new mongoose.Types.ObjectId(clinicId),
-    companyId: new mongoose.Types.ObjectId(companyId),
-  }).exec();
+export async function listClinics(companyId: string) {
+  return Clinic.find({ companyId });
 }
 
-// Update a clinic by its ID
-export function updateClinicById(
+export async function findClinicById(companyId: string, clinicId: string) {
+  return Clinic.findOne({ _id: clinicId, companyId });
+}
+
+export async function updateClinicById(
   clinicId: string,
   updates: Partial<ClinicDocument>
 ) {
-  return Clinic.findByIdAndUpdate(clinicId, updates, { new: true }).exec();
+  return Clinic.findByIdAndUpdate(clinicId, updates, { new: true });
 }
 
-// Delete a clinic by its ID
-export function deleteClinicById(clinicId: string) {
-  return Clinic.findByIdAndDelete(clinicId).exec();
+export async function deleteClinicById(clinicId: string) {
+  return Clinic.findByIdAndDelete(clinicId);
 }

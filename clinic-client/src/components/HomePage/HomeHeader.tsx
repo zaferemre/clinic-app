@@ -8,7 +8,7 @@ const HomeHeader: React.FC = () => {
   return (
     <>
       <GreetingHeader
-        userAvatarUrl={user?.imageUrl ?? ""}
+        userAvatarUrl={user?.photoUrl ?? ""}
         clinicName={selectedClinicName ?? ""}
         pageTitle="Ana Sayfa"
         showBackButton={true}

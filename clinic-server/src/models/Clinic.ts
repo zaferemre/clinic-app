@@ -28,11 +28,7 @@ export interface ClinicDocument extends Document {
 
 const ClinicSchema = new Schema<ClinicDocument>(
   {
-    companyId: {
-      type: Schema.Types.ObjectId,
-      ref: "company",
-      required: true,
-    },
+    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
     name: { type: String, required: true },
     address: {
       province: { type: String, default: "" },

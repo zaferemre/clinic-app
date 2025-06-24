@@ -8,7 +8,7 @@ import { listEmployees } from "../../api/employeeApi";
 import { listGroups } from "../../api/groupApi";
 import { createAppointment } from "../../api/appointmentApi";
 import AddPatient from "../Forms/CreatePatientForm";
-import NewAppointmentModal from "../NewAppointment/index"; // path to your modular modal index
+import NewAppointmentModal from "../NewAppointment/index";
 import { ServiceModal } from "../Modals/ServiceModal/ServiceModal";
 import type {
   EmployeeInfo,
@@ -24,7 +24,7 @@ import NavBarNotificationBadge from "./NavBarNotificationBadge";
 export const NavigationBar: React.FC = () => {
   const { idToken, selectedCompanyId, selectedClinicId, user } = useAuth();
 
-  // Modals & form states
+  // --- UI state ---
   const [unreadCount, setUnreadCount] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAddPatient, setShowAddPatient] = useState(false);
@@ -32,10 +32,13 @@ export const NavigationBar: React.FC = () => {
     null
   );
 
+  // --- Data state ---
   const [services, setServices] = useState<ServiceInfo[]>([]);
   const [employees, setEmployees] = useState<EmployeeInfo[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+
+  // --- Modal state ---
   const [selectedPatient, setSelectedPatient] = useState("");
   const [selectedService, setSelectedService] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState("");
@@ -44,13 +47,21 @@ export const NavigationBar: React.FC = () => {
   const [endStr, setEndStr] = useState("");
   const [modalDay] = useState<Date | undefined>(undefined);
 
-  const isOwner = user?.role === "owner";
+  // --- Derived data ---
+  // Determine if the user is an owner in any membership for this company
+  const isOwner = user?.memberships?.some(
+    (m) => m.companyId === selectedCompanyId && m.roles?.includes("owner")
+  );
+
   const currentUserId = user?.uid ?? "";
   const currentUserName = user?.name ?? "";
 
-  // Fetch unread notifications
+  // --- Fetch unread notifications ---
   useEffect(() => {
-    if (!idToken || !selectedCompanyId || !selectedClinicId) return;
+    if (!idToken || !selectedCompanyId || !selectedClinicId) {
+      setUnreadCount(0);
+      return;
+    }
     getNotifications(idToken, selectedCompanyId, selectedClinicId)
       .then((notifs) =>
         setUnreadCount(notifs.filter((n) => n.status === "pending").length)
@@ -58,9 +69,15 @@ export const NavigationBar: React.FC = () => {
       .catch(() => setUnreadCount(0));
   }, [idToken, selectedCompanyId, selectedClinicId]);
 
-  // Fetch patients, services, employees, groups
+  // --- Fetch patients, services, employees, groups ---
   useEffect(() => {
-    if (!idToken || !selectedCompanyId || !selectedClinicId) return;
+    if (!idToken || !selectedCompanyId || !selectedClinicId) {
+      setPatients([]);
+      setServices([]);
+      setEmployees([]);
+      setGroups([]);
+      return;
+    }
     Promise.all([
       getPatients(idToken, selectedCompanyId, selectedClinicId),
       getServices(idToken, selectedCompanyId, selectedClinicId),
@@ -73,13 +90,19 @@ export const NavigationBar: React.FC = () => {
         setEmployees(e);
         setGroups(g);
       })
-      .catch(console.error);
+      .catch(() => {
+        setPatients([]);
+        setServices([]);
+        setEmployees([]);
+        setGroups([]);
+      });
   }, [idToken, selectedCompanyId, selectedClinicId]);
 
-  // Routing helper
-  const clinicPath = (path: string) => `/clinics/${selectedClinicId}${path}`;
+  // --- Routing helper ---
+  const clinicPath = (path: string) =>
+    selectedClinicId ? `/clinics/${selectedClinicId}${path}` : "#";
 
-  // Appointment creation handlers
+  // --- Appointment creation handlers ---
   const handleCreateAppointment = async (
     startISO: string,
     endISO: string,
@@ -95,7 +118,7 @@ export const NavigationBar: React.FC = () => {
       end: endISO,
       appointmentType: "individual",
     });
-    alert("Randevu başarıyla oluşturuldu.");
+
     setActiveModal(null);
     setShowAddModal(false);
     // Optionally: refetch lists here if needed
@@ -109,7 +132,7 @@ export const NavigationBar: React.FC = () => {
     if (!idToken || !selectedCompanyId || !selectedClinicId) return;
     await createAppointment(idToken, selectedCompanyId, selectedClinicId, {
       employeeId,
-      serviceId: "",
+
       start: startISO,
       end: endISO,
       appointmentType: "individual",
@@ -144,9 +167,9 @@ export const NavigationBar: React.FC = () => {
 
   return (
     <>
+      {/* Navigation Bar */}
       <div className="fixed bottom-3 left-3 right-3 flex justify-center z-30 pointer-events-none">
         <nav className="bg-white rounded-full flex justify-between items-center h-14 px-2 shadow-xl pointer-events-auto w-[min(98vw,410px)] mx-auto transition">
-          {/* Each NavLink gets flex-1 for equal width */}
           <div className="flex flex-1 items-center justify-center">
             <NavBarNavLink to={clinicPath("")} icon="home" label="Home" />
           </div>
@@ -179,6 +202,7 @@ export const NavigationBar: React.FC = () => {
         </nav>
       </div>
 
+      {/* Add Modal */}
       <NavBarAddModal
         showAddModal={showAddModal}
         setShowAddModal={setShowAddModal}
@@ -186,6 +210,7 @@ export const NavigationBar: React.FC = () => {
         setActiveModal={setActiveModal}
       />
 
+      {/* Add Patient Modal */}
       <AddPatient
         show={showAddPatient}
         onClose={() => setShowAddPatient(false)}
@@ -194,6 +219,7 @@ export const NavigationBar: React.FC = () => {
         clinicId={selectedClinicId!}
       />
 
+      {/* New Appointment Modal */}
       <NewAppointmentModal
         show={activeModal === "randevu"}
         onClose={() => setActiveModal(null)}
@@ -203,7 +229,7 @@ export const NavigationBar: React.FC = () => {
           (s): s is ServiceInfo & { _id: string } => !!s._id
         )}
         groups={groups}
-        isOwner={isOwner}
+        isOwner={!!isOwner}
         currentUserId={currentUserId}
         currentUserName={currentUserName}
         selectedPatient={selectedPatient}
@@ -223,9 +249,9 @@ export const NavigationBar: React.FC = () => {
         onSubmitGroup={handleCreateGroupAppointment}
         onSubmitCustom={handleCreateCustomAppointment}
         onAddPatient={() => setShowAddPatient(true)}
-        // Optionally: onServiceAdded={() => { /* refetchServices() */ }}
       />
 
+      {/* Service Modal */}
       <ServiceModal
         show={activeModal === "service"}
         onClose={() => setActiveModal(null)}

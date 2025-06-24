@@ -32,62 +32,69 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deletePatient = exports.flagPatientCall = exports.getPatientAppointments = exports.recordPayment = exports.updatePatient = exports.getPatientById = exports.listPatients = exports.createPatient = void 0;
+exports.flagPatientCall = exports.getPatientAppointments = exports.getPatientById = exports.recordPayment = exports.deletePatient = exports.updatePatient = exports.getPatient = exports.createPatient = exports.listPatients = void 0;
 const patientService = __importStar(require("../services/patientService"));
-const mongoose_1 = __importDefault(require("mongoose"));
-const Employee_1 = __importDefault(require("../models/Employee"));
-const createPatient = async (req, res, next) => {
-    try {
-        const { companyId, clinicId } = req.params;
-        const created = await patientService.createPatient(companyId, clinicId, req.body);
-        res.status(201).json(created);
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.createPatient = createPatient;
+// List all patients in clinic
 const listPatients = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        const patients = await patientService.getPatients(companyId, clinicId);
-        res.status(200).json(patients);
+        const patients = await patientService.getPatients(req.params.companyId, req.params.clinicId);
+        res.json(patients);
     }
     catch (err) {
         next(err);
     }
 };
 exports.listPatients = listPatients;
-const getPatientById = async (req, res, next) => {
+// Create patient
+const createPatient = async (req, res, next) => {
     try {
-        const { companyId, clinicId, patientId } = req.params;
-        const patient = await patientService.getPatientById(companyId, clinicId, patientId);
-        res.status(200).json(patient);
+        const patient = await patientService.createPatient(req.params.companyId, req.params.clinicId, req.body);
+        res.status(201).json(patient);
     }
     catch (err) {
         next(err);
     }
 };
-exports.getPatientById = getPatientById;
+exports.createPatient = createPatient;
+// Get one patient
+const getPatient = async (req, res, next) => {
+    try {
+        const patient = await patientService.getPatientById(req.params.companyId, req.params.clinicId, req.params.patientId);
+        res.json(patient);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.getPatient = getPatient;
+exports.getPatientById = exports.getPatient;
+// Update patient
 const updatePatient = async (req, res, next) => {
     try {
-        const { companyId, clinicId, patientId } = req.params;
-        const updated = await patientService.updatePatient(companyId, clinicId, patientId, req.body);
-        res.status(200).json(updated);
+        const updated = await patientService.updatePatient(req.params.companyId, req.params.clinicId, req.params.patientId, req.body);
+        res.json(updated);
     }
     catch (err) {
         next(err);
     }
 };
 exports.updatePatient = updatePatient;
+// Delete patient
+const deletePatient = async (req, res, next) => {
+    try {
+        await patientService.deletePatient(req.params.companyId, req.params.clinicId, req.params.patientId);
+        res.sendStatus(204);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.deletePatient = deletePatient;
+// Record payment for patient
 const recordPayment = async (req, res, next) => {
     try {
-        const { companyId, clinicId, patientId } = req.params;
-        const record = await patientService.recordPayment(companyId, clinicId, patientId, req.body);
+        const record = await patientService.recordPayment(req.params.companyId, req.params.clinicId, req.params.patientId, req.body);
         res.status(201).json(record);
     }
     catch (err) {
@@ -95,11 +102,11 @@ const recordPayment = async (req, res, next) => {
     }
 };
 exports.recordPayment = recordPayment;
+// --- NEW/COMPLETE:
 const getPatientAppointments = async (req, res, next) => {
     try {
-        const { companyId, clinicId, patientId } = req.params;
-        const appts = await patientService.getPatientAppointments(companyId, clinicId, patientId);
-        res.status(200).json(appts);
+        const appts = await patientService.getPatientAppointments(req.params.companyId, req.params.clinicId, req.params.patientId);
+        res.json(appts);
     }
     catch (err) {
         next(err);
@@ -108,36 +115,11 @@ const getPatientAppointments = async (req, res, next) => {
 exports.getPatientAppointments = getPatientAppointments;
 const flagPatientCall = async (req, res, next) => {
     try {
-        const { companyId, clinicId, patientId } = req.params;
-        const { note } = req.body;
-        const firebaseUid = req.user?.uid;
-        const emp = await Employee_1.default.findOne({
-            userId: firebaseUid,
-            companyId: new mongoose_1.default.Types.ObjectId(companyId),
-            clinicId: new mongoose_1.default.Types.ObjectId(clinicId),
-        }).exec();
-        if (!emp) {
-            res
-                .status(404)
-                .json({ error: "Employee not found for current user and clinic" });
-            return;
-        }
-        const notif = await patientService.flagPatientCall(companyId, clinicId, patientId, note, emp._id.toString());
-        res.status(201).json(notif);
+        const flagged = await patientService.flagPatientCall(req.params.companyId, req.params.clinicId, req.params.patientId, req.body.flagType ?? "called");
+        res.json(flagged);
     }
     catch (err) {
         next(err);
     }
 };
 exports.flagPatientCall = flagPatientCall;
-const deletePatient = async (req, res, next) => {
-    try {
-        const { companyId, clinicId, patientId } = req.params;
-        await patientService.deletePatient(companyId, clinicId, patientId);
-        res.sendStatus(204);
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.deletePatient = deletePatient;

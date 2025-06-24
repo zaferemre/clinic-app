@@ -7,8 +7,8 @@ export interface FilterSidebarProps {
   onClose: () => void;
 
   employees: EmployeeInfo[];
-  selectedEmployee: string;
-  onEmployeeChange: (email: string) => void;
+  selectedEmployee: string; // userId
+  onEmployeeChange: (userId: string) => void;
 
   services: ServiceInfo[];
   selectedService: string;
@@ -18,8 +18,8 @@ export interface FilterSidebarProps {
   selectedGroup: string;
   onGroupChange: (id: string) => void;
 
-  currentUserEmail: string;
-  ownerEmail: string;
+  currentUserId: string;
+  ownerUserId: string;
 }
 
 export const FilterSidebar: React.FC<FilterSidebarProps> = ({
@@ -34,16 +34,15 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
   groups,
   selectedGroup,
   onGroupChange,
-  currentUserEmail,
-  ownerEmail,
+  currentUserId,
+  ownerUserId,
 }) => {
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const uniqueEmployees = useMemo(() => {
     const map = new Map<string, EmployeeInfo>();
     employees.forEach((e) => {
-      const key = e.email.toLowerCase().trim();
-      if (!map.has(key)) map.set(key, e);
+      if (!map.has(e.userId)) map.set(e.userId, e);
     });
     return Array.from(map.values());
   }, [employees]);
@@ -91,7 +90,6 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
           </button>
         </div>
 
-        {/* Changed here: no vertical scrolling, overflow spills off screen */}
         <div className="p-4 space-y-6 overflow-y-visible">
           <div>
             <h3 className="mb-2 text-sm font-medium text-gray-700">Çalışan</h3>
@@ -108,19 +106,19 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
               </button>
               {uniqueEmployees.map((emp) => (
                 <button
-                  key={emp.email}
-                  onClick={() => onEmployeeChange(emp.email)}
+                  key={emp.userId}
+                  onClick={() => onEmployeeChange(emp.userId)}
                   className={`w-full flex justify-between items-center text-left p-2 rounded-md ${
-                    selectedEmployee === emp.email
+                    selectedEmployee === emp.userId
                       ? "bg-brand-main text-white"
                       : "bg-gray-100 hover:bg-gray-200"
                   }`}
                 >
                   <span>{emp.name}</span>
-                  {emp.email === currentUserEmail && (
+                  {emp.userId === currentUserId && (
                     <span className="text-xs italic ml-2">(Siz)</span>
                   )}
-                  {emp.email === ownerEmail && (
+                  {emp.userId === ownerUserId && (
                     <span className="text-xs italic ml-2">(Yönetici)</span>
                   )}
                 </button>

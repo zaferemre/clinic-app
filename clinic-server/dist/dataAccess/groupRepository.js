@@ -10,7 +10,6 @@ exports.updateGroupById = updateGroupById;
 exports.deleteGroupById = deleteGroupById;
 exports.addPatientToGroup = addPatientToGroup;
 exports.removePatientFromGroup = removePatientFromGroup;
-// src/dataAccess/groupRepository.ts
 const Group_1 = __importDefault(require("../models/Group"));
 const mongoose_1 = require("mongoose");
 async function listGroups(companyId, clinicId) {
@@ -24,27 +23,29 @@ async function createGroup(doc) {
 }
 async function findGroupById(companyId, clinicId, groupId) {
     return Group_1.default.findOne({
-        _id: groupId,
+        _id: new mongoose_1.Types.ObjectId(groupId),
         companyId: new mongoose_1.Types.ObjectId(companyId),
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
     }).exec();
 }
 async function updateGroupById(groupId, updates) {
-    return Group_1.default.findByIdAndUpdate(groupId, updates, { new: true }).exec();
+    return Group_1.default.findByIdAndUpdate(new mongoose_1.Types.ObjectId(groupId), updates, {
+        new: true,
+    }).exec();
 }
 async function deleteGroupById(groupId) {
-    await Group_1.default.findByIdAndDelete(groupId).exec();
+    return Group_1.default.findByIdAndDelete(new mongoose_1.Types.ObjectId(groupId)).exec();
 }
 async function addPatientToGroup(companyId, clinicId, groupId, patientId) {
     return Group_1.default.findOneAndUpdate({
-        _id: groupId,
+        _id: new mongoose_1.Types.ObjectId(groupId),
         companyId: new mongoose_1.Types.ObjectId(companyId),
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
     }, { $addToSet: { patients: new mongoose_1.Types.ObjectId(patientId) } }, { new: true }).exec();
 }
 async function removePatientFromGroup(companyId, clinicId, groupId, patientId) {
     return Group_1.default.findOneAndUpdate({
-        _id: groupId,
+        _id: new mongoose_1.Types.ObjectId(groupId),
         companyId: new mongoose_1.Types.ObjectId(companyId),
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
     }, { $pull: { patients: new mongoose_1.Types.ObjectId(patientId) } }, { new: true }).exec();

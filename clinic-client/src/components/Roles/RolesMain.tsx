@@ -119,7 +119,7 @@ const RolesMain: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-brand-gray-100 pb-20">
       <div className="px-4 pt-4">
         <GreetingHeader
-          userAvatarUrl={user?.imageUrl || ""}
+          userAvatarUrl={user?.photoUrl ?? ""}
           clinicName={selectedClinicName}
           pageTitle="Roller"
           showBackButton={true}

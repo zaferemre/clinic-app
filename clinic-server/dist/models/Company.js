@@ -1,13 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-// models/Company.ts
 const mongoose_1 = require("mongoose");
 const CompanySchema = new mongoose_1.Schema({
     name: { type: String, required: true },
-    ownerUserId: { type: String, required: true, index: true },
-    ownerName: { type: String, required: true },
-    ownerEmail: { type: String, required: true, index: true },
-    ownerImageUrl: { type: String, default: "" },
+    ownerUid: { type: String, required: true, index: true }, // Firebase UID
     subscription: {
         plan: {
             type: String,
@@ -36,11 +32,7 @@ const CompanySchema = new mongoose_1.Schema({
         inactivityThresholdDays: { type: Number, default: 90 },
     },
     websiteUrl: { type: String },
-    socialLinks: {
-        instagram: { type: String },
-        facebook: { type: String },
-        whatsapp: { type: String },
-    },
+    socialLinks: { type: Map, of: String },
     isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 exports.default = (0, mongoose_1.model)("Company", CompanySchema);

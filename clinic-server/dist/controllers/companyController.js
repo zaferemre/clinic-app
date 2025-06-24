@@ -32,31 +32,27 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listCompanies = exports.joinClinic = exports.joinByCode = exports.deleteUserAccount = exports.leaveCompany = exports.listEmployees = exports.deleteCompany = exports.updateCompany = exports.getCompanyById = exports.createCompany = void 0;
-const http_errors_1 = __importDefault(require("http-errors"));
+exports.listEmployees = exports.leaveCompany = exports.joinByCode = exports.deleteCompany = exports.updateCompany = exports.getCompany = exports.createCompany = exports.listCompanies = void 0;
 const companyService = __importStar(require("../services/companyService"));
-const employeeService = __importStar(require("../services/employeeService"));
-const Employee_1 = __importDefault(require("../models/Employee"));
-const Clinic_1 = __importDefault(require("../models/Clinic"));
-const mongoose_1 = __importDefault(require("mongoose"));
-// --- CREATE COMPANY (OWNER FLOW) --- //
+// List all companies user belongs to
+const listCompanies = async (req, res, next) => {
+    try {
+        const uid = req.user?.uid;
+        // Now returns array of user's memberships, not company objects
+        const companies = await companyService.getCompaniesForUser(uid);
+        res.json(companies);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.listCompanies = listCompanies;
+// Create new company
 const createCompany = async (req, res, next) => {
     try {
-        const { name, websiteUrl, socialLinks, settings } = req.body;
-        const user = req.user;
-        if (!user)
-            throw (0, http_errors_1.default)(401, "Unauthorized");
-        // Only pass user input fields, service will use user for owner info
-        const company = await companyService.createCompany(user, {
-            name,
-            websiteUrl,
-            socialLinks,
-            settings,
-        });
+        const uid = req.user?.uid;
+        const company = await companyService.createCompany(uid, req.body);
         res.status(201).json(company);
     }
     catch (err) {
@@ -64,34 +60,38 @@ const createCompany = async (req, res, next) => {
     }
 };
 exports.createCompany = createCompany;
-const getCompanyById = async (req, res, next) => {
+// Get company by ID
+const getCompany = async (req, res, next) => {
     try {
-        const companyId = req.params.companyId;
-        const company = await companyService.getCompany(companyId);
-        res.status(200).json(company);
+        const company = await companyService.getCompanyById(req.params.companyId);
+        if (!company) {
+            res.status(404).json({ error: "Company not found" });
+            return;
+        }
+        res.json(company);
     }
     catch (err) {
         next(err);
     }
 };
-exports.getCompanyById = getCompanyById;
+exports.getCompany = getCompany;
+// Update company (owner only)
 const updateCompany = async (req, res, next) => {
     try {
-        const companyId = req.params.companyId;
-        const user = req.user;
-        const updated = await companyService.updateCompany(companyId, req.body, user);
-        res.status(200).json(updated);
+        const uid = req.user?.uid;
+        const updated = await companyService.updateCompany(req.params.companyId, req.body, uid);
+        res.json(updated);
     }
     catch (err) {
         next(err);
     }
 };
 exports.updateCompany = updateCompany;
+// Delete company (owner only)
 const deleteCompany = async (req, res, next) => {
     try {
-        const companyId = req.params.companyId;
-        const user = req.user;
-        await companyService.deleteCompany(companyId, user);
+        const uid = req.user?.uid;
+        await companyService.deleteCompany(req.params.companyId, uid);
         res.sendStatus(204);
     }
     catch (err) {
@@ -99,47 +99,12 @@ const deleteCompany = async (req, res, next) => {
     }
 };
 exports.deleteCompany = deleteCompany;
-const listEmployees = async (req, res, next) => {
-    try {
-        const companyId = req.params.companyId;
-        const employees = await employeeService.listEmployees(companyId);
-        res.status(200).json(employees);
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.listEmployees = listEmployees;
-const leaveCompany = async (req, res, next) => {
-    try {
-        const companyId = req.params.companyId;
-        const user = req.user;
-        await companyService.leaveCompany(companyId, user.email);
-        res.sendStatus(204);
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.leaveCompany = leaveCompany;
-const deleteUserAccount = async (req, res, next) => {
-    try {
-        const user = req.user;
-        await companyService.deleteUserAccount(user);
-        res.sendStatus(204);
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.deleteUserAccount = deleteUserAccount;
+// Join company by code
 const joinByCode = async (req, res, next) => {
     try {
-        const { joinCode } = req.body;
-        if (!joinCode)
-            throw (0, http_errors_1.default)(400, "Join code required");
+        const { code } = req.body;
         const user = req.user;
-        const result = await companyService.joinByCode(joinCode, user);
+        const result = await companyService.joinByCode(user.uid, code);
         res.json(result);
     }
     catch (err) {
@@ -147,37 +112,28 @@ const joinByCode = async (req, res, next) => {
     }
 };
 exports.joinByCode = joinByCode;
-const joinClinic = async (req, res, next) => {
+// Leave company
+const leaveCompany = async (req, res, next) => {
     try {
-        const { companyId, clinicId } = req.params;
-        const email = req.user.email;
-        const emp = await Employee_1.default.findOne({
-            companyId: new mongoose_1.default.Types.ObjectId(companyId),
-            email,
-        });
-        if (!emp)
-            throw (0, http_errors_1.default)(404, "Must join company first");
-        emp.clinicId = new mongoose_1.default.Types.ObjectId(clinicId);
-        await emp.save();
-        await Clinic_1.default.findByIdAndUpdate(clinicId, {
-            $addToSet: { employees: emp._id },
-        });
-        res.json({ success: true });
-    }
-    catch (err) {
-        next(err);
-    }
-};
-exports.joinClinic = joinClinic;
-const listCompanies = async (req, res, next) => {
-    try {
+        const { companyId } = req.params;
         const user = req.user;
-        // Use new service (covers both owner and employee)
-        const companies = await companyService.listCompanies(user);
-        res.status(200).json(companies);
+        const result = await companyService.leaveCompany(user.uid, companyId);
+        res.json(result);
     }
     catch (err) {
         next(err);
     }
 };
-exports.listCompanies = listCompanies;
+exports.leaveCompany = leaveCompany;
+// List company employees
+const listEmployees = async (req, res, next) => {
+    try {
+        const { companyId } = req.params;
+        const employees = await companyService.listEmployees(companyId);
+        res.json(employees);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.listEmployees = listEmployees;

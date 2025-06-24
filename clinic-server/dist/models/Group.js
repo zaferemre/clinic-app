@@ -2,11 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
 const GroupSchema = new mongoose_1.Schema({
-    companyId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "company",
-        required: true,
-    },
+    companyId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Company", required: true },
     clinicId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Clinic", required: true },
     name: { type: String, required: true },
     patients: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Patient" }],
@@ -22,6 +18,6 @@ const GroupSchema = new mongoose_1.Schema({
     groupType: { type: String },
     appointments: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Appointment" }],
     customFields: { type: mongoose_1.Schema.Types.Mixed },
-    createdBy: { type: String, required: true }, // user ID or name
+    createdBy: { type: String, required: true }, // Firebase UID
 }, { timestamps: true });
 exports.default = (0, mongoose_1.model)("Group", GroupSchema);

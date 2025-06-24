@@ -1,36 +1,28 @@
-// src/controllers/notificationController.ts
 import { RequestHandler } from "express";
-import * as notifService from "../services/notificationService";
+import * as notificationService from "../services/notificationService";
 
-export const getNotifications: RequestHandler = async (req, res, next) => {
+// List notifications for a company & clinic
+export const listNotifications: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId } = req.params as {
-      companyId: string;
-      clinicId: string;
-    };
-    const notifications = await notifService.listNotifications(
-      companyId,
-      clinicId
+    const notifications = await notificationService.listNotifications(
+      req.params.companyId,
+      req.params.clinicId
     );
-    res.status(200).json(notifications);
+    res.json(notifications);
   } catch (err) {
     next(err);
   }
 };
 
+// Mark a notification as done
 export const markNotificationDone: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId, notificationId } = req.params as {
-      companyId: string;
-      clinicId: string;
-      notificationId: string;
-    };
-    await notifService.markNotificationDone(
-      companyId,
-      clinicId,
-      notificationId
+    const updated = await notificationService.markNotificationDone(
+      req.params.companyId,
+      req.params.clinicId,
+      req.params.notificationId
     );
-    res.status(200).json({ message: "Notification marked done" });
+    res.json(updated);
   } catch (err) {
     next(err);
   }

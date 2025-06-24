@@ -1,5 +1,5 @@
-import { admin } from "../config/firebase";
-
+// src/middlewares/verifyFirebaseToken.ts
+import { admin } from "../config/firebase"; // <-- your initialized admin
 import { Request, Response, NextFunction } from "express";
 
 export const verifyFirebaseToken = async (
@@ -13,13 +13,20 @@ export const verifyFirebaseToken = async (
     return;
   }
   const token = authHeader.split(" ")[1];
+  if (!token) {
+    res.status(401).json({ error: "No token provided" });
+    return;
+  }
 
   try {
-    const decoded = await admin.auth().verifyIdToken(token);
+    const decodedToken = await admin.auth().verifyIdToken(token);
     req.user = {
-      ...decoded,
-      email: decoded.email ?? "",
-    }; // ensure email is always a string
+      ...decodedToken,
+      uid: decodedToken.uid,
+      email: decodedToken.email ?? "",
+      name: decodedToken.name ?? decodedToken.displayName ?? "",
+      photoURL: decodedToken.picture ?? decodedToken.photoURL ?? "",
+    };
     next();
   } catch (err) {
     console.error("→ verifyFirebaseToken failed:", err);

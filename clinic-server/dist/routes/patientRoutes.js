@@ -33,18 +33,18 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/routes/patientRoutes.ts
 const express_1 = require("express");
-const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
 const patientCtrl = __importStar(require("../controllers/patientController"));
+const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
 const router = (0, express_1.Router)({ mergeParams: true });
 router.use(verifyFirebaseToken_1.verifyFirebaseToken);
 router.post("/", patientCtrl.createPatient);
 router.get("/", patientCtrl.listPatients);
 router.get("/:patientId", patientCtrl.getPatientById);
 router.patch("/:patientId", patientCtrl.updatePatient);
+router.delete("/:patientId", patientCtrl.deletePatient);
+// Extra: Payments, Appointments, Flags
 router.post("/:patientId/payments", patientCtrl.recordPayment);
 router.get("/:patientId/appointments", patientCtrl.getPatientAppointments);
 router.post("/:patientId/call-flag", patientCtrl.flagPatientCall);
-router.delete("/:patientId", patientCtrl.deletePatient);
 exports.default = router;

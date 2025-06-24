@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+// src/UserOnboarding/JoinCompanyForm.tsx
+import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { joinCompanyByCode } from "../../api/companyApi";
 
@@ -26,7 +27,6 @@ const JoinCompanyForm: React.FC<JoinCompanyFormProps> = ({ onJoined }) => {
     setLoading(true);
     try {
       const res = await joinCompanyByCode(idToken, joinCode.trim());
-      // Call the onJoined callback with companyId and companyName
       onJoined(res.companyId, res.companyName);
       setJoinCode("");
     } catch (err: unknown) {

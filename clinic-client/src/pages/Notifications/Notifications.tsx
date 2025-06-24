@@ -91,7 +91,7 @@ const NotificationsPage: React.FC = () => {
     <div className="flex flex-col h-screen bg-brand-gray-100 pb-16 px-4 pt-4">
       {/* --- Replace header with GreetingHeader --- */}
       <GreetingHeader
-        userAvatarUrl={user?.imageUrl || ""}
+        userAvatarUrl={user?.photoUrl || ""}
         clinicName={selectedClinicName || ""}
         pageTitle="Bildirimler"
         showBackButton={true}

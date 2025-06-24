@@ -6,18 +6,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createNotification = createNotification;
 exports.listNotifications = listNotifications;
 exports.updateNotificationStatus = updateNotificationStatus;
+exports.deleteNotificationById = deleteNotificationById;
 const Notification_1 = __importDefault(require("../models/Notification"));
 const mongoose_1 = require("mongoose");
-/**
- * Create a new notification.
- */
-function createNotification(doc) {
+// Create a notification
+async function createNotification(doc) {
     return Notification_1.default.create(doc);
 }
-/**
- * List all notifications for a given company & clinic.
- */
-function listNotifications(companyId, clinicId) {
+// List notifications by company/clinic
+async function listNotifications(companyId, clinicId) {
     return Notification_1.default.find({
         companyId: new mongoose_1.Types.ObjectId(companyId),
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
@@ -25,9 +22,11 @@ function listNotifications(companyId, clinicId) {
         .sort({ createdAt: -1 })
         .exec();
 }
-/**
- * Update the status of a notification by its ID.
- */
-function updateNotificationStatus(notificationId, status) {
+// Update status (e.g., mark as done)
+async function updateNotificationStatus(notificationId, status) {
     return Notification_1.default.findByIdAndUpdate(notificationId, { status }, { new: true }).exec();
+}
+// Delete a notification by id
+async function deleteNotificationById(notificationId) {
+    await Notification_1.default.findByIdAndDelete(notificationId).exec();
 }

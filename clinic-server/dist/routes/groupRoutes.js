@@ -33,7 +33,6 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/routes/groupRoutes.ts
 const express_1 = require("express");
 const groupCtrl = __importStar(require("../controllers/groupController"));
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
@@ -44,9 +43,10 @@ router.post("/", groupCtrl.createGroup);
 router.get("/:groupId", groupCtrl.getGroupById);
 router.patch("/:groupId", groupCtrl.updateGroup);
 router.delete("/:groupId", groupCtrl.deleteGroup);
+// Manage group-patient membership
 router.post("/:groupId/patients", groupCtrl.addPatientToGroup);
 router.delete("/:groupId/patients/:patientId", groupCtrl.removePatientFromGroup);
-// list / create appointments for one group:
+// Group appointments
 router.get("/:groupId/appointments", groupCtrl.listGroupAppointments);
 router.post("/:groupId/appointments", groupCtrl.createGroupAppointment);
 exports.default = router;

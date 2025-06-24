@@ -1,4 +1,3 @@
-// src/pages/CompanyOnboardingPage/CompanyOnboardingPage.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -8,11 +7,22 @@ import { ArrowLeftStartOnRectangleIcon } from "@heroicons/react/24/outline";
 
 const CompanyOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, companies } = useAuth();
+
+  // Optional: auto-redirect if user already has company
+  React.useEffect(() => {
+    if (companies && companies.length > 0) {
+      navigate("/clinics", { replace: true });
+    }
+  }, [companies, navigate]);
 
   const handleLogout = () => {
     signOut();
     navigate("/login", { replace: true });
+  };
+
+  const handleCompanySuccess = () => {
+    navigate("/clinics", { replace: true });
   };
 
   return (
@@ -37,17 +47,24 @@ const CompanyOnboardingPage: React.FC = () => {
       </button>
 
       {/* App name */}
-      <div className="relative z-10 w-full flex flex-col items-center pt-16 pb-6 select-none">
+      <div className="relative z-10 w-full flex flex-col items-center pt-16 pb-2 select-none">
         <span className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg tracking-wide">
           randevy
+        </span>
+      </div>
+
+      {/* Info */}
+      <div className="relative z-10 w-full flex flex-col items-center pt-2 pb-2">
+        <span className="text-md text-gray-700">
+          Bir şirkete katıl veya yeni bir şirket oluştur!
         </span>
       </div>
 
       {/* Actions */}
       <div className="relative z-10 mt-auto px-6 pb-12 w-full">
         <div className="w-full max-w-xl mx-auto flex flex-col gap-8">
-          <CreateCompanyButton onCreated={() => {}} />
-          <JoinCompanyButton onJoined={() => {}} />
+          <CreateCompanyButton onCreated={handleCompanySuccess} />
+          <JoinCompanyButton onJoined={handleCompanySuccess} />
         </div>
       </div>
     </div>

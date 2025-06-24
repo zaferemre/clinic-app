@@ -33,14 +33,11 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/routes/appointmentRoutes.ts
 const express_1 = require("express");
 const apptCtrl = __importStar(require("../controllers/appointmentController"));
-const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
 const router = (0, express_1.Router)({ mergeParams: true });
-router.use(verifyFirebaseToken_1.verifyFirebaseToken);
-router.get("/", apptCtrl.getAppointments);
-router.get("/:appointmentId", apptCtrl.getAppointmentById);
+router.get("/", apptCtrl.listAppointments);
+router.get("/:appointmentId", apptCtrl.getAppointment);
 router.post("/", apptCtrl.createAppointment);
 router.patch("/:appointmentId", apptCtrl.updateAppointment);
 router.delete("/:appointmentId", apptCtrl.deleteAppointment);

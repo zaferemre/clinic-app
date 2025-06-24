@@ -2,7 +2,7 @@
 import React from "react";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 import { useAuth } from "../../contexts/AuthContext";
-import CustomCalendar from "../../components/Calendar/CustomCalendar";
+import { CustomCalendar } from "../../components/Calendar/CustomCalendar";
 import GreetingHeader from "../../components/GreetingHeader/GreetingHeader";
 
 const CalendarPage: React.FC = () => {
@@ -35,7 +35,7 @@ const CalendarPage: React.FC = () => {
       {/* Unified Page header */}
       <div className="px-4 pt-4  pb-2">
         <GreetingHeader
-          userAvatarUrl={user?.imageUrl || ""}
+          userAvatarUrl={user?.photoUrl || ""}
           clinicName={selectedClinicName || ""}
           pageTitle="Takvim"
           showBackButton={true}

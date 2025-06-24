@@ -1,33 +1,28 @@
-import * as repoRole from "../dataAccess/roleRepository";
+import * as roleRepo from "../dataAccess/roleRepository";
 import { Types } from "mongoose";
 
 export async function listRoles(companyId: string, clinicId: string) {
-  return repoRole.listRoles(companyId, clinicId);
+  return roleRepo.listRoles(companyId, clinicId);
 }
 
-export async function addRole(
-  companyId: string,
-  clinicId: string,
-  data: { name: string; createdBy?: string }
-) {
+export async function addRole(companyId: string, clinicId: string, data: any) {
   const doc = {
     companyId: new Types.ObjectId(companyId),
     clinicId: new Types.ObjectId(clinicId),
     name: data.name,
-    createdBy: data.createdBy ? new Types.ObjectId(data.createdBy) : undefined,
     isDefault: false,
+    createdBy: data.createdBy ?? undefined,
   };
-  return repoRole.createRole(doc);
+  return roleRepo.createRole(doc);
 }
 
 export async function updateRole(
   companyId: string,
   clinicId: string,
   roleId: string,
-  updates: { name?: string }
+  updates: any
 ) {
-  // Optional: verify role belongs to this company+clinic before updating
-  return repoRole.updateRoleById(roleId, updates);
+  return roleRepo.updateRoleById(roleId, updates);
 }
 
 export async function deleteRole(
@@ -35,6 +30,5 @@ export async function deleteRole(
   clinicId: string,
   roleId: string
 ) {
-  // Optional: verify role belongs to this company+clinic before deleting
-  return repoRole.deleteRoleById(roleId);
+  return roleRepo.deleteRoleById(roleId);
 }

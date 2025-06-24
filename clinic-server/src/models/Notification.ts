@@ -9,7 +9,7 @@ export interface NotificationDocument extends Document {
   status: "pending" | "sent" | "failed" | "done";
   message: string;
   trigger: string;
-  workerId?: Types.ObjectId;
+  workerUid?: string; // Firebase UID
   note?: string;
   sentAt?: Date;
   createdAt: Date;
@@ -18,11 +18,7 @@ export interface NotificationDocument extends Document {
 
 const NotificationSchema = new Schema<NotificationDocument>(
   {
-    companyId: {
-      type: Schema.Types.ObjectId,
-      ref: "company",
-      required: true,
-    },
+    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
     clinicId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
     patientId: { type: Schema.Types.ObjectId, ref: "Patient" },
     groupId: { type: Schema.Types.ObjectId, ref: "Group" },
@@ -38,7 +34,7 @@ const NotificationSchema = new Schema<NotificationDocument>(
     },
     message: { type: String, required: true },
     trigger: { type: String },
-    workerId: { type: Schema.Types.ObjectId, ref: "Employee" },
+    workerUid: { type: String }, // Firebase UID
     note: { type: String },
     sentAt: { type: Date },
   },

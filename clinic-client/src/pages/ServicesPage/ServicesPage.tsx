@@ -1,7 +1,7 @@
+// src/pages/ServicesPage.tsx
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { getServices, deleteService } from "../../api/servicesApi";
-import { getCompanyById } from "../../api/companyApi";
 import type { ServiceInfo } from "../../types/sharedTypes";
 
 import { ServicesList } from "../../components/ServicesList/ServicesList";
@@ -18,34 +18,27 @@ export const ServicesPage: React.FC = () => {
     selectedCompanyName,
     selectedClinicName,
     user,
+    companies,
   } = useAuth();
 
-  const currentEmail = user?.email ?? "";
-  const [ownerEmail, setOwnerEmail] = useState("");
   const [services, setServices] = useState<ServiceInfo[]>([]);
   const [modalService, setModalService] = useState<ServiceInfo | undefined>();
   const [showModal, setShowModal] = useState(false);
 
-  const isOwner = currentEmail === ownerEmail;
+  // Determine ownership by comparing user.uid to company.ownerUserId
+  const selectedCompany = companies.find((c) => c._id === companyId) ?? null;
+  const isOwner = selectedCompany?.ownerUserId === user?.uid;
 
-  // 1) Fetch company to determine ownerEmail
-  useEffect(() => {
-    if (!idToken || !companyId) return;
-    getCompanyById(idToken, companyId)
-      .then((c) => setOwnerEmail(c.ownerEmail))
-      .catch(() => setOwnerEmail(""));
-  }, [idToken, companyId]);
-
-  // 2) Load services for the current clinic
-  const load = () => {
+  // Load services for the current clinic
+  const loadServices = () => {
     if (!idToken || !companyId || !clinicId) return;
     getServices(idToken, companyId, clinicId)
       .then(setServices)
       .catch(() => setServices([]));
   };
-  useEffect(load, [idToken, companyId, clinicId]);
+  useEffect(loadServices, [idToken, companyId, clinicId]);
 
-  // Button handlers
+  // Handlers
   const handleAdd = () => {
     setModalService(undefined);
     setShowModal(true);
@@ -59,10 +52,10 @@ export const ServicesPage: React.FC = () => {
     if (!window.confirm("Bu hizmeti silmek istediğinizden emin misiniz?"))
       return;
     await deleteService(idToken, companyId, clinicId, id);
-    load();
+    loadServices();
   };
 
-  // 3) Guard: if no context yet
+  // Guard: require context
   if (
     !idToken ||
     !companyId ||
@@ -80,15 +73,14 @@ export const ServicesPage: React.FC = () => {
 
   return (
     <div className="p-4 min-h-screen bg-brand-gray-100 flex flex-col pb-16">
-      {/* Unified Header */}
       <GreetingHeader
-        userAvatarUrl={user?.imageUrl || ""}
-        clinicName={selectedClinicName || ""}
+        userAvatarUrl={user.photoUrl}
+        clinicName={selectedClinicName}
         pageTitle="Hizmetler"
-        showBackButton={true}
+        showBackButton
       />
 
-      {/* Add Service Button (only for owner, above list/empty state) */}
+      {/* Add Service Button (owner only) */}
       {isOwner && services.length > 0 && (
         <div className="flex justify-end mb-4">
           <button
@@ -100,7 +92,7 @@ export const ServicesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Friendly Empty State */}
+      {/* Empty State or List */}
       {services.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-xl shadow mb-8">
           <WrenchScrewdriverIcon className="w-16 h-16 text-brand-main mb-4" />

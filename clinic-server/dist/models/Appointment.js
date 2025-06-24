@@ -2,44 +2,18 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
 const AppointmentSchema = new mongoose_1.Schema({
-    companyId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Company",
-        required: true,
-    },
-    clinicId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Clinic",
-        required: true,
-    },
-    patientId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Patient",
-        required: false,
-    },
-    groupId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Group",
-        required: false,
-    },
+    companyId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Company", required: true },
+    clinicId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Clinic", required: true },
+    patientId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Patient" },
+    groupId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Group" },
     employeeId: {
-        type: mongoose_1.Schema.Types.ObjectId,
+        type: String,
         ref: "Employee",
         required: true,
     },
-    serviceId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: "Service",
-        required: false,
-    },
-    start: {
-        type: Date,
-        required: true,
-    },
-    end: {
-        type: Date,
-        required: true,
-    },
+    serviceId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Service" },
+    start: { type: Date, required: true },
+    end: { type: Date, required: true },
     status: {
         type: String,
         enum: ["scheduled", "done", "cancelled", "no-show"],
@@ -50,15 +24,8 @@ const AppointmentSchema = new mongoose_1.Schema({
         enum: ["individual", "group"],
         required: true,
     },
-    // Allow string OR ObjectId for createdBy
-    createdBy: {
-        type: String, // <--- FIXED HERE
-        required: true,
-    },
-}, {
-    timestamps: true,
-});
-// Compound index for fast lookups (unchanged)
+    createdBy: { type: String, required: true }, // Firebase UID
+}, { timestamps: true });
 AppointmentSchema.index({
     companyId: 1,
     clinicId: 1,

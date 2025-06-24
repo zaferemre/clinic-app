@@ -1,4 +1,3 @@
-// src/api/companyApi.ts
 import {
   Company,
   EmployeeInfo,
@@ -11,7 +10,7 @@ export interface JoinCompanyByCodeResponse {
   companyId: string;
   companyName: string;
   clinics: { _id: string; name: string }[];
-  ownerName: string;
+  ownerUserId: string;
 }
 
 /**
@@ -34,11 +33,7 @@ export function getCompanyById(
 export interface CreateCompanyPayload {
   name: string;
   websiteUrl?: string;
-  socialLinks?: {
-    instagram: string;
-    facebook: string;
-    whatsapp: string;
-  };
+  socialLinks?: Record<string, string>;
   settings: {
     allowPublicBooking: boolean;
     inactivityThresholdDays: number;
@@ -65,9 +60,7 @@ export function createCompany(
 export function updateCompany(
   token: string,
   companyId: string,
-  updates: Partial<
-    Omit<Company, "_id" | "ownerEmail" | "ownerName" | "clinics">
-  >
+  updates: Partial<Omit<Company, "_id" | "ownerUserId" | "clinics">>
 ): Promise<Company> {
   return request<Company>(`/company/${companyId}`, {
     method: "PATCH",
@@ -195,20 +188,8 @@ export function getServices(
 }
 
 /**
- * Delete the current user account (DELETE /company/user).
- */
-export function deleteUser(token: string): Promise<void> {
-  return request("/company/user", {
-    method: "DELETE",
-    token,
-  });
-}
-
-/**
  * Join a company by join code (POST /company/join).
- * Returns { success, companyId, companyName } on success.
  */
-// Update the API function:
 export function joinCompanyByCode(
   token: string,
   joinCode: string
@@ -220,11 +201,14 @@ export function joinCompanyByCode(
   });
 }
 
-export async function joinClinic(
+/**
+ * Join a specific clinic within a company (POST /company/:companyId/clinics/:clinicId/join).
+ */
+export function joinClinic(
   token: string,
   companyId: string,
   clinicId: string
-) {
+): Promise<void> {
   return request(`/company/${companyId}/clinics/${clinicId}/join`, {
     method: "POST",
     token,

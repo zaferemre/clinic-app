@@ -8,43 +8,35 @@ exports.findAppointmentById = findAppointmentById;
 exports.createAppointment = createAppointment;
 exports.updateAppointmentById = updateAppointmentById;
 exports.deleteAppointmentById = deleteAppointmentById;
-exports.findOverlap = findOverlap;
 const Appointment_1 = __importDefault(require("../models/Appointment"));
 const mongoose_1 = require("mongoose");
-function listAppointments(companyId, clinicId, filter = {}) {
+// List appointments, with optional filters
+async function listAppointments(companyId, clinicId, filter = {}) {
     return Appointment_1.default.find({
         companyId: new mongoose_1.Types.ObjectId(companyId),
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
-        ...filter,
+        ...filter, // employeeId here is a string
     }).exec();
 }
-function findAppointmentById(companyId, clinicId, appointmentId) {
+// Find single appointment by ID within company/clinic
+async function findAppointmentById(companyId, clinicId, appointmentId) {
     return Appointment_1.default.findOne({
         _id: new mongoose_1.Types.ObjectId(appointmentId),
         companyId: new mongoose_1.Types.ObjectId(companyId),
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
     }).exec();
 }
-function createAppointment(doc // or: AppointmentCreationAttrs if you want strong typing
-) {
+// Create a new appointment
+async function createAppointment(doc) {
     return Appointment_1.default.create(doc);
 }
-function updateAppointmentById(appointmentId, updates) {
+// Update an existing appointment by ID
+async function updateAppointmentById(appointmentId, updates) {
     return Appointment_1.default.findByIdAndUpdate(appointmentId, updates, {
         new: true,
     }).exec();
 }
-function deleteAppointmentById(appointmentId) {
+// Delete an appointment by ID
+async function deleteAppointmentById(appointmentId) {
     return Appointment_1.default.findByIdAndDelete(appointmentId).exec();
-}
-function findOverlap(companyId, employeeId, start, end) {
-    return Appointment_1.default.findOne({
-        companyId: new mongoose_1.Types.ObjectId(companyId),
-        employeeId: new mongoose_1.Types.ObjectId(employeeId),
-        $or: [
-            { start: { $lt: end, $gte: start } },
-            { end: { $gt: start, $lte: end } },
-            { start: { $lte: start }, end: { $gte: end } },
-        ],
-    }).exec();
 }

@@ -25,9 +25,6 @@ export interface Company {
   _id: string;
   name: string;
   ownerUserId: string;
-  ownerName: string;
-  ownerEmail: string;
-  ownerImageUrl?: string;
   companyType: string;
   address?: {
     province: string;
@@ -95,11 +92,10 @@ export interface WorkingHour {
 
 // ─── EMPLOYEE ───────────────────────────────────────────────────────────────
 export interface EmployeeInfo {
-  _id?: string;
-  email: string;
+  userId: string; // Firebase UID, used everywhere
   name?: string;
-  role?: string;
   pictureUrl?: string;
+  role?: string | string[];
   services?: string[];
   workingHours?: WorkingHour[];
   companyId?: string;
@@ -109,7 +105,7 @@ export interface EmployeeInfo {
 // ─── PATIENT ────────────────────────────────────────────────────────────────
 export interface Patient {
   status: string;
-  createdAt: any;
+  createdAt: string;
   _id: string;
   companyId: string;
   clinicId: string;
@@ -154,7 +150,7 @@ export interface Appointment {
   patientId?: string;
   groupId?: string;
   employeeId: string;
-  serviceId: string;
+  serviceId?: string;
   clinicId: string;
   start: string;
   end: string;
@@ -168,7 +164,6 @@ export type CalendarEvent = Appointment;
 export interface EnrichedAppointment extends Appointment {
   patientName?: string;
   employeeName?: string;
-  employeeEmail?: string;
   serviceName?: string;
   groupName?: string;
   color?: string;
@@ -234,9 +229,8 @@ export interface Role {
 }
 
 // ─── CARD TYPES FOR TODAY ─────────────────────────────────────────────────────
-// ─── CARD TYPES FOR TODAY ─────────────────────────────────────────────────────
 export interface CardEmployee {
-  email: string;
+  userId: string; // Firebase UID
   name: string;
   avatarUrl?: string;
   role?: string;
@@ -244,18 +238,48 @@ export interface CardEmployee {
 
 export interface CardAppointment {
   id: string;
-  patientName?: string; // for individual appointments
-  groupName?: string; // for group appointments
-  serviceName: string;
-  serviceDuration?: number; // in minutes
-  employee: CardEmployee;
-  employeeEmail: string;
+  employeeId: string;
+  employee: CardEmployee; // required
+  groupName?: string;
+  patientName?: string;
+  serviceName?: string;
+  serviceDuration?: number;
+  start: string;
+  end: string;
+  status: string;
   extendedProps?: {
     patientId?: string;
     serviceId?: string;
-    employeeEmail?: string;
+    employeeId?: string;
   };
-  start: string; // ISO-string
-  end: string; // ISO-string
-  status: string; // e.g. “scheduled”, “done”
+}
+// ─── USER ────────────────────────────────────────────────────────────────
+export interface UserMembership {
+  companyId: string;
+  companyName: string;
+  clinicId?: string;
+  clinicName?: string;
+  roles: string[]; // Role IDs or names
+}
+
+export interface UserPreferences {
+  theme?: "light" | "dark";
+  language?: string;
+  notificationsEnabled?: boolean;
+  [key: string]: unknown;
+}
+
+export interface User {
+  uid: string; // Firebase UID
+  email: string;
+  phoneNumber?: string;
+
+  photoUrl?: string;
+  // App profile fields:
+  name: string;
+  memberships: UserMembership[]; // All company/clinic memberships
+  preferences?: UserPreferences;
+  createdAt: string;
+  updatedAt: string;
+  // Add anything else you track per-user
 }

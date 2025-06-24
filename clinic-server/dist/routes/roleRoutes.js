@@ -33,10 +33,11 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-// src/routes/roleRoutes.ts
 const express_1 = require("express");
 const roleCtrl = __importStar(require("../controllers/roleController"));
+const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
 const router = (0, express_1.Router)({ mergeParams: true });
+router.use(verifyFirebaseToken_1.verifyFirebaseToken);
 router.get("/", roleCtrl.listRoles);
 router.post("/", roleCtrl.addRole);
 router.patch("/:roleId", roleCtrl.updateRole);

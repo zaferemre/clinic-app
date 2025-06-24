@@ -32,28 +32,47 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listServices = listServices;
 exports.createService = createService;
 exports.updateService = updateService;
 exports.deleteService = deleteService;
-// services/serviceService.ts
-const repoSvc = __importStar(require("../dataAccess/serviceRepository"));
+const serviceRepo = __importStar(require("../dataAccess/serviceRepository"));
 const mongoose_1 = require("mongoose");
+const http_errors_1 = __importDefault(require("http-errors"));
+// List services for a company and clinic
 async function listServices(companyId, clinicId) {
-    return repoSvc.listServices(companyId, clinicId);
+    if (!mongoose_1.Types.ObjectId.isValid(companyId) || !mongoose_1.Types.ObjectId.isValid(clinicId))
+        throw (0, http_errors_1.default)(400, "Invalid companyId or clinicId");
+    return serviceRepo.listServices(companyId, clinicId);
 }
+// Create new service
 async function createService(companyId, clinicId, data) {
+    if (!mongoose_1.Types.ObjectId.isValid(companyId) || !mongoose_1.Types.ObjectId.isValid(clinicId))
+        throw (0, http_errors_1.default)(400, "Invalid companyId or clinicId");
     const doc = {
         companyId: new mongoose_1.Types.ObjectId(companyId),
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
         ...data,
     };
-    return repoSvc.createService(doc);
+    return serviceRepo.createService(doc);
 }
+// Update a service
 async function updateService(companyId, clinicId, serviceId, updates) {
-    return repoSvc.updateServiceById(serviceId, updates);
+    if (!mongoose_1.Types.ObjectId.isValid(companyId) ||
+        !mongoose_1.Types.ObjectId.isValid(clinicId) ||
+        !mongoose_1.Types.ObjectId.isValid(serviceId))
+        throw (0, http_errors_1.default)(400, "Invalid ObjectId(s)");
+    return serviceRepo.updateServiceById(serviceId, updates);
 }
+// Delete a service
 async function deleteService(companyId, clinicId, serviceId) {
-    return repoSvc.deleteServiceById(serviceId);
+    if (!mongoose_1.Types.ObjectId.isValid(companyId) ||
+        !mongoose_1.Types.ObjectId.isValid(clinicId) ||
+        !mongoose_1.Types.ObjectId.isValid(serviceId))
+        throw (0, http_errors_1.default)(400, "Invalid ObjectId(s)");
+    return serviceRepo.deleteServiceById(serviceId);
 }

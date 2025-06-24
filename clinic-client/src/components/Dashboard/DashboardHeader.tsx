@@ -6,7 +6,7 @@ const DashboardHeader: React.FC = () => {
   const { user, selectedClinicName } = useAuth();
   return (
     <GreetingHeader
-      userAvatarUrl={user?.imageUrl ?? ""}
+      userAvatarUrl={user?.photoUrl ?? ""}
       clinicName={selectedClinicName ?? ""}
       pageTitle="Panel"
       showBackButton={true}

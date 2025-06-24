@@ -4,7 +4,7 @@ export interface RoleDocument extends Document {
   companyId: Types.ObjectId;
   clinicId: Types.ObjectId;
   name: string;
-  createdBy?: Types.ObjectId;
+  createdBy?: string; // Firebase UID
   isDefault: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -12,25 +12,15 @@ export interface RoleDocument extends Document {
 
 const RoleSchema = new Schema<RoleDocument>(
   {
-    companyId: {
-      type: Schema.Types.ObjectId,
-      ref: "Company",
-      required: true,
-    },
-    clinicId: {
-      type: Schema.Types.ObjectId,
-      ref: "Clinic",
-      required: true,
-    },
+    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
+    clinicId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
     name: { type: String, required: true },
-    // if you still want to track permissions you can keep this:
-    createdBy: { type: Schema.Types.ObjectId, ref: "Employee" },
+    createdBy: { type: String }, // Firebase UID
     isDefault: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
 
-// ensure a role name is unique per clinic
 RoleSchema.index({ companyId: 1, clinicId: 1, name: 1 }, { unique: true });
 
 export default model<RoleDocument>("Role", RoleSchema);

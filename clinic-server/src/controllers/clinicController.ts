@@ -1,105 +1,65 @@
-import { Request, Response, NextFunction } from "express";
+import { RequestHandler } from "express";
 import * as clinicService from "../services/clinicService";
-import Clinic from "../models/Clinic";
-import Company from "../models/Company";
-import mongoose from "mongoose";
 
-// List all clinics for a company
-export const listClinics = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+// List all clinics in a company
+export const listClinics: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId } = req.params;
-    const clinics = await clinicService.listClinics(companyId);
-    res.status(200).json(clinics);
+    const clinics = await clinicService.listClinics(req.params.companyId);
+    res.json(clinics);
   } catch (err) {
     next(err);
   }
 };
 
-// Create new clinic for a company
-export const createClinic = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+// Create new clinic in company
+export const createClinic: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId } = req.params;
-    const { name, address, phoneNumber, workingHours } = req.body;
-
-    const exists = await Clinic.findOne({
-      companyId: new mongoose.Types.ObjectId(companyId),
-      name,
-    });
-    if (exists) {
-      res
-        .status(400)
-        .json({ message: "A clinic with this name already exists." });
-      return;
-    }
-
-    const clinic = await clinicService.createClinic(companyId, {
-      name,
-      address,
-      phoneNumber,
-      workingHours,
-      services: [],
-    });
-
-    await Company.findByIdAndUpdate(companyId, {
-      $addToSet: { clinics: clinic._id },
-    });
-
+    // 🟢 Get current user's uid from auth middleware
+    const uid = (req.user as any)?.uid;
+    const clinic = await clinicService.createClinic(
+      req.params.companyId,
+      req.body,
+      uid // Pass user id to service
+    );
     res.status(201).json(clinic);
   } catch (err) {
     next(err);
   }
 };
 
-export const getClinicById = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+// Get clinic
+export const getClinic: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId } = req.params;
-    const clinic = await clinicService.getClinic(companyId, clinicId);
-    res.status(200).json(clinic);
+    const clinic = await clinicService.getClinicById(
+      req.params.companyId,
+      req.params.clinicId
+    );
+    res.json(clinic);
   } catch (err) {
     next(err);
   }
 };
 
-export const updateClinic = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+// Update clinic
+export const updateClinic: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId } = req.params;
     const updated = await clinicService.updateClinic(
-      companyId,
-      clinicId,
+      req.params.clinicId,
       req.body
     );
-    res.status(200).json(updated);
+    res.json(updated);
   } catch (err) {
     next(err);
   }
 };
 
-export const deleteClinic = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+// Delete clinic
+export const deleteClinic: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId, clinicId } = req.params;
-    await clinicService.deleteClinic(companyId, clinicId);
+    await clinicService.deleteClinic(req.params.clinicId);
     res.sendStatus(204);
   } catch (err) {
     next(err);
   }
 };
+export { getClinic as getClinicById } from "./clinicController";

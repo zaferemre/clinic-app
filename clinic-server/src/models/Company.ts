@@ -1,12 +1,8 @@
-// models/Company.ts
 import { Schema, model, Document } from "mongoose";
 
 export interface CompanyDocument extends Document {
   name: string;
-  ownerUserId: string;
-  ownerName: string;
-  ownerEmail: string;
-  ownerImageUrl?: string;
+  ownerUid: string; // Firebase UID
   subscription: {
     plan: "free" | "basic" | "pro" | "enterprise";
     status: "active" | "trialing" | "canceled";
@@ -16,7 +12,7 @@ export interface CompanyDocument extends Document {
     allowedFeatures: string[];
   };
   joinCode: string;
-  clinics?: Schema.Types.ObjectId[];
+  clinics: Schema.Types.ObjectId[];
   roles: Schema.Types.ObjectId[];
   settings: {
     allowPublicBooking: boolean;
@@ -24,12 +20,7 @@ export interface CompanyDocument extends Document {
     [key: string]: any;
   };
   websiteUrl?: string;
-  socialLinks?: {
-    instagram: string;
-    facebook: string;
-    whatsapp: string;
-    [key: string]: string;
-  };
+  socialLinks?: Record<string, string>;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -38,10 +29,7 @@ export interface CompanyDocument extends Document {
 const CompanySchema = new Schema<CompanyDocument>(
   {
     name: { type: String, required: true },
-    ownerUserId: { type: String, required: true, index: true },
-    ownerName: { type: String, required: true },
-    ownerEmail: { type: String, required: true, index: true },
-    ownerImageUrl: { type: String, default: "" },
+    ownerUid: { type: String, required: true, index: true }, // Firebase UID
     subscription: {
       plan: {
         type: String,
@@ -70,11 +58,7 @@ const CompanySchema = new Schema<CompanyDocument>(
       inactivityThresholdDays: { type: Number, default: 90 },
     },
     websiteUrl: { type: String },
-    socialLinks: {
-      instagram: { type: String },
-      facebook: { type: String },
-      whatsapp: { type: String },
-    },
+    socialLinks: { type: Map, of: String },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

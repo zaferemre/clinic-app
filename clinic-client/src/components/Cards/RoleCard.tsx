@@ -1,9 +1,8 @@
-// src/components/Cards/RoleCard.tsx
 import React from "react";
 import { Role } from "../../types/sharedTypes";
 import { PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "../../contexts/AuthContext";
-import { isElevatedRole } from "../../utils/role";
+import { getPrimaryRole, isElevatedRole } from "../../utils/userRole";
 
 interface RoleCardProps {
   role: Role;
@@ -12,8 +11,9 @@ interface RoleCardProps {
 }
 
 const RoleCard: React.FC<RoleCardProps> = ({ role, onEdit, onDelete }) => {
-  const { user } = useAuth();
-  const canModify = user ? isElevatedRole(user.role) : false;
+  const { user, selectedCompanyId, selectedClinicId } = useAuth();
+  const userRole = getPrimaryRole(user, selectedCompanyId, selectedClinicId);
+  const canModify = isElevatedRole(userRole);
 
   return (
     <div className="bg-accent-bg p-6 rounded-2xl shadow-md flex flex-col justify-between hover:shadow-lg transition">

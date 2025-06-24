@@ -1,55 +1,46 @@
-// src/dataAccess/groupRepository.ts
 import Group, { GroupDocument } from "../models/Group";
 import { Types } from "mongoose";
 
-export async function listGroups(
-  companyId: string,
-  clinicId: string
-): Promise<GroupDocument[]> {
+export async function listGroups(companyId: string, clinicId: string) {
   return Group.find({
     companyId: new Types.ObjectId(companyId),
     clinicId: new Types.ObjectId(clinicId),
   }).exec();
 }
-
-export async function createGroup(
-  doc: Partial<GroupDocument>
-): Promise<GroupDocument> {
+export async function createGroup(doc: Partial<GroupDocument>) {
   return Group.create(doc);
 }
-
 export async function findGroupById(
   companyId: string,
   clinicId: string,
   groupId: string
-): Promise<GroupDocument | null> {
+) {
   return Group.findOne({
-    _id: groupId,
+    _id: new Types.ObjectId(groupId),
     companyId: new Types.ObjectId(companyId),
     clinicId: new Types.ObjectId(clinicId),
   }).exec();
 }
-
 export async function updateGroupById(
   groupId: string,
   updates: Partial<GroupDocument>
-): Promise<GroupDocument | null> {
-  return Group.findByIdAndUpdate(groupId, updates, { new: true }).exec();
+) {
+  return Group.findByIdAndUpdate(new Types.ObjectId(groupId), updates, {
+    new: true,
+  }).exec();
 }
-
-export async function deleteGroupById(groupId: string): Promise<void> {
-  await Group.findByIdAndDelete(groupId).exec();
+export async function deleteGroupById(groupId: string) {
+  return Group.findByIdAndDelete(new Types.ObjectId(groupId)).exec();
 }
-
 export async function addPatientToGroup(
   companyId: string,
   clinicId: string,
   groupId: string,
   patientId: string
-): Promise<GroupDocument | null> {
+) {
   return Group.findOneAndUpdate(
     {
-      _id: groupId,
+      _id: new Types.ObjectId(groupId),
       companyId: new Types.ObjectId(companyId),
       clinicId: new Types.ObjectId(clinicId),
     },
@@ -57,16 +48,15 @@ export async function addPatientToGroup(
     { new: true }
   ).exec();
 }
-
 export async function removePatientFromGroup(
   companyId: string,
   clinicId: string,
   groupId: string,
   patientId: string
-): Promise<GroupDocument | null> {
+) {
   return Group.findOneAndUpdate(
     {
-      _id: groupId,
+      _id: new Types.ObjectId(groupId),
       companyId: new Types.ObjectId(companyId),
       clinicId: new Types.ObjectId(clinicId),
     },

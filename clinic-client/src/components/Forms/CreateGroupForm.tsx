@@ -1,18 +1,18 @@
 // src/components/Forms/CreateGroupForm.tsx
-import { useState, useEffect, FormEvent } from "react";
-import AppModal from "../Modals/AppModal";
+import { useState, useEffect, useRef } from "react";
+import AppModal, { ModalForm } from "../Modals/AppModal";
 import { createGroup } from "../../api/groupApi";
 import { getPatients } from "../../api/patientApi";
 import type { Patient, Group } from "../../types/sharedTypes";
 import PatientPreviewList from "../Lists/PatientPreviewList";
 
 export interface CreateGroupFormProps {
-  readonly show: boolean;
-  readonly onClose: () => void;
-  readonly idToken: string;
-  readonly companyId: string;
-  readonly clinicId: string;
-  readonly onCreated?: () => void;
+  show: boolean;
+  onClose: () => void;
+  idToken: string;
+  companyId: string;
+  clinicId: string;
+  onCreated?: () => void;
 }
 
 export default function CreateGroupForm({
@@ -32,7 +32,10 @@ export default function CreateGroupForm({
     patients: [] as string[],
   });
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  // stash new group for onSuccess
+  const createdRef = useRef<Group | null>(null);
 
   useEffect(() => {
     if (show) {
@@ -42,18 +45,21 @@ export default function CreateGroupForm({
     }
   }, [show, idToken, companyId, clinicId]);
 
-  const handleTogglePatient = (patientId: string) => {
+  const handleTogglePatient = (pid: string) => {
     setForm((f) => ({
       ...f,
-      patients: f.patients.includes(patientId)
-        ? f.patients.filter((id) => id !== patientId)
-        : [...f.patients, patientId],
+      patients: f.patients.includes(pid)
+        ? f.patients.filter((id) => id !== pid)
+        : [...f.patients, pid],
     }));
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    // Build payload matching the API's Omit<Group,...> signature
+  const handleSubmit = async (): Promise<boolean> => {
+    setError(null);
+    if (!form.name.trim()) {
+      setError("Grup adı zorunlu.");
+      return false;
+    }
     const payload: Omit<
       Group,
       | "_id"
@@ -69,122 +75,123 @@ export default function CreateGroupForm({
       size: form.size,
       status: form.status,
       patients: form.patients,
-      employees: [], // or provide appropriate employee IDs
-      maxSize: form.size, // or another value if needed
-      groupType: "default", // or another valid groupType
-      createdBy: "", // or set to the current user ID if available
+      employees: [],
+      maxSize: form.size,
+      groupType: "default",
+      createdBy: "",
     };
     try {
-      await createGroup(idToken, companyId, clinicId, payload);
-      setMessage("Grup oluşturuldu!");
-      setForm({
-        name: "",
-        note: "",
-        credit: 0,
-        size: 6,
-        status: "active",
-        patients: [],
-      });
-      onCreated?.();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setMessage(err.message);
-      } else {
-        setMessage("Hata oluştu");
-      }
+      const created = await createGroup(idToken, companyId, clinicId, payload);
+      createdRef.current = created;
+      return true;
+    } catch (err: Error | unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Oluşturma başarısız.";
+      setError(errorMessage);
+      return false;
     }
   };
 
   return (
-    <AppModal open={show} onClose={onClose} title="Yeni Grup Oluştur">
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label className="block text-sm font-semibold text-brand-main mb-1">
-            Grup İsmi
-          </label>
-          <input
-            value={form.name}
-            required
-            placeholder="Grup İsmi"
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            className="w-full border px-3 py-2 rounded-xl"
-          />
-        </div>
+    <AppModal
+      open={show}
+      onClose={onClose}
+      title="Yeni Grup Oluştur"
+      onSuccess={() => {
+        onCreated?.();
+      }}
+    >
+      <ModalForm onSubmit={handleSubmit}>
+        {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
 
-        <div className="flex gap-3">
-          <div className="flex-1">
+        <div className="space-y-5">
+          {/* Name */}
+          <div>
             <label className="block text-sm font-semibold text-brand-main mb-1">
-              Kapasite
+              Grup İsmi
             </label>
             <input
-              type="number"
-              min={1}
-              value={form.size}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, size: Number(e.target.value) }))
-              }
+              value={form.name}
+              required
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               className="w-full border px-3 py-2 rounded-xl"
             />
           </div>
-          <div className="flex-1">
+
+          {/* Capacity & Credit */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-sm font-semibold text-brand-main mb-1">
+                Kapasite
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={form.size}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, size: Number(e.target.value) }))
+                }
+                className="w-full border px-3 py-2 rounded-xl"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-semibold text-brand-main mb-1">
+                Kredi
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={form.credit}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, credit: Number(e.target.value) }))
+                }
+                className="w-full border px-3 py-2 rounded-xl"
+              />
+            </div>
+          </div>
+
+          {/* Note */}
+          <div>
             <label className="block text-sm font-semibold text-brand-main mb-1">
-              Kredi
+              Not
             </label>
-            <input
-              type="number"
-              min={0}
-              value={form.credit}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, credit: Number(e.target.value) }))
-              }
+            <textarea
+              value={form.note}
+              onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
               className="w-full border px-3 py-2 rounded-xl"
             />
           </div>
-        </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-brand-main mb-1">
-            Not
-          </label>
-          <textarea
-            value={form.note}
-            placeholder="Not"
-            onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
-            className="w-full border px-3 py-2 rounded-xl"
-          />
-        </div>
+          {/* Patients */}
+          <div>
+            <label className="block text-sm font-semibold text-brand-main mb-1">
+              Hastalar
+            </label>
+            <PatientPreviewList
+              patients={patients}
+              selectedIds={form.patients}
+              onToggleSelect={handleTogglePatient}
+            />
+          </div>
 
-        <div>
-          <label className="block text-sm mb-2 text-brand-main font-semibold">
-            Hastalar
-          </label>
-          <PatientPreviewList
-            patients={patients}
-            selectedIds={form.patients}
-            onToggleSelect={handleTogglePatient}
-          />
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-200 rounded-xl"
+            >
+              İptal
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-brand-main text-white rounded-xl"
+            >
+              Oluştur
+            </button>
+          </div>
         </div>
-
-        <div className="flex gap-2 justify-end pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 bg-brand-gray-200 rounded-xl"
-          >
-            İptal
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-brand-main text-white rounded-xl"
-          >
-            Oluştur
-          </button>
-        </div>
-
-        {message && (
-          <p className="mt-2 text-center text-sm text-brand-red">{message}</p>
-        )}
-      </form>
+      </ModalForm>
     </AppModal>
   );
 }

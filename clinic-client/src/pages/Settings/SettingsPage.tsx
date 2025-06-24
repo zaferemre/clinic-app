@@ -16,8 +16,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 import { PatientSettingsModal } from "../../components/Modals/PatientSettingsModal";
 import { PatientSettings } from "../../types/sharedTypes";
-import { isElevatedRole } from "../../utils/role";
 import GreetingHeader from "../../components/GreetingHeader/GreetingHeader";
+import { getPrimaryRole, isElevatedRole } from "../../utils/userRole";
 
 const DEFAULT_PATIENT_SETTINGS: PatientSettings = {
   showCredit: true,
@@ -28,16 +28,23 @@ const DEFAULT_PATIENT_SETTINGS: PatientSettings = {
 };
 
 const SettingsPage: React.FC = () => {
-  const { signOut, selectedClinicId, selectedClinicName, user } = useAuth();
+  const {
+    signOut,
+    selectedCompanyId,
+    selectedClinicId,
+    selectedClinicName,
+    user,
+  } = useAuth();
   const navigate = useNavigate();
   const base = `/clinics/${selectedClinicId}/settings`;
 
-  const role = user?.role ?? "staff";
+  // Compute current role for this company/clinic context
+  const userRole = getPrimaryRole(user, selectedCompanyId, selectedClinicId);
 
-  // Add Company Settings if owner
+  // Settings options based on role
   const settingsOptions = [
     { label: "Profil", icon: UserCircleIcon, path: `${base}/user` },
-    ...(user?.role === "owner"
+    ...(userRole === "owner"
       ? [
           {
             label: "Şirket Ayarları",
@@ -46,7 +53,7 @@ const SettingsPage: React.FC = () => {
           },
         ]
       : []),
-    ...(isElevatedRole(role)
+    ...(isElevatedRole(userRole)
       ? [
           {
             label: "Klinik Ayarları",
@@ -93,9 +100,9 @@ const SettingsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-brand-gray-100 flex flex-col pb-16">
-      <div className="px-4 pt-4  bg-transparent">
+      <div className="px-4 pt-4 bg-transparent">
         <GreetingHeader
-          userAvatarUrl={user?.imageUrl}
+          userAvatarUrl={user?.photoUrl ?? ""}
           clinicName={selectedClinicName ?? ""}
           pageTitle="Ayarlar"
           showBackButton={true}

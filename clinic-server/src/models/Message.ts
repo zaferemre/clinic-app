@@ -1,25 +1,18 @@
-import mongoose, { Document, Schema } from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
 
 export interface IMessage extends Document {
-  companyId: mongoose.Types.ObjectId;
-  patientId?: mongoose.Types.ObjectId;
+  companyId: Types.ObjectId;
+  patientId?: Types.ObjectId;
   text: string;
   scheduledFor: Date;
   sent: boolean;
   sentAt?: Date;
 }
 
-const messageSchema = new Schema<IMessage>(
+const MessageSchema = new Schema<IMessage>(
   {
-    companyId: {
-      type: Schema.Types.ObjectId,
-      required: true,
-      ref: "Company",
-    },
-    patientId: {
-      type: Schema.Types.ObjectId,
-      ref: "Patient",
-    },
+    companyId: { type: Schema.Types.ObjectId, required: true, ref: "Company" },
+    patientId: { type: Schema.Types.ObjectId, ref: "Patient" },
     text: { type: String, required: true },
     scheduledFor: { type: Date, required: true },
     sent: { type: Boolean, default: false },
@@ -28,7 +21,4 @@ const messageSchema = new Schema<IMessage>(
   { timestamps: true }
 );
 
-const Message =
-  mongoose.models.Message || mongoose.model<IMessage>("Message", messageSchema);
-
-export default Message;
+export default model<IMessage>("Message", MessageSchema);

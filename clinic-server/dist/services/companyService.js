@@ -32,132 +32,100 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCompany = createCompany;
-exports.getCompany = getCompany;
-exports.getCompanyByJoinCode = getCompanyByJoinCode;
+exports.getCompanyById = getCompanyById;
+exports.getCompaniesForUser = getCompaniesForUser;
 exports.updateCompany = updateCompany;
 exports.deleteCompany = deleteCompany;
-exports.joinCompany = joinCompany;
 exports.joinByCode = joinByCode;
 exports.leaveCompany = leaveCompany;
-exports.deleteUserAccount = deleteUserAccount;
-exports.listCompanies = listCompanies;
+exports.listEmployees = listEmployees;
+const companyRepo = __importStar(require("../dataAccess/companyRepository"));
+const userRepo = __importStar(require("../dataAccess/userRepository"));
 const uuid_1 = require("uuid");
-const http_errors_1 = __importDefault(require("http-errors"));
-const repo = __importStar(require("../dataAccess/companyRepository"));
-const clinicService = __importStar(require("./clinicService"));
-const employeeService = __importStar(require("./employeeService"));
-const Company_1 = __importDefault(require("../models/Company"));
-const firebase_admin_1 = __importDefault(require("firebase-admin"));
-async function createCompany(user, data) {
-    if (!data.name)
-        throw (0, http_errors_1.default)(400, "Company name is required");
-    const company = await repo.createCompany({
-        name: data.name,
-        ownerUserId: user.uid,
-        ownerName: user.name ?? "",
-        ownerEmail: user.email,
-        ownerImageUrl: user.picture ?? "",
-        subscription: {
-            plan: "free",
-            status: "trialing",
-            provider: "manual",
-            maxClinics: 1,
-            allowedFeatures: ["basicCalendar"],
-        },
+/**
+ * Create a new company and add the creating user as the owner in their memberships.
+ */
+async function createCompany(uid, data) {
+    // 1. Create the company document (ensure ownerUid, not ownerUserId)
+    const company = await companyRepo.createCompany({
+        ...data,
+        ownerUid: uid,
         joinCode: (0, uuid_1.v4)(),
-        settings: data.settings ?? {},
-        websiteUrl: data.websiteUrl ?? "",
-        socialLinks: data.socialLinks ?? {},
+    });
+    // 3. Add owner membership to user
+    await userRepo.addMembership(uid, {
+        companyId: company.id.toString(),
+        companyName: company.name,
+        roles: ["owner"],
     });
     return company;
 }
-async function getCompany(companyId) {
-    const company = await repo.findCompanyById(companyId);
+/**
+ * Find a company by its ID.
+ */
+async function getCompanyById(companyId) {
+    return companyRepo.findCompanyById(companyId);
+}
+/**
+ * Get all company memberships for a user.
+ */
+async function getCompaniesForUser(uid) {
+    const user = await userRepo.findByUid(uid);
+    return user?.memberships || [];
+}
+/**
+ * Update company details (owner only).
+ */
+async function updateCompany(companyId, updates, uid) {
+    const company = await companyRepo.findCompanyById(companyId);
     if (!company)
-        throw (0, http_errors_1.default)(404, "Company not found");
-    return company;
+        throw new Error("Company not found");
+    if (company.ownerUid !== uid)
+        throw new Error("Unauthorized");
+    return companyRepo.updateCompanyById(companyId, updates);
 }
-async function getCompanyByJoinCode(joinCode) {
-    return repo.findCompanyByJoinCode(joinCode);
-}
-async function updateCompany(companyId, updates, user) {
-    const existing = await repo.findCompanyById(companyId);
-    if (!existing)
-        throw (0, http_errors_1.default)(404, "Company not found");
-    if (existing.ownerUserId !== user.uid)
-        throw (0, http_errors_1.default)(403, "Only the owner can update this company");
-    const updated = await repo.updateCompanyById(companyId, updates);
-    if (!updated)
-        throw (0, http_errors_1.default)(500, "Failed to update company");
-    return updated;
-}
-async function deleteCompany(companyId, user) {
-    const existing = await repo.findCompanyById(companyId);
-    if (!existing)
-        throw (0, http_errors_1.default)(404, "Company not found");
-    if (existing.ownerUserId !== user.uid)
-        throw (0, http_errors_1.default)(403, "Only the owner can delete this company");
-    await repo.deleteCompanyById(companyId);
-}
-async function joinCompany(companyId, joinCode, user) {
-    const company = await repo.findCompanyByJoinCode(joinCode);
-    if (!company ||
-        company._id.toString() !== companyId)
-        throw (0, http_errors_1.default)(400, "Invalid join code");
-    const clinics = await clinicService.listClinics(companyId);
-    if (!clinics.length)
-        throw (0, http_errors_1.default)(500, "No clinic exists to assign new member");
-    await employeeService.addEmployee(companyId, clinics[0]._id.toString(), {
-        email: user.email,
-        name: user.name ?? "",
-        role: "other",
-        pictureUrl: user.picture ?? "",
-    }, user.uid);
-    return company;
-}
-async function joinByCode(joinCode, user) {
-    const company = await repo.findCompanyByJoinCode(joinCode);
+/**
+ * Delete a company (owner only).
+ */
+async function deleteCompany(companyId, uid) {
+    const company = await companyRepo.findCompanyById(companyId);
     if (!company)
-        throw (0, http_errors_1.default)(400, "Invalid join code");
-    const companyId = company._id.toString();
-    const clinics = await clinicService.listClinics(companyId);
-    if (!clinics.length)
-        throw (0, http_errors_1.default)(500, "No clinic exists for company");
-    await employeeService.addEmployee(companyId, clinics[0]._id.toString(), {
-        email: user.email,
-        name: user.name ?? "",
-        role: "other",
-        pictureUrl: user.picture ?? "",
-    }, user.uid);
-    return {
-        companyId,
+        throw new Error("Company not found");
+    if (company.ownerUid !== uid)
+        throw new Error("Unauthorized");
+    return companyRepo.deleteCompanyById(companyId);
+}
+/**
+ * Join a company by invite code.
+ */
+async function joinByCode(uid, code) {
+    const company = await companyRepo.findCompanyByJoinCode(code);
+    if (!company)
+        return { success: false, message: "Invalid code" };
+    // Add membership (avoid duplicate)
+    await userRepo.addMembership(uid, {
+        companyId: company.id.toString(),
         companyName: company.name,
-        clinics: clinics.map((c) => ({
-            _id: c._id.toString(),
-            name: c.name,
-        })),
-        ownerName: company.ownerName,
+        roles: ["member"],
+    });
+    return {
+        success: true,
+        companyId: company.id.toString(),
+        companyName: company.name,
     };
 }
-async function leaveCompany(companyId, userEmail) {
-    const company = await repo.findCompanyById(companyId);
-    if (!company)
-        throw (0, http_errors_1.default)(404, "Company not found");
-    if (company.ownerEmail === userEmail)
-        throw (0, http_errors_1.default)(400, "Owner cannot leave their own company");
-    await employeeService.removeEmployeeByEmail(companyId, userEmail);
+/**
+ * Leave a company (removes user's membership for this company).
+ */
+async function leaveCompany(uid, companyId) {
+    await userRepo.removeMembership(uid, companyId, "");
+    return { success: true, message: "Left company" };
 }
-async function deleteUserAccount(user) {
-    // Remove user from all employees in all companies
-    await Company_1.default.updateMany({}, { $pull: { "employees.email": user.email } }).exec();
-    await employeeService.deleteEmployeeByEmail(user.email);
-    await firebase_admin_1.default.auth().deleteUser(user.uid);
-}
-async function listCompanies(user) {
-    return repo.listCompaniesForUser({ uid: user.uid, email: user.email });
+/**
+ * List all employees for a company.
+ */
+async function listEmployees(companyId) {
+    return companyRepo.listEmployees(companyId);
 }

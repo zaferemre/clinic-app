@@ -1,62 +1,35 @@
 import { Schema, model, Document, Types } from "mongoose";
 
-// Update the TS type to allow ObjectId OR string for createdBy
 export interface AppointmentDocument extends Document {
   companyId: Types.ObjectId;
   clinicId: Types.ObjectId;
   patientId?: Types.ObjectId;
   groupId?: Types.ObjectId;
-  employeeId: Types.ObjectId;
+  employeeId: string; // <- always Mongo ObjectId, not Firebase UID!
   serviceId?: Types.ObjectId;
   start: Date;
   end: Date;
   status: "scheduled" | "done" | "cancelled" | "no-show";
   appointmentType: "individual" | "group";
-  createdBy: string; // <--- FIXED HERE
+  createdBy: string; // Firebase UID
   createdAt: Date;
   updatedAt: Date;
 }
 
 const AppointmentSchema = new Schema<AppointmentDocument>(
   {
-    companyId: {
-      type: Schema.Types.ObjectId,
-      ref: "Company",
-      required: true,
-    },
-    clinicId: {
-      type: Schema.Types.ObjectId,
-      ref: "Clinic",
-      required: true,
-    },
-    patientId: {
-      type: Schema.Types.ObjectId,
-      ref: "Patient",
-      required: false,
-    },
-    groupId: {
-      type: Schema.Types.ObjectId,
-      ref: "Group",
-      required: false,
-    },
+    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
+    clinicId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
+    patientId: { type: Schema.Types.ObjectId, ref: "Patient" },
+    groupId: { type: Schema.Types.ObjectId, ref: "Group" },
     employeeId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: "Employee",
       required: true,
     },
-    serviceId: {
-      type: Schema.Types.ObjectId,
-      ref: "Service",
-      required: false,
-    },
-    start: {
-      type: Date,
-      required: true,
-    },
-    end: {
-      type: Date,
-      required: true,
-    },
+    serviceId: { type: Schema.Types.ObjectId, ref: "Service" },
+    start: { type: Date, required: true },
+    end: { type: Date, required: true },
     status: {
       type: String,
       enum: ["scheduled", "done", "cancelled", "no-show"],
@@ -67,18 +40,11 @@ const AppointmentSchema = new Schema<AppointmentDocument>(
       enum: ["individual", "group"],
       required: true,
     },
-    // Allow string OR ObjectId for createdBy
-    createdBy: {
-      type: String, // <--- FIXED HERE
-      required: true,
-    },
+    createdBy: { type: String, required: true }, // Firebase UID
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Compound index for fast lookups (unchanged)
 AppointmentSchema.index({
   companyId: 1,
   clinicId: 1,

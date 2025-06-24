@@ -43,106 +43,72 @@ exports.updateGroup = updateGroup;
 exports.deleteGroup = deleteGroup;
 exports.addPatientToGroup = addPatientToGroup;
 exports.removePatientFromGroup = removePatientFromGroup;
-// src/services/groupService.ts
-const repoGroup = __importStar(require("../dataAccess/groupRepository"));
-const repoPatient = __importStar(require("../dataAccess/patientRepository"));
+const groupRepo = __importStar(require("../dataAccess/groupRepository"));
+const patientRepo = __importStar(require("../dataAccess/patientRepository"));
 const mongoose_1 = require("mongoose");
 const http_errors_1 = __importDefault(require("http-errors"));
-// Helper: validate that a string is a Mongo ObjectId
 function validId(id) {
     return mongoose_1.Types.ObjectId.isValid(id);
 }
 async function listGroups(companyId, clinicId) {
     if (!validId(companyId) || !validId(clinicId))
         throw (0, http_errors_1.default)(400, "Invalid company or clinic id");
-    return repoGroup.listGroups(companyId, clinicId);
+    return groupRepo.listGroups(companyId, clinicId);
 }
-async function createGroup(companyId, clinicId, data, userId) {
-    if (!validId(companyId))
-        throw (0, http_errors_1.default)(400, "Invalid companyId");
-    if (!validId(clinicId))
-        throw (0, http_errors_1.default)(400, "Invalid clinicId");
-    // Safely parse incoming patient IDs into ObjectIds
-    const patients = Array.isArray(data.patients)
-        ? data.patients
-            .filter((id) => validId(id))
-            .map((id) => new mongoose_1.Types.ObjectId(id))
-        : [];
+async function createGroup(companyId, clinicId, data, uid) {
+    if (!validId(companyId) || !validId(clinicId))
+        throw (0, http_errors_1.default)(400, "Invalid company or clinic id");
     const doc = {
         companyId: new mongoose_1.Types.ObjectId(companyId),
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
         name: data.name,
         note: data.note,
         credit: typeof data.credit === "number" ? data.credit : 0,
-        maxSize: typeof data.size === "number"
-            ? data.size
-            : typeof data.maxSize === "number"
-                ? data.maxSize
-                : 0,
-        status: data.status === "active" ||
-            data.status === "inactive" ||
-            data.status === "archived"
-            ? data.status
-            : "active",
-        patients,
-        employees: Array.isArray(data.employees)
-            ? data.employees
-                .filter((id) => validId(id))
-                .map((id) => new mongoose_1.Types.ObjectId(id))
-            : [],
+        maxSize: data.maxSize ?? 0,
+        status: data.status ?? "active",
+        patients: (Array.isArray(data.patients) ? data.patients : []).map((id) => new mongoose_1.Types.ObjectId(id)),
+        employees: (Array.isArray(data.employees) ? data.employees : []).map((id) => new mongoose_1.Types.ObjectId(id)),
         groupType: data.groupType,
         appointments: [],
-        createdBy: userId,
+        createdBy: uid,
         customFields: data.customFields ?? {},
     };
-    const group = await repoGroup.createGroup(doc);
-    // Keep patient → group backreference in sync
-    if (patients.length) {
-        await repoPatient.addGroupToPatients(patients.map((o) => o.toString()), group._id.toString());
+    const group = await groupRepo.createGroup(doc);
+    if (doc.patients.length) {
+        await patientRepo.addGroupToPatients(doc.patients.map((o) => o.toString()), group.id.toString());
     }
     return group;
 }
 async function getGroup(companyId, clinicId, groupId) {
     if (!validId(companyId) || !validId(clinicId) || !validId(groupId))
-        throw (0, http_errors_1.default)(400, "Invalid ids");
-    const g = await repoGroup.findGroupById(companyId, clinicId, groupId);
-    if (!g)
+        throw (0, http_errors_1.default)(400, "Invalid id(s)");
+    const group = await groupRepo.findGroupById(companyId, clinicId, groupId);
+    if (!group)
         throw (0, http_errors_1.default)(404, "Group not found");
-    return g;
+    return group;
 }
 async function updateGroup(companyId, clinicId, groupId, updates) {
-    if (!validId(companyId) || !validId(clinicId) || !validId(groupId))
-        throw (0, http_errors_1.default)(400, "Invalid ids");
-    const updated = await repoGroup.updateGroupById(groupId, updates);
-    if (!updated)
-        throw (0, http_errors_1.default)(404, "Group not found");
-    return updated;
+    if (!validId(groupId))
+        throw (0, http_errors_1.default)(400, "Invalid groupId");
+    return groupRepo.updateGroupById(groupId, updates);
 }
 async function deleteGroup(companyId, clinicId, groupId) {
     if (!validId(groupId))
         throw (0, http_errors_1.default)(400, "Invalid groupId");
-    // remove group from patients
-    await repoPatient.removeGroupFromAllPatients(groupId);
-    // delete group doc
-    await repoGroup.deleteGroupById(groupId);
+    await patientRepo.removeGroupFromAllPatients(groupId);
+    await groupRepo.deleteGroupById(groupId);
 }
 async function addPatientToGroup(companyId, clinicId, groupId, patientId) {
     if (!validId(groupId) || !validId(patientId))
         throw (0, http_errors_1.default)(400, "Invalid groupId or patientId");
-    const updatedGroup = await repoGroup.addPatientToGroup(companyId, clinicId, groupId, patientId);
-    if (!updatedGroup)
-        throw (0, http_errors_1.default)(404, "Group not found");
-    // also update patient→groups backref
-    await repoPatient.addGroupToPatients([patientId], groupId);
+    const updatedGroup = await groupRepo.addPatientToGroup(companyId, clinicId, groupId, patientId);
+    await patientRepo.addGroupToPatients([patientId], groupId);
     return updatedGroup;
 }
 async function removePatientFromGroup(companyId, clinicId, groupId, patientId) {
     if (!validId(groupId) || !validId(patientId))
         throw (0, http_errors_1.default)(400, "Invalid groupId or patientId");
-    const updatedGroup = await repoGroup.removePatientFromGroup(companyId, clinicId, groupId, patientId);
-    if (!updatedGroup)
-        throw (0, http_errors_1.default)(404, "Group not found");
-    // also remove from patient→groups backref
-    await repoPatient.removeGroupFromPatients([patientId], groupId);
+    const updatedGroup = await groupRepo.removePatientFromGroup(companyId, clinicId, groupId, patientId);
+    await patientRepo.removeGroupFromPatients([patientId], groupId);
     return updatedGroup;
 }
