@@ -13,7 +13,7 @@ import {
 } from "react-icons/fa";
 import doodles from "../../data/doodles.json";
 
-const MAIN_BG = "radial-gradient(circle at top, #e2725b 0%, #f8b7a1 100%)";
+const MAIN_BG = "radial-gradient(circle at top, rgba(200,80,60,0.8) 0%,  white 100%)";
 const COLOR_OPTIONS = [
   "FFFFFF",
   "F28AB2",
