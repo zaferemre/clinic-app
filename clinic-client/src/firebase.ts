@@ -8,13 +8,13 @@ import {
 } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDGgVId-ip7kazAYXePFpKjX1hrcsI0bMU",
-  authDomain: "clinic-app-d4498.firebaseapp.com",
-  projectId: "clinic-app-d4498",
-  storageBucket: "clinic-app-d4498.firebasestorage.app",
-  messagingSenderId: "1019803178300",
-  appId: "1:1019803178300:web:d5bc38e9cefe4474b83a39",
-  measurementId: "G-GZBGFPQ2RD",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
