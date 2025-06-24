@@ -18,7 +18,7 @@ export default function ProfileCreateClinicButton({ onCreated }: Props) {
         onClick={() => setOpen(true)}
         className="px-4 py-2 bg-brand-main text-white rounded-xl shadow hover:bg-brand-green transition text-sm flex items-center gap-2"
       >
-        <PlusIcon className="h-5 w-5" /> Yeni Klinik
+        <PlusIcon className="h-5 w-5" /> Şirket İçi Yeni Klinik
       </button>
       <AppModal
         open={open}

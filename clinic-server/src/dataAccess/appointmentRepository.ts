@@ -50,3 +50,7 @@ export async function deleteAppointmentById(
 ): Promise<AppointmentDocument | null> {
   return Appointment.findByIdAndDelete(appointmentId).exec();
 }
+
+export async function listAppointmentsByUser(userId: string) {
+  return Appointment.find({ employeeId: userId }).exec();
+}

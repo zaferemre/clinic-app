@@ -62,7 +62,7 @@ const AppointmentModal: React.FC<Props> = ({
 
   const handleSubmit = async (): Promise<boolean> => {
     setError(null);
-    if (!startStr || !endStr) {
+    if (!startStr || !endStr || !event.id) {
       setError("Başlangıç ve Bitiş gerekli.");
       return false;
     }
@@ -82,6 +82,7 @@ const AppointmentModal: React.FC<Props> = ({
   };
 
   const handleCancel = async () => {
+    if (!event.id) return;
     await onCancel(event.id);
     onClose();
   };

@@ -38,6 +38,7 @@ exports.getAppointmentById = getAppointmentById;
 exports.createAppointment = createAppointment;
 exports.updateAppointment = updateAppointment;
 exports.deleteAppointment = deleteAppointment;
+exports.getAppointmentsByUser = getAppointmentsByUser;
 const repo = __importStar(require("../dataAccess/appointmentRepository"));
 const mongoose_1 = require("mongoose");
 // List appointments with optional filters
@@ -67,4 +68,10 @@ async function updateAppointment(companyId, clinicId, appointmentId, updates) {
 // Delete appointment
 async function deleteAppointment(companyId, clinicId, appointmentId) {
     return repo.deleteAppointmentById(appointmentId);
+}
+/**
+ * Fetch all appointments tagged with createdBy = userId
+ */
+async function getAppointmentsByUser(userId) {
+    return repo.listAppointmentsByUser(userId);
 }

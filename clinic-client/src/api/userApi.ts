@@ -1,6 +1,12 @@
 // src/api/userApi.ts
-import { User, UserMembership } from "../types/sharedTypes";
 import { request } from "./apiClient";
+import {
+  User,
+  UserMembership,
+  Company,
+  Clinic,
+  Appointment,
+} from "../types/sharedTypes";
 
 /**
  * Fetch the current authenticated user's full profile.
@@ -11,10 +17,10 @@ export function getCurrentUser(token: string): Promise<User> {
 }
 
 /**
- * Create a new user record in the backend.
- * POST /user
+ * Register a new user record in the backend.
+ * POST /user/register
  */
-export function createUser(
+export function registerUser(
   token: string,
   data: {
     name: string;
@@ -52,40 +58,61 @@ export function updateUserProfile(
  * DELETE /user/me
  */
 export function deleteUser(token: string): Promise<void> {
-  return request("/user/me", {
+  return request<void>("/user/me", {
     method: "DELETE",
     token,
   });
 }
 
 /**
- * List all company memberships for this user.
+ * List all company & clinic memberships for this user.
+ * GET /user/me/companies
+ */
+export function getUserCompanies(token: string): Promise<Company[]> {
+  return request<Company[]>("/user/me/companies", { token });
+}
+
+/**
+ * List all clinics this user belongs to.
+ * GET /user/me/clinics
+ */
+export function getUserClinics(token: string): Promise<Clinic[]> {
+  return request<Clinic[]>("/user/me/clinics", { token });
+}
+
+/**
+ * List all raw membership objects for this user.
  * GET /user/me/memberships
  */
 export function getUserMemberships(token: string): Promise<UserMembership[]> {
   return request<UserMembership[]>("/user/me/memberships", { token });
 }
 
-export async function addMembership(
+/**
+ * Add a new membership for the current user.
+ * POST /user/membership
+ */
+export function addMembership(
   token: string,
   data: {
     companyId: string;
     companyName: string;
-    clinicId: string;
-    clinicName: string;
+    clinicId?: string;
+    clinicName?: string;
     roles?: string[];
   }
-) {
-  // Assumes your backend expects this
-  return fetch("/user/membership", {
+): Promise<UserMembership> {
+  return request<UserMembership>("/user/membership", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
-  }).then((res) => {
-    if (!res.ok) throw new Error("Membership eklenemedi");
-    return res.json();
+    token,
+    body: data,
   });
+}
+
+/**
+ * List all appointments for the current user.
+ * GET /user/appointments
+ */
+export function listUserAppointments(token: string): Promise<Appointment[]> {
+  return request<Appointment[]>("/user/appointments", { token });
 }

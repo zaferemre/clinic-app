@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
 const CompanySchema = new mongoose_1.Schema({
     name: { type: String, required: true },
-    ownerUid: { type: String, required: true, index: true }, // Firebase UID
+    ownerUid: { type: String, required: true, index: true },
     subscription: {
         plan: {
             type: String,

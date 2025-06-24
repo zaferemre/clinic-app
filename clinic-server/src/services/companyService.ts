@@ -2,7 +2,7 @@ import * as companyRepo from "../dataAccess/companyRepository";
 import * as userRepo from "../dataAccess/userRepository";
 import { v4 as uuidv4 } from "uuid";
 import { CompanyDocument } from "../models/Company";
-import type { Membership } from "../models/User"; // adjust if needed
+import type { Membership } from "../models/User";
 
 /**
  * Create a new company and add the creating user as the owner in their memberships.
@@ -11,16 +11,16 @@ export async function createCompany(
   uid: string,
   data: Partial<CompanyDocument>
 ) {
-  // 1. Create the company document (ensure ownerUid, not ownerUserId)
+  // 1. Create the company document
   const company = await companyRepo.createCompany({
     ...data,
     ownerUid: uid,
     joinCode: uuidv4(),
   });
 
-  // 3. Add owner membership to user
+  // 2. Add owner membership to user
   await userRepo.addMembership(uid, {
-    companyId: company.id.toString(),
+    companyId: company._id.toString(),
     companyName: company.name,
     roles: ["owner"],
   } as Membership);
@@ -58,12 +58,16 @@ export async function updateCompany(
 }
 
 /**
- * Delete a company (owner only).
+ * Delete a company (owner only), **and delete all child clinics**.
  */
 export async function deleteCompany(companyId: string, uid: string) {
   const company = await companyRepo.findCompanyById(companyId);
   if (!company) throw new Error("Company not found");
   if ((company as any).ownerUid !== uid) throw new Error("Unauthorized");
+
+  // Also delete all clinics under this company
+  await companyRepo.deleteAllClinicsByCompanyId(companyId);
+
   return companyRepo.deleteCompanyById(companyId);
 }
 
@@ -76,14 +80,14 @@ export async function joinByCode(uid: string, code: string) {
 
   // Add membership (avoid duplicate)
   await userRepo.addMembership(uid, {
-    companyId: company.id.toString(),
+    companyId: company._id.toString(),
     companyName: company.name,
     roles: ["member"],
   } as Membership);
 
   return {
     success: true,
-    companyId: company.id.toString(),
+    companyId: company._id.toString(),
     companyName: company.name,
   };
 }

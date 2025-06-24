@@ -53,6 +53,7 @@ async function listClinics(companyId) {
  * Create a new clinic in the company, add the user as:
  * - Clinic admin (employee)
  * - UserMembership entry for the clinic
+ * - Push the clinicId to the parent company's clinics array
  */
 async function createClinic(companyId, data, uid) {
     // 1. Create the clinic
@@ -67,18 +68,20 @@ async function createClinic(companyId, data, uid) {
     await employeeRepo.createEmployee({
         userUid: uid,
         companyId: new mongoose_1.Types.ObjectId(companyId),
-        clinicId: clinic.id.toString(), // safer: always as ObjectId
+        clinicId: clinic._id,
         roles: ["owner"],
         isActive: true,
     });
     // 4. Add clinic membership to the user
     await userRepo.addMembership(uid, {
-        companyId,
-        companyName,
-        clinicId: clinic.id.toString(),
+        companyId: companyId,
+        companyName: companyName,
+        clinicId: clinic._id.toString(),
         clinicName: clinic.name,
-        roles: ["owner"], // or "owner" if that's your convention
+        roles: ["owner"],
     });
+    // 5. Add clinicId to company.clinics array
+    await companyRepo.addClinicToCompany(companyId, clinic._id);
     return clinic;
 }
 async function getClinicById(companyId, clinicId) {

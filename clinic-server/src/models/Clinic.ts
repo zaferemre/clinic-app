@@ -1,8 +1,9 @@
-import { Schema, model, Document } from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
 import { workingHourSchema, WorkingHour } from "./WorkingHour";
 
 export interface ClinicDocument extends Document {
-  companyId: Schema.Types.ObjectId;
+  _id: Types.ObjectId;
+  companyId: Types.ObjectId;
   name: string;
   address: {
     province: string;
@@ -19,8 +20,8 @@ export interface ClinicDocument extends Document {
     coordinates: [number, number];
   };
   workingHours: WorkingHour[];
-  services: Schema.Types.ObjectId[];
-  employees: Schema.Types.ObjectId[];
+  services: Types.ObjectId[];
+  employees: Types.ObjectId[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

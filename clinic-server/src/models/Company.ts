@@ -1,8 +1,9 @@
 import { Schema, model, Document } from "mongoose";
 
 export interface CompanyDocument extends Document {
+  _id: Schema.Types.ObjectId;
   name: string;
-  ownerUid: string; // Firebase UID
+  ownerUid: string;
   subscription: {
     plan: "free" | "basic" | "pro" | "enterprise";
     status: "active" | "trialing" | "canceled";
@@ -29,7 +30,7 @@ export interface CompanyDocument extends Document {
 const CompanySchema = new Schema<CompanyDocument>(
   {
     name: { type: String, required: true },
-    ownerUid: { type: String, required: true, index: true }, // Firebase UID
+    ownerUid: { type: String, required: true, index: true },
     subscription: {
       plan: {
         type: String,

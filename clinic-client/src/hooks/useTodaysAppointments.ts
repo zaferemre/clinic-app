@@ -19,7 +19,7 @@ export function useTodaysAppointments(
     const todayStr = `${y}-${m}-${d}`;
 
     const cardsList: CardAppointment[] = enrichedAppointments
-      .filter((evt) => evt.start.startsWith(todayStr))
+      .filter((evt) => evt.start.startsWith(todayStr) && evt.id !== undefined)
       .map((evt) => {
         const emp = employees.find((e) => e.userId === evt.employeeId) || {
           userId: evt.employeeId,
@@ -27,7 +27,7 @@ export function useTodaysAppointments(
         };
 
         return {
-          id: evt.id,
+          id: evt.id as string,
           employeeId: evt.employeeId,
           employee: emp,
           groupName: evt.groupName ?? "",

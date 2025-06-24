@@ -8,6 +8,7 @@ exports.findAppointmentById = findAppointmentById;
 exports.createAppointment = createAppointment;
 exports.updateAppointmentById = updateAppointmentById;
 exports.deleteAppointmentById = deleteAppointmentById;
+exports.listAppointmentsByUser = listAppointmentsByUser;
 const Appointment_1 = __importDefault(require("../models/Appointment"));
 const mongoose_1 = require("mongoose");
 // List appointments, with optional filters
@@ -39,4 +40,7 @@ async function updateAppointmentById(appointmentId, updates) {
 // Delete an appointment by ID
 async function deleteAppointmentById(appointmentId) {
     return Appointment_1.default.findByIdAndDelete(appointmentId).exec();
+}
+async function listAppointmentsByUser(userId) {
+    return Appointment_1.default.find({ employeeId: userId }).exec();
 }

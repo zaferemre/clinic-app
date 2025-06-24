@@ -1,3 +1,4 @@
+// src/hooks/useEnrichedAppointments.ts
 import { useState, useEffect, useCallback } from "react";
 import { getAppointments } from "../api/appointmentApi";
 import { listEmployees } from "../api/employeeApi";
@@ -53,7 +54,9 @@ export function useEnrichedAppointments(
       const groupMap = new Map<string, Group>(grps.map((g) => [g._id, g]));
 
       const enriched: EnrichedAppointment[] = rawAppointments.map(
-        (a: Appointment) => ({
+        ({ _id, ...a }: Appointment & { _id: string }) => ({
+          _id, // keep the original Mongo ID
+          id: _id, // alias it for the calendar
           ...a,
           patientName: a.patientId
             ? patientMap.get(a.patientId)?.name

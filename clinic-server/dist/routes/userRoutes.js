@@ -36,11 +36,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const userCtrl = __importStar(require("../controllers/userController"));
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
+const apptCtrl = __importStar(require("../controllers/appointmentController"));
 const router = (0, express_1.Router)();
 // All /user/* routes require a valid Firebase token
 router.use(verifyFirebaseToken_1.verifyFirebaseToken);
-// 1) New: user must explicitly register
-router.post("/register", userCtrl.registerUser);
 // 2) Existing profile endpoints
 router.get("/me", userCtrl.getMe);
 router.patch("/me", userCtrl.updateMe);
@@ -49,4 +48,7 @@ router.get("/me/companies", userCtrl.listUserCompanies);
 router.get("/me/clinics", userCtrl.listUserClinics);
 router.delete("/me", userCtrl.deleteUserAccount);
 router.post("/membership", userCtrl.addMembership);
+// ─── NEW: list my appointments ─────────────────────
+router.get("/appointments", apptCtrl.listAppointmentsByUser);
+// now GET /user/appointments returns everything with createdBy = my UID
 exports.default = router;

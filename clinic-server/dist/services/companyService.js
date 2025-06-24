@@ -48,15 +48,15 @@ const uuid_1 = require("uuid");
  * Create a new company and add the creating user as the owner in their memberships.
  */
 async function createCompany(uid, data) {
-    // 1. Create the company document (ensure ownerUid, not ownerUserId)
+    // 1. Create the company document
     const company = await companyRepo.createCompany({
         ...data,
         ownerUid: uid,
         joinCode: (0, uuid_1.v4)(),
     });
-    // 3. Add owner membership to user
+    // 2. Add owner membership to user
     await userRepo.addMembership(uid, {
-        companyId: company.id.toString(),
+        companyId: company._id.toString(),
         companyName: company.name,
         roles: ["owner"],
     });
@@ -87,7 +87,7 @@ async function updateCompany(companyId, updates, uid) {
     return companyRepo.updateCompanyById(companyId, updates);
 }
 /**
- * Delete a company (owner only).
+ * Delete a company (owner only), **and delete all child clinics**.
  */
 async function deleteCompany(companyId, uid) {
     const company = await companyRepo.findCompanyById(companyId);
@@ -95,6 +95,8 @@ async function deleteCompany(companyId, uid) {
         throw new Error("Company not found");
     if (company.ownerUid !== uid)
         throw new Error("Unauthorized");
+    // Also delete all clinics under this company
+    await companyRepo.deleteAllClinicsByCompanyId(companyId);
     return companyRepo.deleteCompanyById(companyId);
 }
 /**
@@ -106,13 +108,13 @@ async function joinByCode(uid, code) {
         return { success: false, message: "Invalid code" };
     // Add membership (avoid duplicate)
     await userRepo.addMembership(uid, {
-        companyId: company.id.toString(),
+        companyId: company._id.toString(),
         companyName: company.name,
         roles: ["member"],
     });
     return {
         success: true,
-        companyId: company.id.toString(),
+        companyId: company._id.toString(),
         companyName: company.name,
     };
 }

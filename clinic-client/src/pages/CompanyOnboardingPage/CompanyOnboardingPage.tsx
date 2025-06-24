@@ -7,7 +7,7 @@ import { ArrowLeftStartOnRectangleIcon } from "@heroicons/react/24/outline";
 
 const CompanyOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { signOut, companies } = useAuth();
+  const { signOut, companies, refreshUserContext } = useAuth();
 
   // Optional: auto-redirect if user already has company
   React.useEffect(() => {
@@ -21,7 +21,9 @@ const CompanyOnboardingPage: React.FC = () => {
     navigate("/login", { replace: true });
   };
 
-  const handleCompanySuccess = () => {
+  // Use async to refresh context after create/join
+  const handleCompanySuccess = async () => {
+    await refreshUserContext();
     navigate("/clinics", { replace: true });
   };
 

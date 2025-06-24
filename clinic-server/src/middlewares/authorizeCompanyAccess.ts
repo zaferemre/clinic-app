@@ -29,7 +29,7 @@ export const authorizeCompanyAccess = async (
     // Employee access by userId
     const emp = await Employee.findOne({
       companyId: new mongoose.Types.ObjectId(companyId),
-      userId: user.uid,
+      userUid: user.uid,
     }).exec();
     if (emp) {
       (req as any).company = company;

@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteAppointment = exports.updateAppointment = exports.createAppointment = exports.getAppointment = exports.listAppointments = void 0;
+exports.listAppointmentsByUser = exports.deleteAppointment = exports.updateAppointment = exports.createAppointment = exports.getAppointment = exports.listAppointments = void 0;
 const appointmentService = __importStar(require("../services/appointmentService"));
 // List all appointments
 const listAppointments = async (req, res, next) => {
@@ -115,3 +115,18 @@ const deleteAppointment = async (req, res, next) => {
     }
 };
 exports.deleteAppointment = deleteAppointment;
+/**
+ * List all appointments across all companies/clinics for a given user.
+ * Route: GET /api/appointments/user/:userId
+ */
+const listAppointmentsByUser = async (req, res, next) => {
+    try {
+        const uid = req.user.uid;
+        const appointments = await appointmentService.getAppointmentsByUser(uid);
+        res.json(appointments);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.listAppointmentsByUser = listAppointmentsByUser;

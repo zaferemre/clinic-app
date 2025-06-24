@@ -55,3 +55,10 @@ export async function deleteAppointment(
 ) {
   return repo.deleteAppointmentById(appointmentId);
 }
+
+/**
+ * Fetch all appointments tagged with createdBy = userId
+ */
+export async function getAppointmentsByUser(userId: string) {
+  return repo.listAppointmentsByUser(userId);
+}

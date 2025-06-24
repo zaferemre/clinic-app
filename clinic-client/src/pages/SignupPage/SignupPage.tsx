@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { auth } from "../../firebase";
 import { useAuth } from "../../contexts/AuthContext";
-import { createUser } from "../../api/userApi";
+import { registerUser } from "../../api/userApi";
 import {
   FaChevronLeft,
   FaChevronRight,
@@ -13,7 +13,8 @@ import {
 } from "react-icons/fa";
 import doodles from "../../data/doodles.json";
 
-const MAIN_BG = "radial-gradient(circle at top, rgba(200,80,60,0.8) 0%,  white 100%)";
+const MAIN_BG =
+  "radial-gradient(circle at top, rgba(200,80,60,0.8) 0%,  white 100%)";
 const COLOR_OPTIONS = [
   "FFFFFF",
   "F28AB2",
@@ -31,7 +32,7 @@ function getAvatarOptions(userPhoto?: string | null) {
 }
 
 export default function SignupPage() {
-  const { idToken, needsSignup, signOut } = useAuth();
+  const { idToken, needsSignup, signOut, refreshUserContext } = useAuth();
   const navigate = useNavigate();
   const fbUser = auth.currentUser;
 
@@ -77,12 +78,15 @@ export default function SignupPage() {
     if (!idToken || !acceptTerms) return;
     setError("");
     setCreating(true);
-    createUser(idToken, {
+    registerUser(idToken, {
       name,
       email,
       photoUrl: withBg(avatars[selectedIdx], selectedIdx),
     })
-      .then(() => window.location.reload())
+      .then(async () => {
+        await refreshUserContext();
+        navigate("/onboarding", { replace: true });
+      })
       .catch((err) => {
         setError(err.message || "Hesap oluşturulamadı.");
         setCreating(false);

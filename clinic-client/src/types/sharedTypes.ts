@@ -146,7 +146,8 @@ export interface Group {
 
 // ─── APPOINTMENT ────────────────────────────────────────────────────────────
 export interface Appointment {
-  id: string;
+  _id: string;
+  id?: string; // alias for _id for calendar compatibility
   patientId?: string;
   groupId?: string;
   employeeId: string;

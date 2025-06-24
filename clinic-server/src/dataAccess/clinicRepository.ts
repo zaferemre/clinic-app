@@ -1,6 +1,8 @@
 import Clinic, { ClinicDocument } from "../models/Clinic";
 
-export async function createClinic(doc: Partial<ClinicDocument>) {
+export async function createClinic(
+  doc: Partial<ClinicDocument>
+): Promise<ClinicDocument> {
   return Clinic.create(doc);
 }
 

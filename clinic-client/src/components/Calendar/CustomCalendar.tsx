@@ -132,12 +132,13 @@ export const CustomCalendar: React.FC = (): React.ReactNode => {
       appointments
         .filter(
           (evt) =>
+            evt.id !== undefined &&
             (!filterEmp || evt.employeeId === filterEmp) &&
             (!filterServ || evt.serviceId === filterServ) &&
             (!filterGrp || evt.groupId === filterGrp)
         )
         .map((evt) => ({
-          id: evt.id,
+          id: evt.id as string,
           title: evt.patientName ?? evt.groupName ?? "Etkinlik",
           start: new Date(evt.start),
           end: new Date(evt.end),
@@ -375,7 +376,9 @@ export const CustomCalendar: React.FC = (): React.ReactNode => {
             event={appointmentModalData}
             onClose={() => setAppointmentModalData(null)}
             onCancel={() =>
-              appointmentModalData && handleDelete(appointmentModalData.id)
+              appointmentModalData?.id
+                ? handleDelete(appointmentModalData.id)
+                : Promise.resolve()
             }
             onUpdate={handleUpdate}
             // don’t forget to pass services and employees props as well!

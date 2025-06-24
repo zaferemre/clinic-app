@@ -3,7 +3,7 @@ import { workingHourSchema, WorkingHour } from "./WorkingHour";
 
 export interface EmployeeDocument extends Document {
   companyId: Types.ObjectId;
-  clinicId: string; // still string, that's fine if it's ObjectId as string
+  clinicId: Types.ObjectId; // Can be a string for legacy reasons
   userUid: string; // Firebase UID
   email?: string;
   name?: string;
@@ -20,7 +20,12 @@ export interface EmployeeDocument extends Document {
 const EmployeeSchema = new Schema<EmployeeDocument>(
   {
     companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true },
-    clinicId: { type: String, required: true, index: true },
+    clinicId: {
+      type: Schema.Types.ObjectId,
+      ref: "Clinic",
+      required: true,
+      index: true,
+    },
     userUid: { type: String, required: true, index: true },
     email: { type: String },
     name: { type: String },
