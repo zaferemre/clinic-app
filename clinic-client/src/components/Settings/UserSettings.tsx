@@ -20,6 +20,7 @@ import doodles from "../../data/doodles.json";
 
 // Color options for doodle backgrounds
 const COLOR_OPTIONS = [
+  "FFFFFF",
   "F28AB2",
   "FF6B6B",
   "FFD93D",
@@ -149,7 +150,7 @@ export const UserSettings: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-brand-gray-100 pb-16">
+    <div className="flex flex-col min-h-screen bg-brand-gray-100 pb-16 ">
       <GreetingHeader
         userAvatarUrl={photoUrl}
         clinicName={selectedClinicName ?? ""}
