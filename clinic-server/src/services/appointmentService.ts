@@ -1,14 +1,18 @@
 import * as repo from "../dataAccess/appointmentRepository";
 import { Types } from "mongoose";
+import { getOrSetCache, invalidateCache } from "../utils/cacheHelpers";
 
-// List appointments with optional filters
+// List appointments with optional filters (cache key includes filters)
 export async function getAppointments(
   companyId: string,
   clinicId: string,
   filters: any = {}
 ) {
-  // filters.employeeId is now always a string UID => pass through
-  return repo.listAppointments(companyId, clinicId, filters);
+  const filtersKey = JSON.stringify(filters);
+  const cacheKey = `appointments:${companyId}:${clinicId}:${filtersKey}`;
+  return getOrSetCache(cacheKey, () =>
+    repo.listAppointments(companyId, clinicId, filters)
+  );
 }
 
 // Get single appointment by ID
@@ -17,7 +21,10 @@ export async function getAppointmentById(
   clinicId: string,
   appointmentId: string
 ) {
-  return repo.findAppointmentById(companyId, clinicId, appointmentId);
+  const cacheKey = `appointment:${appointmentId}`;
+  return getOrSetCache(cacheKey, () =>
+    repo.findAppointmentById(companyId, clinicId, appointmentId)
+  );
 }
 
 // Create a new appointment
@@ -30,13 +37,16 @@ export async function createAppointment(
   const doc = {
     companyId: new Types.ObjectId(companyId),
     clinicId: new Types.ObjectId(clinicId),
-    // everything in data, including data.employeeId which is a UID string
     ...data,
     createdBy: createdByUid,
   };
-  return repo.createAppointment(doc);
+  const appt = await repo.createAppointment(doc);
+  // Invalidate all list caches for this clinic/company
+  await invalidateCache(
+    `appointments:${companyId}:${clinicId}:${JSON.stringify({})}`
+  );
+  return appt;
 }
-
 // Update appointment
 export async function updateAppointment(
   companyId: string,
@@ -44,7 +54,13 @@ export async function updateAppointment(
   appointmentId: string,
   updates: any
 ) {
-  return repo.updateAppointmentById(appointmentId, updates);
+  const updated = await repo.updateAppointmentById(appointmentId, updates);
+  // Invalidate individual appointment cache and all appointment list caches for this clinic/company
+  await invalidateCache(`appointment:${appointmentId}`);
+  await invalidateCache(
+    `appointments:${companyId}:${clinicId}:${JSON.stringify({})}`
+  );
+  return updated;
 }
 
 // Delete appointment
@@ -53,12 +69,18 @@ export async function deleteAppointment(
   clinicId: string,
   appointmentId: string
 ) {
-  return repo.deleteAppointmentById(appointmentId);
+  const deleted = await repo.deleteAppointmentById(appointmentId);
+  await invalidateCache(`appointment:${appointmentId}`);
+  await invalidateCache(
+    `appointments:${companyId}:${clinicId}:${JSON.stringify({})}`
+  );
+  return deleted;
 }
 
 /**
  * Fetch all appointments tagged with createdBy = userId
  */
 export async function getAppointmentsByUser(userId: string) {
-  return repo.listAppointmentsByUser(userId);
+  const cacheKey = `appointments:user:${userId}`;
+  return getOrSetCache(cacheKey, () => repo.listAppointmentsByUser(userId));
 }

@@ -248,7 +248,7 @@ export default function ProfilePage() {
             events={events as any}
             formats={calendarFormats}
             views={["month", "week", "day", "agenda"]}
-            defaultView="month"
+            defaultView="agenda"
             date={currentDate}
             view={currentView}
             onNavigate={setCurrentDate}

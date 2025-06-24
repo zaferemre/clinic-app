@@ -1,41 +1,54 @@
 import * as userRepo from "../dataAccess/userRepository";
+import { getOrSetCache, invalidateCache } from "../utils/cacheHelpers";
 
 export async function getUserProfile(uid: string) {
-  const user = await userRepo.findByUid(uid);
-  if (!user) throw new Error("User not found");
-  return user;
+  const cacheKey = `user:profile:${uid}`;
+  return getOrSetCache(cacheKey, () => userRepo.findByUid(uid));
 }
 
 export async function updateUserSettings(uid: string, updates: any) {
-  return userRepo.updateSettings(uid, updates);
+  const updated = await userRepo.updateSettings(uid, updates);
+  await invalidateCache(`user:profile:${uid}`);
+  return updated;
 }
 
 export async function deleteUser(uid: string) {
-  return userRepo.deleteUser(uid);
+  const deleted = await userRepo.deleteUser(uid);
+  await invalidateCache(`user:profile:${uid}`);
+  await invalidateCache(`user:memberships:${uid}`);
+  await invalidateCache(`user:clinics:${uid}`);
+  return deleted;
 }
 
 export async function getUserMemberships(uid: string) {
-  return userRepo.getUserMemberships(uid);
-}
-export async function getUserClinics(uid: string) {
-  // implement similar to memberships
-  return userRepo.getUserClinics(uid);
+  const cacheKey = `user:memberships:${uid}`;
+  return getOrSetCache(cacheKey, () => userRepo.getUserMemberships(uid));
 }
 
-// New registration service
+export async function getUserClinics(uid: string) {
+  const cacheKey = `user:clinics:${uid}`;
+  return getOrSetCache(cacheKey, () => userRepo.getUserClinics(uid));
+}
+
+// Registration — Invalidate caches
 export async function registerUser(
   uid: string,
   data: { email?: string; name?: string; photoUrl?: string }
 ) {
   const { name } = data;
   if (!name) throw new Error("Name is required to register");
-  return userRepo.upsertUser({
+  const result = await userRepo.upsertUser({
     uid,
     email: data.email,
     name,
     photoUrl: data.photoUrl,
   });
+  await invalidateCache(`user:profile:${uid}`);
+  await invalidateCache(`user:memberships:${uid}`);
+  await invalidateCache(`user:clinics:${uid}`);
+  return result;
 }
+
 export async function addUserMembership(
   uid: string,
   membership: {
@@ -46,5 +59,8 @@ export async function addUserMembership(
     roles?: string[];
   }
 ) {
-  return userRepo.addMembership(uid, membership);
+  const updated = await userRepo.addMembership(uid, membership);
+  await invalidateCache(`user:memberships:${uid}`);
+  await invalidateCache(`user:clinics:${uid}`);
+  return updated;
 }

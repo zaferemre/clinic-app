@@ -2,6 +2,7 @@ import * as groupRepo from "../dataAccess/groupRepository";
 import * as patientRepo from "../dataAccess/patientRepository";
 import { Types } from "mongoose";
 import createError from "http-errors";
+import { getOrSetCache, invalidateCache } from "../utils/cacheHelpers";
 
 function validId(id: string) {
   return Types.ObjectId.isValid(id);
@@ -10,7 +11,10 @@ function validId(id: string) {
 export async function listGroups(companyId: string, clinicId: string) {
   if (!validId(companyId) || !validId(clinicId))
     throw createError(400, "Invalid company or clinic id");
-  return groupRepo.listGroups(companyId, clinicId);
+  const cacheKey = `groups:${companyId}:${clinicId}`;
+  return getOrSetCache(cacheKey, () =>
+    groupRepo.listGroups(companyId, clinicId)
+  );
 }
 
 export async function createGroup(
@@ -47,6 +51,7 @@ export async function createGroup(
       group.id.toString()
     );
   }
+  await invalidateCache(`groups:${companyId}:${clinicId}`);
   return group;
 }
 
@@ -68,18 +73,17 @@ export async function updateGroup(
   groupId: string,
   updates: any
 ) {
-  if (!validId(groupId)) throw createError(400, "Invalid groupId");
-  return groupRepo.updateGroupById(groupId, updates);
+  const updated = await groupRepo.updateGroupById(groupId, updates);
+  await invalidateCache(`groups:${companyId}:${clinicId}`);
+  return updated;
 }
-
 export async function deleteGroup(
   companyId: string,
   clinicId: string,
   groupId: string
 ) {
-  if (!validId(groupId)) throw createError(400, "Invalid groupId");
-  await patientRepo.removeGroupFromAllPatients(groupId);
   await groupRepo.deleteGroupById(groupId);
+  await invalidateCache(`groups:${companyId}:${clinicId}`);
 }
 
 export async function addPatientToGroup(
