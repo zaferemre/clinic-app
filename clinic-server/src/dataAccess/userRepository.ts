@@ -1,7 +1,10 @@
 import User, { UserDocument } from "../models/User";
 
 export async function findByUid(uid: string): Promise<UserDocument | null> {
-  return User.findOne({ uid });
+  console.time("userProfile:db");
+  const user = await User.findOne({ uid });
+  console.timeEnd("userProfile:db");
+  return user;
 }
 
 export async function upsertUser(user: {
