@@ -61,7 +61,6 @@ export default function AppRoutes() {
     selectedCompanyId,
     selectedClinicId,
   } = useAuth();
-  console.log("AppRoutes", { needsSignup, idToken, ctxUser });
 
   if (checkingCompany) {
     return (

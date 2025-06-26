@@ -44,7 +44,6 @@ export default function SignupPage() {
   const fbUser = auth.currentUser;
 
   const userPhoto: string | null = fbUser?.photoURL || null;
-  console.log("userPhoto", userPhoto);
 
   // Ensure the user photo is first and not duplicated
   const avatars: string[] = useMemo(

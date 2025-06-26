@@ -78,14 +78,6 @@ const PatientsPage: React.FC = () => {
     !selectedClinicName ||
     !user
   ) {
-    console.log({
-      idToken,
-      selectedCompanyId,
-      selectedClinicId,
-      selectedCompanyName,
-      selectedClinicName,
-      user,
-    });
     return null;
   }
 

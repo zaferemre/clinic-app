@@ -8,8 +8,6 @@ export default function CompanySelectorPage() {
   const navigate = useNavigate();
 
   const handleSelect = (company: any) => {
-    console.log("Selecting company:", company);
-
     setSelectedCompanyId(company._id);
     setSelectedCompanyName(company.name);
     localStorage.removeItem("selectedClinicId");
