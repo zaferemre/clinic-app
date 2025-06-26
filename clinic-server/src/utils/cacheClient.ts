@@ -6,7 +6,7 @@ if (!redisUrl) {
   throw new Error("REDIS_URL is not set in environment variables");
 }
 
-const redis = new Redis(redisUrl);
+const redis = new Redis(redisUrl + "?family=0");
 
 redis.on("connect", () => {
   console.log("✅ Redis connected!");

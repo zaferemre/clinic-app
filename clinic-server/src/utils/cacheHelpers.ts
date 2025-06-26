@@ -1,5 +1,5 @@
 // src/utils/cacheHelpers.ts
-import redis from "./redisClient";
+import redis from "./cacheClient";
 
 // Cache for 1 minute by default
 const DEFAULT_TTL = 60; // seconds
