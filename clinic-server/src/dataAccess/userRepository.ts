@@ -1,3 +1,5 @@
+import Appointment from "../models/Appointment";
+import Employee from "../models/Employee";
 import User, { UserDocument } from "../models/User";
 
 export async function findByUid(uid: string): Promise<UserDocument | null> {
@@ -60,7 +62,25 @@ export async function getUserClinics(uid: string) {
 }
 
 export async function deleteUser(uid: string) {
-  return User.findOneAndDelete({ uid }).exec();
+  // 1. Find user (get _id and other info)
+  const user = await User.findOne({ uid });
+  if (!user) return null;
+
+  // 2. Delete user document
+  await User.deleteOne({ uid });
+
+  // 3. Delete all employee records for user
+  await Employee.deleteMany({ userUid: uid });
+
+  // 4. Delete all appointments where user is patient or assigned employee
+  await Appointment.deleteMany({
+    $or: [
+      { patientId: uid },
+      { employeeId: uid }, // or whatever your field is
+    ],
+  });
+
+  return true;
 }
 export async function addMembership(
   uid: string,

@@ -20,13 +20,13 @@ export async function updateUserSettings(uid: string, updates: any) {
   return updated;
 }
 
-// Delete user, invalidate all caches
+// Delete user and all related data, invalidate all caches
 export async function deleteUser(uid: string) {
-  const deleted = await userRepo.deleteUser(uid);
+  await userRepo.deleteUser(uid);
   await invalidateCache(`user:profile:${uid}`);
   await invalidateCache(`user:memberships:${uid}`);
   await invalidateCache(`user:clinics:${uid}`);
-  return deleted;
+  return true;
 }
 
 // Get cached user memberships
@@ -59,8 +59,6 @@ export async function registerUser(
   await invalidateCache(`user:clinics:${uid}`);
   return result;
 }
-
-// Add user membership (join company/clinic), immediately update cache!
 export async function addUserMembership(
   uid: string,
   membership: {
@@ -71,7 +69,7 @@ export async function addUserMembership(
     roles?: string[];
   }
 ) {
-  const updated = await userRepo.addMembership(uid, membership);
+  await userRepo.addMembership(uid, membership);
 
   // If this is a clinic membership, also upsert as employee
   if (membership.clinicId) {
@@ -84,17 +82,22 @@ export async function addUserMembership(
     });
   }
 
-  // Invalidate old cache keys
+  // Invalidate all caches
+  await invalidateCache(`user:profile:${uid}`);
   await invalidateCache(`user:memberships:${uid}`);
   await invalidateCache(`user:clinics:${uid}`);
 
-  // Write-through: set fresh cache immediately!
+  // Refresh and set all caches with fresh data (write-through!)
   const freshMemberships = await userRepo.getUserMemberships(uid);
   await setCache(`user:memberships:${uid}`, freshMemberships);
 
   const freshClinics = await userRepo.getUserClinics(uid);
   await setCache(`user:clinics:${uid}`, freshClinics);
 
-  // Return fresh memberships (or both if you want)
+  // THE CRITICAL FIX: Write the up-to-date user profile to cache!
+  const freshUser = await userRepo.findByUid(uid);
+  await setCache(`user:profile:${uid}`, freshUser);
+
+  // Return fresh memberships (or freshUser if you want)
   return freshMemberships;
 }

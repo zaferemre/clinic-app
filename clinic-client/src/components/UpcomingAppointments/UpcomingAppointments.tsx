@@ -28,6 +28,8 @@ export const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({
     ? appointments
     : appointments.filter((a) => a.employeeId === user.userId);
 
+  const totalToday = apptsToShow.length; // Total appointments for today
+
   // Group by employeeId
   const grouped: Record<string, CardAppointment[]> = {};
   apptsToShow.forEach((appt) => {
@@ -52,7 +54,12 @@ export const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({
 
   return (
     <div className="mb-4">
-      <h3 className="text-lg font-bold text-black mb-2">Günün Randevuları</h3>
+      <h3 className="text-lg font-bold text-black mb-2 flex items-center gap-2">
+        Günün Randevuları
+        <span className="text-black text-base font-semibold bg-gray-100 rounded-full px-2 py-0.5">
+          {totalToday}
+        </span>
+      </h3>
       {rows.map(([empId, appts], idx) => {
         if (appts.length === 0) return null;
 
