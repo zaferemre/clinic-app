@@ -67,9 +67,9 @@ export const deleteCompany: RequestHandler = async (req, res, next) => {
 // Join company by code
 export const joinByCode: RequestHandler = async (req, res, next) => {
   try {
-    const { code } = req.body;
+    const { joinCode } = req.body;
     const user = (req as any).user;
-    const result = await companyService.joinByCode(user.uid, code);
+    const result = await companyService.joinByCode(user.uid, joinCode);
     res.json(result);
   } catch (err) {
     next(err);
