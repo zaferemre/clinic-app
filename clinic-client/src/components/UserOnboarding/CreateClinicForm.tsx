@@ -236,9 +236,8 @@ export default function CreateClinicForm({
           type: "Point" as const,
           coordinates: [mapLocation.lng, mapLocation.lat],
         },
-        workingHours: workingHours.map((w) =>
-          w.closed ? { ...w, open: "", close: "" } : w
-        ),
+        workingHours,
+
         services: [] as string[],
       };
       const created = await createClinic(idToken!, selectedCompanyId!, payload);

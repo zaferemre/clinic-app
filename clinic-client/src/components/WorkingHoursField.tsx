@@ -25,16 +25,7 @@ export default function WorkingHoursField({
 }) {
   const handleToggle = (idx: number) => {
     setWorkingHours((arr) =>
-      arr.map((w, i) =>
-        i === idx
-          ? {
-              ...w,
-              closed: !w.closed,
-              open: !w.closed ? "" : "10:00",
-              close: !w.closed ? "" : "22:00",
-            }
-          : w
-      )
+      arr.map((w, i) => (i === idx ? { ...w, closed: !w.closed } : w))
     );
   };
 
