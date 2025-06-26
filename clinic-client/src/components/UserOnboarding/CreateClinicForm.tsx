@@ -359,7 +359,7 @@ export default function CreateClinicForm({
               placeholder="Ad"
               value={svc.name}
               onChange={(e) => updateService(idx, "name", e.target.value)}
-              className="border px-2 py-1 rounded flex-1"
+              className="border px-2 py-1 rounded w-38 flex-1"
             />
             <input
               type="number"
@@ -373,7 +373,7 @@ export default function CreateClinicForm({
               placeholder="Süre (dk)"
               value={svc.duration || ""}
               onChange={(e) => updateService(idx, "duration", +e.target.value)}
-              className="border px-2 py-1 rounded w-24"
+              className="border px-2 py-1 rounded w-14"
             />
             <button
               type="button"
