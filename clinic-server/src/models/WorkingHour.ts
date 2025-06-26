@@ -2,13 +2,13 @@ import { Schema } from "mongoose";
 
 export interface WorkingHour {
   day:
-    | "Monday"
-    | "Tuesday"
-    | "Wednesday"
-    | "Thursday"
-    | "Friday"
-    | "Saturday"
-    | "Sunday";
+    | "Pazartesi"
+    | "Salı"
+    | "Çarşamba"
+    | "Perşembe"
+    | "Cuma"
+    | "Cumartesi"
+    | "Pazar";
   open: string; // "HH:mm"
   close: string; // "HH:mm"
 }
@@ -18,13 +18,13 @@ export const workingHourSchema = new Schema<WorkingHour>(
     day: {
       type: String,
       enum: [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
+        "Pazartesi",
+        "Salı",
+        "Çarşamba",
+        "Perşembe",
+        "Cuma",
+        "Cumartesi",
+        "Pazar",
       ],
       required: true,
     },

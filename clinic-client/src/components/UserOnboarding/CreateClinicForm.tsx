@@ -4,36 +4,42 @@ import { createClinic } from "../../api/clinicApi";
 import turkeyGeo from "../../data/turkey-geo.json";
 import LocationPicker from "../LocationPicker";
 import CountryCodes from "../../data/CountryCodes.json";
+import WorkingHoursField, { WorkingHour } from "../WorkingHoursField";
 
-// Convert country code to flag emoji
 function countryCodeToFlag(code: string) {
   return code
     .toUpperCase()
     .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)));
 }
-
-type DayOfWeek =
-  | "Monday"
-  | "Tuesday"
-  | "Wednesday"
-  | "Thursday"
-  | "Friday"
-  | "Saturday"
-  | "Sunday";
-
-interface WorkingHour {
-  day: DayOfWeek;
-  open: string;
-  close: string;
+function normalizeTR(str: string = ""): string {
+  return (str ?? "")
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ı/g, "i")
+    .replace(/ü/g, "u")
+    .replace(/ğ/g, "g")
+    .replace(/ş/g, "s")
+    .replace(/ç/g, "c")
+    .replace(/ö/g, "o");
 }
 
-const DEFAULT_WORKING_HOURS: WorkingHour[] = [
-  { day: "Monday", open: "09:00", close: "17:00" },
-  { day: "Tuesday", open: "09:00", close: "17:00" },
-  { day: "Wednesday", open: "09:00", close: "17:00" },
-  { day: "Thursday", open: "09:00", close: "17:00" },
-  { day: "Friday", open: "09:00", close: "17:00" },
+type DayOfWeek = WorkingHour["day"];
+
+const WEEK_DAYS_TR: DayOfWeek[] = [
+  "Pazartesi",
+  "Salı",
+  "Çarşamba",
+  "Perşembe",
+  "Cuma",
+  "Cumartesi",
+  "Pazar",
 ];
+
+const DEFAULT_WORKING_HOURS: WorkingHour[] = WEEK_DAYS_TR.map((d) => ({
+  day: d,
+  open: "10:00",
+  close: "22:00",
+  closed: false,
+}));
 
 interface PhoneInputProps {
   phone: string;
@@ -43,7 +49,6 @@ interface PhoneInputProps {
     React.SetStateAction<{ code: string; dial_code: string; name: string }>
   >;
 }
-
 function PhoneInput({
   phone,
   setPhone,
@@ -140,7 +145,9 @@ export default function CreateClinicForm({
     CountryCodes.find((c) => c.code === "TR")!
   );
   const [phone, setPhone] = useState("");
-  const [workingHours, setWorkingHours] = useState(DEFAULT_WORKING_HOURS);
+  const [workingHours, setWorkingHours] = useState<WorkingHour[]>(
+    DEFAULT_WORKING_HOURS
+  );
   const [message, setMessage] = useState("");
 
   interface NeighbourhoodData {
@@ -152,11 +159,12 @@ export default function CreateClinicForm({
   }
   const provinces: NeighbourhoodData[] = turkeyGeo;
 
+  // --- Turkish-insensitive filtering ---
   useEffect(() => {
     setProvSug(
       provinces
         .map((p) => p.Province)
-        .filter((n) => n.toLowerCase().includes(provQuery.toLowerCase()))
+        .filter((n) => normalizeTR(n).includes(normalizeTR(provQuery)))
     );
     setDistrictSug([]);
     setTownSug([]);
@@ -164,32 +172,44 @@ export default function CreateClinicForm({
   }, [provQuery]);
 
   useEffect(() => {
-    const p = provinces.find((p) => p.Province === provQuery);
+    const p = provinces.find(
+      (p) => normalizeTR(p.Province) === normalizeTR(provQuery)
+    );
     const list = p?.Districts.map((d) => d.District) || [];
     setDistrictSug(
-      list.filter((n) => n.toLowerCase().includes(districtQuery.toLowerCase()))
+      list.filter((n) => normalizeTR(n).includes(normalizeTR(districtQuery)))
     );
     setTownSug([]);
     setNeighSug([]);
   }, [districtQuery, provQuery]);
 
   useEffect(() => {
-    const p = provinces.find((p) => p.Province === provQuery);
-    const d = p?.Districts.find((d) => d.District === districtQuery);
+    const p = provinces.find(
+      (p) => normalizeTR(p.Province) === normalizeTR(provQuery)
+    );
+    const d = p?.Districts.find(
+      (d) => normalizeTR(d.District) === normalizeTR(districtQuery)
+    );
     const list = d?.Towns.map((t) => t.Town) || [];
     setTownSug(
-      list.filter((n) => n.toLowerCase().includes(townQuery.toLowerCase()))
+      list.filter((n) => normalizeTR(n).includes(normalizeTR(townQuery)))
     );
     setNeighSug([]);
   }, [townQuery, districtQuery, provQuery]);
 
   useEffect(() => {
-    const p = provinces.find((p) => p.Province === provQuery);
-    const d = p?.Districts.find((d) => d.District === districtQuery);
-    const t = d?.Towns.find((t) => t.Town === townQuery);
+    const p = provinces.find(
+      (p) => normalizeTR(p.Province) === normalizeTR(provQuery)
+    );
+    const d = p?.Districts.find(
+      (d) => normalizeTR(d.District) === normalizeTR(districtQuery)
+    );
+    const t = d?.Towns.find(
+      (t) => normalizeTR(t.Town) === normalizeTR(townQuery)
+    );
     const list = t?.Neighbourhoods || [];
     setNeighSug(
-      list.filter((n) => n.toLowerCase().includes(neighQuery.toLowerCase()))
+      list.filter((n) => normalizeTR(n).includes(normalizeTR(neighQuery)))
     );
   }, [neighQuery, townQuery, districtQuery, provQuery]);
 
@@ -216,7 +236,9 @@ export default function CreateClinicForm({
           type: "Point" as const,
           coordinates: [mapLocation.lng, mapLocation.lat],
         },
-        workingHours,
+        workingHours: workingHours.map((w) =>
+          w.closed ? { ...w, open: "", close: "" } : w
+        ),
         services: [] as string[],
       };
       const created = await createClinic(idToken!, selectedCompanyId!, payload);
@@ -309,36 +331,10 @@ export default function CreateClinicForm({
       </div>
       <div>
         <label className="block mb-2">Çalışma Saatleri</label>
-        {workingHours.map((wh, idx) => (
-          <div key={wh.day} className="flex items-center gap-3 mb-2">
-            <span className="w-24 text-sm font-medium">{wh.day}</span>
-            <input
-              type="time"
-              value={wh.open}
-              onChange={(e) =>
-                setWorkingHours((arr) =>
-                  arr.map((w, i) =>
-                    i === idx ? { ...w, open: e.target.value } : w
-                  )
-                )
-              }
-              className="border px-2 py-1 rounded"
-            />
-            <span>–</span>
-            <input
-              type="time"
-              value={wh.close}
-              onChange={(e) =>
-                setWorkingHours((arr) =>
-                  arr.map((w, i) =>
-                    i === idx ? { ...w, close: e.target.value } : w
-                  )
-                )
-              }
-              className="border px-2 py-1 rounded"
-            />
-          </div>
-        ))}
+        <WorkingHoursField
+          workingHours={workingHours}
+          setWorkingHours={setWorkingHours}
+        />
       </div>
       {message && <p className="text-red-600">{message}</p>}
       <button

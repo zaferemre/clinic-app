@@ -80,7 +80,7 @@ const EditEmployeeModal: React.FC<Props> = ({
             onClick={() =>
               setHours([
                 ...hours,
-                { day: "Monday", open: "09:00", close: "17:00" },
+                { day: "Pazartesi", open: "09:00", close: "17:00" },
               ])
             }
             className="text-sm text-blue-600 hover:underline"

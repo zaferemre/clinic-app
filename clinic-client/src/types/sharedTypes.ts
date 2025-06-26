@@ -79,13 +79,13 @@ export interface ServiceInfo {
 // ─── WORKING HOUR ──────────────────────────────────────────────────────────
 export interface WorkingHour {
   day:
-    | "Monday"
-    | "Tuesday"
-    | "Wednesday"
-    | "Thursday"
-    | "Friday"
-    | "Saturday"
-    | "Sunday";
+    | "Pazartesi"
+    | "Salı"
+    | "Çarşamba"
+    | "Perşembe"
+    | "Cuma"
+    | "Cumartesi"
+    | "Pazar";
   open: string;
   close: string;
 }
