@@ -3,10 +3,8 @@ import { getOrSetCache, invalidateCache } from "../utils/cacheHelpers";
 
 export async function getUserProfile(uid: string) {
   const cacheKey = `user:profile:${uid}`;
-  console.time("userProfile:cache");
-  const result = getOrSetCache(cacheKey, () => userRepo.findByUid(uid));
-  console.timeEnd("userProfile:cache");
-  return result;
+
+  return getOrSetCache(cacheKey, () => userRepo.findByUid(uid));
 }
 
 export async function updateUserSettings(uid: string, updates: any) {
