@@ -1,5 +1,4 @@
-// src/components/CalendarView/NewAppointment/index.tsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import AppModal, { ModalForm } from "../Modals/AppModal";
 import AppointmentTypeTabs from "./AppointmentTypeTabs";
 import PatientSelect from "./PatientSelect";
@@ -24,11 +23,11 @@ import type {
 type Kind = "individual" | "group" | "ozel";
 const DEFAULT_SERVICE_DURATION = 30;
 
-// Raw appointment shape returned by your API
 interface RawAppointment {
-  start: string; // ISO string
-  end: string; // ISO string
-  // ...other fields
+  start: string;
+  end: string;
+  employeeId: string; // <-- Needed for busy filter!
+  // Add more fields if needed
 }
 
 interface Props {
@@ -111,27 +110,26 @@ export default function NewAppointmentModal({
   const [ozelDuration, setOzelDuration] = useState(DEFAULT_SERVICE_DURATION);
   const [internalDay, setInternalDay] = useState<Date>(modalDay ?? new Date());
 
-  // ---- NEW: busy intervals for this clinic ----
+  // ---- Store busy intervals with employeeId attached ----
   const [busyIntervals, setBusyIntervals] = useState<
-    { start: Date; end: Date }[]
+    { start: Date; end: Date; employeeId: string }[]
   >([]);
 
+  // Fetch all appointments for the clinic on open or day change
   useEffect(() => {
-    // Whenever the modal opens or the selected day changes, fetch appointments
     if (!show || !idToken || !selectedCompanyId || !selectedClinicId) return;
 
     getAppointments(idToken, selectedCompanyId, selectedClinicId)
       .then((appts: RawAppointment[]) => {
-        // Map raw ISO strings into Date objects
+        // Keep employeeId for filtering
         const intervals = appts.map((a) => ({
           start: new Date(a.start),
           end: new Date(a.end),
+          employeeId: a.employeeId,
         }));
         setBusyIntervals(intervals);
       })
-      .catch(() => {
-        setBusyIntervals([]); // fallback
-      });
+      .catch(() => setBusyIntervals([]));
   }, [show, idToken, selectedCompanyId, selectedClinicId, internalDay]);
 
   // Reset tab/kind when reopening
@@ -141,6 +139,17 @@ export default function NewAppointmentModal({
       setInternalDay(modalDay ?? new Date());
     }
   }, [show, tab, modalDay]);
+
+  // Filter busy slots to just the selected employee
+  const busyForSelectedEmployee = useMemo(() => {
+    if (!selectedEmployee) return [];
+    return busyIntervals
+      .filter((b) => b.employeeId === selectedEmployee)
+      .map((b) => ({
+        start: b.start,
+        end: b.end,
+      }));
+  }, [busyIntervals, selectedEmployee]);
 
   const handleSubmit = useCallback(async (): Promise<boolean> => {
     try {
@@ -275,7 +284,6 @@ export default function NewAppointmentModal({
             setEndStr={setEndStr}
           />
 
-          {/* Pass the newly fetched busy intervals */}
           <SlotPickerSection
             kind={kind}
             selectedService={selectedService}
@@ -289,7 +297,7 @@ export default function NewAppointmentModal({
             startStr={startStr}
             setStartStr={setStartStr}
             setEndStr={setEndStr}
-            busy={busyIntervals}
+            busy={busyForSelectedEmployee} // <-- Only pass for the selected employee!
           />
 
           <ModalForm onSubmit={handleSubmit}>

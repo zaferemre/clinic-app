@@ -1,9 +1,8 @@
-// src/api/notificationApi.ts
 import { request } from "./apiClient";
 import { NotificationInfo } from "../types/sharedTypes";
 
 /**
- * Fetch notifications and normalize ID:
+ * Fetch notifications for a clinic.
  */
 export function getNotifications(
   token: string,
@@ -22,21 +21,63 @@ export function getNotifications(
 }
 
 /**
- * Mark a notification as done and normalize ID:
+ * Create a new notification.
  */
-export function markNotificationCalled(
+export function createNotification(
+  token: string,
+  companyId: string,
+  clinicId: string,
+  notification: Omit<NotificationInfo, "id" | "_id" | "createdAt" | "updatedAt">
+): Promise<NotificationInfo> {
+  return request<NotificationInfo>(
+    `/company/${companyId}/clinics/${clinicId}/notifications`,
+    {
+      method: "POST",
+      token,
+      body: notification,
+      headers: { "Content-Type": "application/json" },
+    }
+  ).then((n: any) => ({
+    ...n,
+    id: n._id || n.id,
+  }));
+}
+
+/**
+ * Mark a notification as done.
+ */
+export function markNotificationDone(
   token: string,
   companyId: string,
   clinicId: string,
   notificationId: string
 ): Promise<NotificationInfo> {
-  type NotificationWithOptionalId = NotificationInfo & { _id?: string };
-
-  return request<NotificationWithOptionalId>(
+  return request<NotificationInfo>(
     `/company/${companyId}/clinics/${clinicId}/notifications/${notificationId}/done`,
-    { method: "PATCH", token }
-  ).then((n: NotificationWithOptionalId) => ({
+    {
+      method: "PATCH",
+      token,
+    }
+  ).then((n: any) => ({
     ...n,
     id: n._id || n.id,
   }));
+}
+
+/**
+ * Delete a notification.
+ */
+export function deleteNotification(
+  token: string,
+  companyId: string,
+  clinicId: string,
+  notificationId: string
+): Promise<void> {
+  return request<void>(
+    `/company/${companyId}/clinics/${clinicId}/notifications/${notificationId}`,
+    {
+      method: "DELETE",
+      token,
+    }
+  );
 }

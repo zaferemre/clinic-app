@@ -31,7 +31,10 @@ async function updateSettings(uid, settings) {
     return User_1.default.findOneAndUpdate({ uid }, { $set: settings, updatedAt: new Date() }, { new: true }).exec();
 }
 async function removeMembership(uid, companyId, clinicId) {
-    return User_1.default.findOneAndUpdate({ uid }, { $pull: { memberships: { companyId, clinicId } } }, { new: true }).exec();
+    const pull = { companyId: companyId.toString() };
+    if (clinicId && clinicId.length > 0)
+        pull.clinicId = clinicId;
+    return User_1.default.findOneAndUpdate({ uid }, { $pull: { memberships: pull } }, { new: true }).exec();
 }
 async function getUserMemberships(uid) {
     const user = await User_1.default.findOne({ uid });

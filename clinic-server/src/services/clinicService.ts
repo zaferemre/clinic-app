@@ -1,8 +1,6 @@
 import * as clinicRepo from "../dataAccess/clinicRepository";
 import * as userRepo from "../dataAccess/userRepository";
-import * as employeeRepo from "../dataAccess/employeeRepository";
 import * as companyRepo from "../dataAccess/companyRepository";
-import { Types } from "mongoose";
 import { getOrSetCache, invalidateCache } from "../utils/cacheHelpers";
 
 /**
@@ -24,14 +22,6 @@ export async function createClinic(companyId: string, data: any, uid: string) {
 
   const company = await companyRepo.findCompanyById(companyId);
   const companyName = company?.name ?? "";
-
-  await employeeRepo.createEmployee({
-    userUid: uid,
-    companyId: new Types.ObjectId(companyId),
-    clinicId: clinic._id,
-    roles: ["owner"],
-    isActive: true,
-  });
 
   await userRepo.addMembership(uid, {
     companyId: companyId,

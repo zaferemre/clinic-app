@@ -40,4 +40,5 @@ const router = (0, express_1.Router)({ mergeParams: true });
 router.use(verifyFirebaseToken_1.verifyFirebaseToken);
 router.get("/", notifCtrl.listNotifications);
 router.patch("/:notificationId/done", notifCtrl.markNotificationDone);
+router.post("/", notifCtrl.createNotification);
 exports.default = router;

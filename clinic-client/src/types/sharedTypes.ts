@@ -171,15 +171,28 @@ export interface EnrichedAppointment extends Appointment {
 }
 
 // ─── NOTIFICATION ───────────────────────────────────────────────────────────
+// ─── NOTIFICATION ───────────────────────────────────────────────────────────
 export interface NotificationInfo {
   id: string;
+  _id?: string;
   companyId: string;
   clinicId: string;
-  patientId: string;
-  patientName: string;
-  createdAt: string;
-  status: "pending" | "done";
+  patientId?: string;
+  groupId?: string;
+  type: "call" | "sms" | "email" | "whatsapp" | "system";
+  status: "pending" | "sent" | "failed" | "done";
+  message: string;
+  title?: string;
+  trigger?: string;
+  workerUid?: string;
+  targetUserId?: string;
   note?: string;
+  sentAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  priority?: "low" | "normal" | "high";
+  meta?: any;
+  patientName?: string; // for UI use
 }
 
 // ─── MESSAGE ────────────────────────────────────────────────────────────────

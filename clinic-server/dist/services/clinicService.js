@@ -40,9 +40,7 @@ exports.updateClinic = updateClinic;
 exports.deleteClinic = deleteClinic;
 const clinicRepo = __importStar(require("../dataAccess/clinicRepository"));
 const userRepo = __importStar(require("../dataAccess/userRepository"));
-const employeeRepo = __importStar(require("../dataAccess/employeeRepository"));
 const companyRepo = __importStar(require("../dataAccess/companyRepository"));
-const mongoose_1 = require("mongoose");
 const cacheHelpers_1 = require("../utils/cacheHelpers");
 /**
  * List all clinics for a company (with cache)
@@ -61,13 +59,6 @@ async function createClinic(companyId, data, uid) {
     });
     const company = await companyRepo.findCompanyById(companyId);
     const companyName = company?.name ?? "";
-    await employeeRepo.createEmployee({
-        userUid: uid,
-        companyId: new mongoose_1.Types.ObjectId(companyId),
-        clinicId: clinic._id,
-        roles: ["owner"],
-        isActive: true,
-    });
     await userRepo.addMembership(uid, {
         companyId: companyId,
         companyName: companyName,

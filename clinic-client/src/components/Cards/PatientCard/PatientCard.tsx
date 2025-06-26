@@ -10,7 +10,7 @@ import {
 } from "@heroicons/react/24/outline";
 import EditPatientModal from "../../Modals/EditPatientModal";
 import GroupPreviewList from "../../Lists/GroupPreviewList";
-import { flagPatientCall, deletePatient } from "../../../api/patientApi";
+import { recordPayment, deletePatient } from "../../../api/patientApi";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useEnrichedAppointments } from "../../../hooks/useEnrichedAppointments";
 import type {
@@ -19,7 +19,9 @@ import type {
   EnrichedAppointment,
 } from "../../../types/sharedTypes";
 import AddPaymentModal from "../../Modals/AddPaymentModal";
-import { recordPayment } from "../../../api/patientApi";
+import { createNotification } from "../../../api/notificationApi";
+import NewNotificationModal from "../../Modals/NewNotificationModal";
+
 interface PatientCardProps {
   patient: Patient;
   groups?: Group[];
@@ -79,9 +81,9 @@ const PatientCard: React.FC<PatientCardProps> = ({
 
   // --- LOCAL UI STATE ---
   const [showCallModal, setShowCallModal] = useState(false);
-  const [callNote, setCallNote] = useState("");
-  const [sendingCall, setSendingCall] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
   // --- HANDLERS ---
   const handleDelete = async (e: React.MouseEvent) => {
@@ -105,27 +107,6 @@ const PatientCard: React.FC<PatientCardProps> = ({
     e.stopPropagation();
     setShowCallModal(true);
   };
-
-  const handleConfirmCall = async () => {
-    setSendingCall(true);
-    try {
-      await flagPatientCall(
-        idToken!,
-        selectedCompanyId!,
-        selectedClinicId!,
-        patient._id,
-        callNote
-      );
-      setShowCallModal(false);
-      setCallNote("");
-    } catch (err: any) {
-      alert(err.message || "Çağrı eklenemedi.");
-    } finally {
-      setSendingCall(false);
-    }
-  };
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentLoading, setPaymentLoading] = useState(false);
 
   // --- STYLES FOR PILLS ---
   const pillBase = "rounded px-2 py-0.5 text-xs";
@@ -320,44 +301,32 @@ const PatientCard: React.FC<PatientCardProps> = ({
         </div>
       )}
 
-      {/* Call Modal */}
-      {showCallModal && (
-        <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center"
-          onClick={() => setShowCallModal(false)}
-        >
-          <div
-            className="bg-white rounded-lg p-6 w-80 max-w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h4 className="text-lg font-semibold mb-3 text-gray-900">
-              Çağrı Notu Girin
-            </h4>
-            <textarea
-              rows={4}
-              value={callNote}
-              onChange={(e) => setCallNote(e.target.value)}
-              className="w-full border border-gray-300 rounded-md p-2 mb-4 focus:ring-2 focus:ring-brand-main focus:border-brand-main"
-              placeholder="Notunuzu buraya yazın..."
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowCallModal(false)}
-                className="px-4 py-2 bg-gray-200 rounded-md text-gray-700 hover:bg-gray-300"
-              >
-                İptal
-              </button>
-              <button
-                onClick={handleConfirmCall}
-                disabled={sendingCall}
-                className="px-4 py-2 bg-brand-main text-white rounded-md hover:bg-brand-main-600 disabled:opacity-50"
-              >
-                {sendingCall ? "Kaydediliyor..." : "Kaydet & Çağrı"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Call Modal — uses NewNotificationModal */}
+      <NewNotificationModal
+        open={showCallModal}
+        onClose={() => setShowCallModal(false)}
+        mode="patientNote"
+        initialValues={{ patientId: patient._id }}
+        onSubmit={async (formValues) => {
+          await createNotification(
+            idToken!,
+            selectedCompanyId!,
+            selectedClinicId!,
+            {
+              ...formValues,
+              patientId: patient._id,
+              companyId: selectedCompanyId!,
+              clinicId: selectedClinicId!,
+              title: `Çağrı Talebi `,
+              type: "call",
+              message: `${patient.name} için çağrı talebi: ${formValues.note}`,
+              trigger: "patient_call",
+              priority: "high",
+              status: "pending",
+            }
+          );
+        }}
+      />
 
       {/* Edit Modal */}
       <EditPatientModal

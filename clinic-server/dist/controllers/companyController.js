@@ -102,9 +102,9 @@ exports.deleteCompany = deleteCompany;
 // Join company by code
 const joinByCode = async (req, res, next) => {
     try {
-        const { code } = req.body;
+        const { joinCode } = req.body;
         const user = req.user;
-        const result = await companyService.joinByCode(user.uid, code);
+        const result = await companyService.joinByCode(user.uid, joinCode);
         res.json(result);
     }
     catch (err) {

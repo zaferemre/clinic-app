@@ -12,17 +12,15 @@ router.get("/", companyCtrl.listCompanies);
 
 // Join a company via code
 router.post("/join", companyCtrl.joinByCode);
+// List company employees (optionally filter by clinic)
+router.get("/:companyId/employees", companyCtrl.listEmployees);
+router.post("/:companyId/leave", companyCtrl.leaveCompany);
 
+router.get("/:companyId", companyCtrl.getCompany);
 // All below require :companyId in params!
 router.use("/:companyId", authorizeCompanyAccess);
 
-router.get("/:companyId", companyCtrl.getCompany);
 router.patch("/:companyId", companyCtrl.updateCompany);
 router.delete("/:companyId", companyCtrl.deleteCompany);
-
-router.post("/:companyId/leave", companyCtrl.leaveCompany);
-
-// List company employees (optionally filter by clinic)
-router.get("/:companyId/employees", companyCtrl.listEmployees);
 
 export default router;

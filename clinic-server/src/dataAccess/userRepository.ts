@@ -37,11 +37,13 @@ export async function updateSettings(uid: string, settings: any) {
 export async function removeMembership(
   uid: string,
   companyId: string,
-  clinicId: string
+  clinicId?: string
 ) {
+  const pull: any = { companyId: companyId.toString() };
+  if (clinicId && clinicId.length > 0) pull.clinicId = clinicId;
   return User.findOneAndUpdate(
     { uid },
-    { $pull: { memberships: { companyId, clinicId } } },
+    { $pull: { memberships: pull } },
     { new: true }
   ).exec();
 }

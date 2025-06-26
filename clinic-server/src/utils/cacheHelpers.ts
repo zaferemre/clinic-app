@@ -1,7 +1,5 @@
-// src/utils/cacheHelpers.ts
 import redis from "./cacheClient";
 
-// Cache for 1 minute by default
 const DEFAULT_TTL = 60; // seconds
 
 export async function getOrSetCache<T>(
@@ -16,6 +14,10 @@ export async function getOrSetCache<T>(
   const fresh = await fetchFn();
   await redis.set(key, JSON.stringify(fresh), "EX", ttl);
   return fresh;
+}
+
+export async function setCache<T>(key: string, value: T, ttl = DEFAULT_TTL) {
+  await redis.set(key, JSON.stringify(value), "EX", ttl);
 }
 
 export async function invalidateCache(key: string) {

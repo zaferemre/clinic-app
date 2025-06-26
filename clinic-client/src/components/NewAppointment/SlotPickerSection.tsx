@@ -1,4 +1,3 @@
-// src/components/CalendarView/NewAppointmentModal/SlotPickerSection.tsx
 import SlotPicker from "./SlotPicker";
 type Kind = "individual" | "group" | "ozel";
 
@@ -10,7 +9,7 @@ export interface SlotPickerSectionProps {
   startStr: string;
   setStartStr: (s: string) => void;
   setEndStr: (s: string) => void;
-  busy?: { start: Date; end: Date }[]; // now accept busy as prop for easier modularization!
+  busy?: { start: Date; end: Date }[];
 }
 
 export default function SlotPickerSection({
@@ -20,7 +19,6 @@ export default function SlotPickerSection({
   day,
   startStr,
   setStartStr,
-
   setEndStr,
   busy = [],
 }: Readonly<SlotPickerSectionProps>) {

@@ -81,6 +81,7 @@ type BigCalendarEvent = {
   start: Date;
   end: Date;
   resource: EnrichedAppointment;
+  resourceId?: string; // For resource view
 };
 
 export const CustomCalendar: React.FC = (): React.ReactNode => {
@@ -105,7 +106,7 @@ export const CustomCalendar: React.FC = (): React.ReactNode => {
   }, [idToken, selectedCompanyId, selectedClinicId]);
 
   // State: Calendar view & date
-  const [view, setView] = useState<CalendarViewOption>("week");
+  const [view, setView] = useState<CalendarViewOption>("day");
   const [date, setDate] = useState<Date>(new Date());
 
   // Filters & modals
@@ -126,27 +127,35 @@ export const CustomCalendar: React.FC = (): React.ReactNode => {
   const [newStart, setNewStart] = useState("");
   const [newEnd, setNewEnd] = useState("");
 
-  // --- Events array ---
+  // --- Employees as resources ---
+  const resources = useMemo(
+    () =>
+      employees.map((emp) => ({
+        resourceId: emp.userId, // CHANGE HERE!
+        resourceTitle: emp.name ?? "",
+      })),
+    [employees]
+  );
+
+  const validEmployeeIds = new Set(employees.map((emp) => emp.userId));
   const events: BigCalendarEvent[] = useMemo(
     () =>
       appointments
         .filter(
           (evt) =>
             evt.id !== undefined &&
-            (!filterEmp || evt.employeeId === filterEmp) &&
-            (!filterServ || evt.serviceId === filterServ) &&
-            (!filterGrp || evt.groupId === filterGrp)
+            (view !== "day" || validEmployeeIds.has(evt.employeeId))
         )
         .map((evt) => ({
-          id: evt.id as string,
+          id: evt.id ?? evt._id,
           title: evt.patientName ?? evt.groupName ?? "Etkinlik",
           start: new Date(evt.start),
           end: new Date(evt.end),
           resource: evt,
+          resourceId: evt.employeeId,
         })),
-    [appointments, filterEmp, filterServ, filterGrp]
+    [appointments, view, validEmployeeIds]
   );
-
   // --- Handlers ---
   const handleSelectSlot = (slot: SlotInfo) => {
     setModalDay(slot.start as Date);
@@ -192,7 +201,7 @@ export const CustomCalendar: React.FC = (): React.ReactNode => {
   const handleNewAppointment = async (dto: NewAppointmentDTO) => {
     const payload = {
       ...dto,
-      serviceId: dto.serviceId ?? "",
+      serviceId: dto.serviceId,
       appointmentType:
         dto.appointmentType === "ozel" ? "individual" : dto.appointmentType,
     };
@@ -232,15 +241,18 @@ export const CustomCalendar: React.FC = (): React.ReactNode => {
     refetch?.();
   };
 
-  // No longer needed as we use inline eventPropGetter
-  // Removed extraneous closing bracket
-
   // Time boundaries
   const minTime = new Date();
   minTime.setHours(8, 0, 0, 0);
 
   const maxTime = new Date();
   maxTime.setHours(22, 0, 0, 0);
+
+  // Resource view should only be active for daily view
+  const isResourceView = view === "day";
+  console.log("EMPLOYEES", employees);
+  console.log("RESOURCES", resources);
+  console.log("EVENTS", events);
 
   return (
     <div className="w-full h-full flex flex-col" style={{ background: BG }}>
@@ -313,6 +325,15 @@ export const CustomCalendar: React.FC = (): React.ReactNode => {
           max={maxTime}
           step={30}
           timeslots={2}
+          // Resource view props only for daily view
+          {...(isResourceView
+            ? {
+                resources,
+                resourceIdAccessor: (resource: any) => resource.resourceId,
+                resourceTitleAccessor: (resource: any) =>
+                  resource.resourceTitle,
+              }
+            : {})}
         />
 
         {modalDay && (
@@ -381,10 +402,8 @@ export const CustomCalendar: React.FC = (): React.ReactNode => {
                 : Promise.resolve()
             }
             onUpdate={handleUpdate}
-            // don’t forget to pass services and employees props as well!
             services={services}
             employees={employees}
-            // any other required props
           />
         )}
       </div>

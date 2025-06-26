@@ -36,11 +36,34 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.createNotification = createNotification;
 exports.listNotifications = listNotifications;
 exports.markNotificationDone = markNotificationDone;
 exports.processPending = processPending;
+const mongoose_1 = require("mongoose");
 const notifRepo = __importStar(require("../dataAccess/notificationRepository"));
 const http_errors_1 = __importDefault(require("http-errors"));
+async function createNotification(companyId, clinicId, data) {
+    return notifRepo.createNotification({
+        companyId: new mongoose_1.Types.ObjectId(companyId),
+        clinicId: new mongoose_1.Types.ObjectId(clinicId),
+        patientId: data.patientId ? new mongoose_1.Types.ObjectId(data.patientId) : undefined,
+        groupId: data.groupId ? new mongoose_1.Types.ObjectId(data.groupId) : undefined,
+        type: data.type,
+        status: data.status ?? "pending",
+        message: data.message,
+        title: data.title,
+        trigger: data.trigger,
+        workerUid: data.workerUid,
+        targetUserId: data.targetUserId,
+        note: data.note,
+        sentAt: data.sentAt,
+        priority: data.priority,
+        meta: data.meta,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    });
+}
 async function listNotifications(companyId, clinicId) {
     return notifRepo.listNotifications(companyId, clinicId);
 }

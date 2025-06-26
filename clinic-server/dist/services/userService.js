@@ -42,15 +42,20 @@ exports.registerUser = registerUser;
 exports.addUserMembership = addUserMembership;
 const userRepo = __importStar(require("../dataAccess/userRepository"));
 const cacheHelpers_1 = require("../utils/cacheHelpers");
+const employeeRepo = __importStar(require("../dataAccess/employeeRepository"));
+const mongoose_1 = require("mongoose");
+// Get cached user profile
 async function getUserProfile(uid) {
     const cacheKey = `user:profile:${uid}`;
     return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => userRepo.findByUid(uid));
 }
+// Update user settings, invalidate profile cache
 async function updateUserSettings(uid, updates) {
     const updated = await userRepo.updateSettings(uid, updates);
     await (0, cacheHelpers_1.invalidateCache)(`user:profile:${uid}`);
     return updated;
 }
+// Delete user, invalidate all caches
 async function deleteUser(uid) {
     const deleted = await userRepo.deleteUser(uid);
     await (0, cacheHelpers_1.invalidateCache)(`user:profile:${uid}`);
@@ -58,15 +63,17 @@ async function deleteUser(uid) {
     await (0, cacheHelpers_1.invalidateCache)(`user:clinics:${uid}`);
     return deleted;
 }
+// Get cached user memberships
 async function getUserMemberships(uid) {
     const cacheKey = `user:memberships:${uid}`;
     return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => userRepo.getUserMemberships(uid));
 }
+// Get cached user clinics
 async function getUserClinics(uid) {
     const cacheKey = `user:clinics:${uid}`;
     return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => userRepo.getUserClinics(uid));
 }
-// Registration — Invalidate caches
+// Registration — Invalidate all relevant caches
 async function registerUser(uid, data) {
     const { name } = data;
     if (!name)
@@ -82,9 +89,27 @@ async function registerUser(uid, data) {
     await (0, cacheHelpers_1.invalidateCache)(`user:clinics:${uid}`);
     return result;
 }
+// Add user membership (join company/clinic), immediately update cache!
 async function addUserMembership(uid, membership) {
     const updated = await userRepo.addMembership(uid, membership);
+    // If this is a clinic membership, also upsert as employee
+    if (membership.clinicId) {
+        await employeeRepo.createEmployee({
+            userUid: uid,
+            companyId: new mongoose_1.Types.ObjectId(membership.companyId),
+            clinicId: new mongoose_1.Types.ObjectId(membership.clinicId),
+            roles: membership.roles ?? [],
+            isActive: true,
+        });
+    }
+    // Invalidate old cache keys
     await (0, cacheHelpers_1.invalidateCache)(`user:memberships:${uid}`);
     await (0, cacheHelpers_1.invalidateCache)(`user:clinics:${uid}`);
-    return updated;
+    // Write-through: set fresh cache immediately!
+    const freshMemberships = await userRepo.getUserMemberships(uid);
+    await (0, cacheHelpers_1.setCache)(`user:memberships:${uid}`, freshMemberships);
+    const freshClinics = await userRepo.getUserClinics(uid);
+    await (0, cacheHelpers_1.setCache)(`user:clinics:${uid}`, freshClinics);
+    // Return fresh memberships (or both if you want)
+    return freshMemberships;
 }

@@ -1,5 +1,6 @@
 import { Schema, model, Document, Types } from "mongoose";
 
+// Extend this as needed for your app
 export interface NotificationDocument extends Document {
   companyId: Types.ObjectId;
   clinicId: Types.ObjectId;
@@ -8,10 +9,16 @@ export interface NotificationDocument extends Document {
   type: "call" | "sms" | "email" | "whatsapp" | "system";
   status: "pending" | "sent" | "failed" | "done";
   message: string;
+  title?: string; // (optional) for UI/email subject
   trigger: string;
-  workerUid?: string; // Firebase UID
+  workerUid?: string; // User who performed the action (e.g., staff)
+  targetUserId?: string; // (optional) who should see this notification
   note?: string;
   sentAt?: Date;
+  read?: boolean; // User has viewed/acknowledged notification
+  readAt?: Date; // When notification was read
+  priority?: "low" | "normal" | "high";
+  meta?: any; // Flexible: links, objects, extra data, etc.
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,6 +29,7 @@ const NotificationSchema = new Schema<NotificationDocument>(
     clinicId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
     patientId: { type: Schema.Types.ObjectId, ref: "Patient" },
     groupId: { type: Schema.Types.ObjectId, ref: "Group" },
+
     type: {
       type: String,
       enum: ["call", "sms", "email", "whatsapp", "system"],
@@ -33,12 +41,36 @@ const NotificationSchema = new Schema<NotificationDocument>(
       default: "pending",
     },
     message: { type: String, required: true },
+    title: { type: String }, // Optional: short subject/title
     trigger: { type: String },
-    workerUid: { type: String }, // Firebase UID
+    workerUid: { type: String }, // Action taker
+    targetUserId: { type: String }, // (optional) direct notification recipient
     note: { type: String },
     sentAt: { type: Date },
+
+    // New: in-app read status & when read
+    read: { type: Boolean, default: false },
+    readAt: { type: Date },
+
+    // New: importance
+    priority: {
+      type: String,
+      enum: ["low", "normal", "high"],
+      default: "normal",
+    },
+
+    // New: flexible JSON blob for extra data
+    meta: { type: Schema.Types.Mixed },
   },
   { timestamps: true }
 );
+
+// For fast list queries in dashboards
+NotificationSchema.index({
+  companyId: 1,
+  clinicId: 1,
+  status: 1,
+  createdAt: -1,
+});
 
 export default model<NotificationDocument>("Notification", NotificationSchema);

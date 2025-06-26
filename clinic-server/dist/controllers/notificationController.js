@@ -33,8 +33,19 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.markNotificationDone = exports.listNotifications = void 0;
+exports.markNotificationDone = exports.listNotifications = exports.createNotification = void 0;
 const notificationService = __importStar(require("../services/notificationService"));
+// Create notification
+const createNotification = async (req, res, next) => {
+    try {
+        const notif = await notificationService.createNotification(req.params.companyId, req.params.clinicId, req.body);
+        res.status(201).json(notif);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.createNotification = createNotification;
 // List notifications for a company & clinic
 const listNotifications = async (req, res, next) => {
     try {

@@ -7,5 +7,5 @@ router.use(verifyFirebaseToken);
 
 router.get("/", notifCtrl.listNotifications);
 router.patch("/:notificationId/done", notifCtrl.markNotificationDone);
-
+router.post("/", notifCtrl.createNotification);
 export default router;

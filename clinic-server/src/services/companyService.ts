@@ -82,7 +82,7 @@ export async function joinByCode(uid: string, code: string) {
   await userRepo.addMembership(uid, {
     companyId: company._id.toString(),
     companyName: company.name,
-    roles: ["member"],
+    roles: ["staff"],
   } as Membership);
 
   return {
