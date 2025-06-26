@@ -6,7 +6,6 @@ import {
 } from "@heroicons/react/24/outline";
 import PatientPreviewList from "../../Lists/PatientPreviewList";
 import EditGroupForm from "../../Forms/EditGroupForm";
-// new imports for appointments
 import { useAuth } from "../../../contexts/AuthContext";
 import { useEnrichedAppointments } from "../../../hooks/useEnrichedAppointments";
 import type {
@@ -18,27 +17,29 @@ import type {
 interface GroupCardProps {
   group: Group;
   patients: Patient[];
-  isExpanded?: boolean;
+  isExpanded?: boolean; // NEW
   onToggleExpand?: (id: string) => void;
 }
 
 const GroupCard: React.FC<GroupCardProps> = ({
   group,
   patients,
-  isExpanded: parentExpanded,
+  isExpanded: controlledExpanded,
   onToggleExpand,
 }) => {
-  // Local expand state if parent doesn't control it
-  const [expanded, setExpanded] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
 
-  const expandedState =
-    parentExpanded !== undefined ? parentExpanded : expanded;
-  const handleToggle = () => {
-    if (onToggleExpand) onToggleExpand(group._id);
-    else setExpanded((e) => !e);
-  };
+  // If isExpanded is provided, use that, else use local state
+  const expanded = controlledExpanded ?? localExpanded;
 
+  const handleToggle = () => {
+    if (onToggleExpand) {
+      onToggleExpand(group._id);
+    } else {
+      setLocalExpanded((e) => !e);
+    }
+  };
   // Auth + hook to fetch all appointments
   const { idToken, selectedCompanyId, selectedClinicId } = useAuth();
   const { appointments } = useEnrichedAppointments(
@@ -67,7 +68,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
   return (
     <div
       className={`bg-white mx-3 rounded-2xl shadow p-4 mb-3 transition relative ${
-        expandedState ? "ring-2 ring-brand-main" : ""
+        expanded ? "ring-2 ring-brand-main" : ""
       }`}
       tabIndex={0}
       role="button"
@@ -75,6 +76,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
       onKeyDown={(e) => {
         if (e.key === "Enter") handleToggle();
       }}
+      style={{ cursor: "pointer" }}
     >
       {/* Header */}
       <div className="flex justify-between items-center gap-2">
@@ -116,6 +118,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
             className="p-2 rounded-full bg-green-50 hover:bg-green-100"
             aria-label="Edit group"
             tabIndex={0}
+            type="button"
           >
             <PencilIcon className="w-5 h-5 text-green-600" />
           </button>
@@ -125,10 +128,11 @@ const GroupCard: React.FC<GroupCardProps> = ({
               e.stopPropagation();
               handleToggle();
             }}
-            aria-label={expandedState ? "Kapat" : "Aç"}
+            aria-label={expanded ? "Kapat" : "Aç"}
             tabIndex={0}
+            type="button"
           >
-            {expandedState ? (
+            {expanded ? (
               <ChevronUpIcon className="w-5 h-5 text-brand-gray-400" />
             ) : (
               <ChevronDownIcon className="w-5 h-5 text-brand-gray-400" />
@@ -138,7 +142,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
       </div>
 
       {/* Expanded: show patients & appointments */}
-      {expandedState && (
+      {expanded && (
         <div className="mt-3 space-y-4">
           <div>
             <span className="font-semibold text-brand-black">Hastalar:</span>

@@ -1,13 +1,13 @@
 import React from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import GreetingHeader from "../GreetingHeader/GreetingHeader";
 import Greetings from "../GreetingHeader/Greetings";
+import HomeGreetingHeader from "../GreetingHeader/HomeGreetingsHeader";
 
 const HomeHeader: React.FC = () => {
   const { user, selectedClinicName } = useAuth();
   return (
     <>
-      <GreetingHeader
+      <HomeGreetingHeader
         userAvatarUrl={user?.photoUrl ?? ""}
         clinicName={selectedClinicName ?? ""}
         pageTitle="Ana Sayfa"

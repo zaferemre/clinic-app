@@ -6,13 +6,15 @@ import {
   deleteCompany,
 } from "../../api/companyApi";
 import { useNavigate } from "react-router-dom";
-import CompanySettingsHeader from "../../components/CompanySettings/CompanySettingsHeader";
 import CompanySettingsForm from "../../components/CompanySettings/CompanySettingsForm";
 import CompanyDeleteSection from "../../components/CompanySettings/CompanyDeleteSection";
 import { Company } from "../../types/sharedTypes";
+import GreetingHeader from "../../components/GreetingHeader/GreetingHeader";
+import NavigationBar from "../../components/NavigationBar/NavigationBar";
 
 export default function CompanySettingsPage() {
-  const { idToken, selectedCompanyId, signOut } = useAuth();
+  const { idToken, selectedCompanyId, signOut, user, selectedClinicName } =
+    useAuth();
   const [company, setCompany] = useState<Company | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,9 +128,16 @@ export default function CompanySettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-start pt-12 pb-6 px-4">
-      <div className="w-full max-w-xl mx-auto bg-white rounded-2xl shadow-lg p-8 mt-2">
-        <CompanySettingsHeader />
+    <div className="min-h-screen bg-white flex flex-col items-center justify-start  pb-20 px-4">
+      <div className="py-4">
+        <GreetingHeader
+          userAvatarUrl={user?.photoUrl}
+          clinicName={selectedClinicName ?? ""}
+          pageTitle="Şirket Ayarları"
+          showBackButton
+        />
+      </div>
+      <div className="w-full max-w-xl mx-auto bg-white rounded-2xl shadow-lg p-4">
         <p className="text-gray-600 mb-5">
           Şirketinize ait bilgileri ve genel ayarları burada
           güncelleyebilirsiniz.
@@ -150,6 +159,7 @@ export default function CompanySettingsPage() {
           onCancel={() => setShowDeleteConfirm(false)}
         />
       </div>
+      <NavigationBar />
     </div>
   );
 }

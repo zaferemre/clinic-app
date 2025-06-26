@@ -42,10 +42,8 @@ export const UpcomingAppointments: React.FC<UpcomingAppointmentsProps> = ({
   if (apptsToShow.length === 0) {
     return (
       <div className="mb-4">
-        <h3 className="text-lg font-bold text-brand-main-700">
-          Günün Randevuları
-        </h3>
-        <div className="text-sm text-gray-400 text-center py-4 bg-brand-main-50 rounded-xl">
+        <h3 className="text-lg font-bold text-gray-600">Günün Randevuları</h3>
+        <div className="text-sm text-gray-400 text-center py-4 bg-gray-100 rounded-xl">
           Bugün için randevu yok.
         </div>
       </div>

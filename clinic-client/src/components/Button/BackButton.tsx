@@ -11,7 +11,7 @@ const BackButton: React.FC<{ className?: string }> = ({ className = "" }) => {
         className={`
           flex items-center justify-center w-10 h-10 rounded-full bg-white
           text-brand-main hover:bg-brand-main-50 active:bg-brand-main-100
-          transition shadow-md border border-brand-main-100
+          transition  border border-brand-main-100
           focus:outline-none focus:ring-2 focus:ring-brand-main-200
         `}
         aria-label="Geri"

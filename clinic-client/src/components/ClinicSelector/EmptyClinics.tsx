@@ -9,14 +9,14 @@ interface Props {
 
 const EmptyClinics: React.FC<Props> = ({ onCreated }) => (
   <div className="w-full flex flex-col items-center">
-    <div className="rounded-full bg-brand-main/10 p-6 mb-4">
-      <BuildingOffice2Icon className="w-14 h-14 text-brand-main" />
+    <div className="rounded-full bg-white p-6 mb-4">
+      <BuildingOffice2Icon className="w-14 h-14 text-black" />
     </div>
-    <div className="text-xl font-semibold text-brand-main mb-1 text-center">
+    <div className="text-xl font-semibold text-black mb-1 text-center">
       Henüz bir klinik yok!
     </div>
     <div className="text-gray-500 mb-7 text-center max-w-xs">
-      <span className="font-medium text-brand-main">
+      <span className="font-medium text-black">
         İlk kliniğinizi eklemek için aşağıdaki butonu kullanın.
       </span>
     </div>

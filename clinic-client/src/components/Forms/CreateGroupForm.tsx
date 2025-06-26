@@ -1,4 +1,3 @@
-// src/components/Forms/CreateGroupForm.tsx
 import { useState, useEffect, useRef } from "react";
 import AppModal, { ModalForm } from "../Modals/AppModal";
 import { createGroup } from "../../api/groupApi";
@@ -32,6 +31,7 @@ export default function CreateGroupForm({
     patients: [] as string[],
   });
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [search, setSearch] = useState(""); // --- NEW: Search input
   const [error, setError] = useState<string | null>(null);
 
   // stash new group for onSuccess
@@ -46,12 +46,18 @@ export default function CreateGroupForm({
   }, [show, idToken, companyId, clinicId]);
 
   const handleTogglePatient = (pid: string) => {
-    setForm((f) => ({
-      ...f,
-      patients: f.patients.includes(pid)
-        ? f.patients.filter((id) => id !== pid)
-        : [...f.patients, pid],
-    }));
+    setForm((f) => {
+      // Limit selection to max group size!
+      if (!f.patients.includes(pid) && f.patients.length >= f.size) {
+        return f; // Don't allow adding more than max size
+      }
+      return {
+        ...f,
+        patients: f.patients.includes(pid)
+          ? f.patients.filter((id) => id !== pid)
+          : [...f.patients, pid],
+      };
+    });
   };
 
   const handleSubmit = async (): Promise<boolean> => {
@@ -92,6 +98,15 @@ export default function CreateGroupForm({
     }
   };
 
+  // --- NEW: Filtered patients by search (case-insensitive) ---
+  const filteredPatients = patients.filter((p) =>
+    !search.trim()
+      ? true
+      : p.name
+          ?.toLocaleLowerCase("tr-TR")
+          .includes(search.trim().toLocaleLowerCase("tr-TR"))
+  );
+
   return (
     <AppModal
       open={show}
@@ -129,7 +144,15 @@ export default function CreateGroupForm({
                 min={1}
                 value={form.size}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, size: Number(e.target.value) }))
+                  setForm((f) => {
+                    // Reset selection if reduced below current number!
+                    const newSize = Number(e.target.value);
+                    let newPatients = f.patients;
+                    if (newSize < f.patients.length) {
+                      newPatients = f.patients.slice(0, newSize);
+                    }
+                    return { ...f, size: newSize, patients: newPatients };
+                  })
                 }
                 className="w-full border px-3 py-2 rounded-xl"
               />
@@ -162,15 +185,27 @@ export default function CreateGroupForm({
             />
           </div>
 
-          {/* Patients */}
+          {/* --- NEW: Patient search and selected count --- */}
           <div>
             <label className="block text-sm font-semibold text-brand-main mb-1">
-              Hastalar
+              Hasta Ara
             </label>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Hasta ismine göre ara..."
+              className="w-full border px-3 py-2 rounded-xl mb-2"
+            />
+            <div className="mb-1 text-xs text-brand-main font-semibold">
+              {form.patients.length}/{form.size} seçildi
+            </div>
             <PatientPreviewList
-              patients={patients}
+              patients={filteredPatients}
               selectedIds={form.patients}
               onToggleSelect={handleTogglePatient}
+              // Add disabledIds prop after updating PatientPreviewListProps interface
+              // disabledIds={form.patients.length >= form.size ? form.patients : []}
             />
           </div>
 

@@ -151,13 +151,14 @@ export const UserSettings: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-gray-100 pb-16 ">
-      <GreetingHeader
-        userAvatarUrl={photoUrl}
-        clinicName={selectedClinicName ?? ""}
-        pageTitle="Hesap Ayarları"
-        showBackButton
-      />
-
+      <div className="pt-4 px-4">
+        <GreetingHeader
+          userAvatarUrl={photoUrl}
+          clinicName={selectedClinicName ?? ""}
+          pageTitle="Hesap Ayarları"
+          showBackButton
+        />
+      </div>
       <main className="flex-1 max-w-4xl mx-auto p-6 space-y-6">
         {/* Avatar & Name Section */}
         <div className="bg-white p-6 rounded-lg shadow space-y-4">
@@ -222,7 +223,7 @@ export const UserSettings: React.FC = () => {
               <button
                 key={c}
                 onClick={() => setBgColor(c)}
-                className={`w-8 h-8 rounded-full border-2 transition ${
+                className={`w-7 h-7 rounded-full border-2 transition ${
                   bgColor === c
                     ? "border-brand-main scale-110"
                     : "border-gray-200"

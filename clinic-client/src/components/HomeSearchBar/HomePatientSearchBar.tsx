@@ -131,7 +131,7 @@ const HomePatientSearchBar: React.FC<HomePatientSearchBarProps> = ({
     <>
       {/* Search trigger */}
       <motion.button
-        className="p-2 rounded-full bg-brand-main-100 hover:bg-brand-main-200 shadow transition"
+        className="p-2 rounded-full bg-brand-main-100 hover:bg-brand-main-200  transition"
         whileTap={{ scale: 0.92 }}
         onClick={() => setOpen(true)}
         aria-label="Ara"

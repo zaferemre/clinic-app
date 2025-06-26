@@ -10,6 +10,9 @@ export default function PatientSelect({
   readonly setValue: (id: string) => void;
   readonly onNewPatient: () => void;
 }) {
+  // Find selected patient
+  const selectedPatient = patients.find((p) => p._id === value);
+
   return (
     <div>
       <label
@@ -43,6 +46,27 @@ export default function PatientSelect({
           + Yeni
         </button>
       </div>
+      {/* Show credit warning if needed */}
+      {selectedPatient &&
+        (typeof selectedPatient.credit !== "number" ||
+          selectedPatient.credit <= 0) && (
+          <div className="mt-2 text-sm text-red-600 font-semibold flex items-center gap-1">
+            <svg
+              className="w-4 h-4 text-red-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Bu hastanın kredisi yok. Randevu oluşturmak kredi düşmeyecek.
+          </div>
+        )}
     </div>
   );
 }

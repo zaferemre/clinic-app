@@ -1,4 +1,3 @@
-// src/pages/ClinicSelector/ClinicSelectorPage.tsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -10,7 +9,10 @@ import EmptyClinics from "../../components/ClinicSelector/EmptyClinics";
 import CompanySettingsButton from "../../components/ClinicSelector/CompanySettingsButton";
 import { ArrowLeftStartOnRectangleIcon } from "@heroicons/react/24/outline";
 import AppModal from "../../components/Modals/AppModal";
-import { addMembership } from "../../api/userApi"; // <-- You need to implement this API
+import { addMembership } from "../../api/userApi";
+
+const MAIN_BG =
+  "linear-gradient(135deg, #ffe1da 0%, #fdf3ef 45%, #fff7f4 100%)";
 
 export function ClinicSelectorPage() {
   const navigate = useNavigate();
@@ -105,27 +107,33 @@ export function ClinicSelectorPage() {
   const noClinics = clinics.length === 0;
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col bg-white">
-      {/* Top Gradient */}
-      <div className="absolute inset-0 h-1/2 z-0 bg-[radial-gradient(circle_at_top,_rgba(226,114,91,0.6)_0%,_rgba(184,108,255,0.24)_50%,_white_90%)]" />
-
+    <div
+      className="relative min-h-screen w-full flex flex-col"
+      style={{ background: MAIN_BG, fontFamily: "'Inter', sans-serif" }}
+    >
       {/* Logout button */}
       <button
         onClick={() => {
           signOut();
           navigate("/login", { replace: true });
         }}
-        className="absolute top-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur text-brand-main font-semibold rounded-2xl border border-white/30 shadow hover:bg-white/90 hover:text-red-600 transition active:scale-95 text-base"
+        className="absolute top-4 right-4 z-20 flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur text-[#e2725b] font-semibold rounded-2xl border border-white/30 shadow hover:bg-white/90 hover:text-red-600 transition active:scale-95 text-base"
         title="Çıkış Yap"
       >
         <ArrowLeftStartOnRectangleIcon className="w-5 h-5" />
+        Çıkış
       </button>
 
-      {/* Centered Header */}
-      <ClinicSelectorHeader companyName={selectedCompanyName} />
+      {/* HEADER at the top */}
+      <div className="w-full flex flex-col items-center pt-10 pb-2 select-none">
+        <ClinicSelectorHeader companyName={selectedCompanyName} />
+      </div>
 
-      {/* Main content */}
-      <main className="relative z-10 mt-auto w-full px-6 pb-40 flex flex-col items-center">
+      {/* Spacer to push main to center */}
+      <div className="flex-1" />
+
+      {/* MAIN CONTENT (Clinic List/Empty State/Settings) */}
+      <main className="w-full max-w-xl mx-auto flex flex-col items-center px-4 mb-20">
         {noClinics ? (
           <EmptyClinics onCreated={handleClinicCreated} />
         ) : (
@@ -137,11 +145,18 @@ export function ClinicSelectorPage() {
         )}
 
         {isOwner && (
-          <CompanySettingsButton
-            onClick={() => navigate("/company-settings")}
-          />
+          <div className="w-full flex justify-center mt-8">
+            <CompanySettingsButton
+              onClick={() => navigate("/company-settings")}
+            />
+          </div>
         )}
       </main>
+
+      {/* Footer */}
+      <div className="absolute bottom-2 left-0 w-full text-center text-xs text-gray-400 pointer-events-none select-none z-0">
+        © {new Date().getFullYear()} randevi
+      </div>
 
       {/* Modal */}
       {pendingJoinClinic && (
@@ -151,7 +166,7 @@ export function ClinicSelectorPage() {
               Bu kliniğe katılmak istiyor musunuz?
             </h2>
             <div className="bg-gray-50 rounded-xl p-4">
-              <div className="font-bold text-brand-main text-lg mb-1">
+              <div className="font-bold text-[#e2725b] text-lg mb-1">
                 {pendingJoinClinic.name}
               </div>
               <div className="text-gray-700 mb-1">
@@ -189,4 +204,5 @@ export function ClinicSelectorPage() {
     </div>
   );
 }
+
 export default ClinicSelectorPage;

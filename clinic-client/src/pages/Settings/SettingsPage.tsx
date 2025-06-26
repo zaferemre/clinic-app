@@ -6,9 +6,6 @@ import {
   Cog8ToothIcon,
   BuildingLibraryIcon,
   UserGroupIcon,
-  BellAlertIcon,
-  EyeIcon,
-  ShieldCheckIcon,
   AdjustmentsHorizontalIcon,
   ArrowRightStartOnRectangleIcon,
 } from "@heroicons/react/24/outline";
@@ -67,13 +64,6 @@ const SettingsPage: React.FC = () => {
           },
         ]
       : []),
-    {
-      label: "Bildirim Ayarları",
-      icon: BellAlertIcon,
-      path: `${base}/notifications`,
-    },
-    { label: "Görünüm", icon: EyeIcon, path: `${base}/appearance` },
-    { label: "Güvenlik", icon: ShieldCheckIcon, path: `${base}/security` },
   ];
 
   const [showPatientModal, setShowPatientModal] = useState(false);
@@ -100,7 +90,7 @@ const SettingsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-brand-gray-100 flex flex-col pb-16">
-      <div className="px-4 pt-4 bg-transparent">
+      <div className="p-4 ">
         <GreetingHeader
           userAvatarUrl={user?.photoUrl ?? ""}
           clinicName={selectedClinicName ?? ""}

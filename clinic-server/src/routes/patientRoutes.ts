@@ -15,5 +15,4 @@ router.delete("/:patientId", patientCtrl.deletePatient);
 router.post("/:patientId/payments", patientCtrl.recordPayment);
 router.get("/:patientId/appointments", patientCtrl.getPatientAppointments);
 router.post("/:patientId/call-flag", patientCtrl.flagPatientCall);
-
 export default router;

@@ -5,7 +5,6 @@ import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useAuth } from "../../contexts/AuthContext";
 import { getPatients } from "../../api/patientApi";
 import { listGroups } from "../../api/groupApi";
-import BackButton from "../Button/BackButton";
 import {
   ChevronDownIcon,
   Cog6ToothIcon,
@@ -41,10 +40,9 @@ const itemVariants: Variants = {
   closed: { opacity: 0, y: -10 },
 };
 
-export default function GreetingHeader({
+export default function HomeGreetingHeader({
   clinicName,
   pageTitle,
-  showBackButton = false,
 }: Readonly<GreetingHeaderProps>) {
   const { idToken, selectedCompanyId, selectedClinicId, signOut, user } =
     useAuth();
@@ -98,11 +96,12 @@ export default function GreetingHeader({
   return (
     <header className="flex items-center justify-between w-full py-2 sm:px-4">
       <div className="flex items-center flex-1 min-w-0">
-        {showBackButton && (
-          <div className="mr-3  flex-shrink-0">
-            <BackButton />
-          </div>
-        )}
+        <img
+          src="/icons/logo-sm.png"
+          alt="Randevy Logo"
+          className="h-10 w-auto   mr-3"
+        />
+
         <nav
           className="flex items-center gap-1 min-w-0 text-ellipsis overflow-hidden"
           aria-label="Breadcrumb"

@@ -9,6 +9,7 @@ import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 import GroupsList from "../../components/Lists/GroupList/GroupList";
 import GreetingHeader from "../../components/GreetingHeader/GreetingHeader";
 import { Group, Patient } from "../../types/sharedTypes";
+import { AnimatePresence, motion } from "framer-motion";
 
 // --- Empty State components ---
 const EmptyPatients = ({ onAdd }: { onAdd: () => void }) => (
@@ -170,35 +171,67 @@ const PatientsPage: React.FC = () => {
       {/* FAB */}
       <div className="fixed bottom-24 right-4 z-30">
         <div className="relative">
-          {fabOpen && (
-            <div className="absolute bottom-16 right-0 flex flex-col gap-3 items-end animate-fade-in">
-              <button
-                onClick={() => {
-                  setShowModal("patient");
-                  setFabOpen(false);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-brand-main text-white rounded-xl  font-bold hover:bg-brand-red transition"
+          <AnimatePresence>
+            {fabOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 40 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="absolute bottom-16 right-0 flex flex-col gap-3 items-end"
               >
-                <UserPlusIcon className="h-7" /> Müşteri Ekle
-              </button>
-              <button
-                onClick={() => {
-                  setShowModal("group");
-                  setFabOpen(false);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-brand-purple text-white rounded-xl  font-bold hover:bg-brand-fuchsia transition"
-              >
-                <UserGroupIcon className="h-7" /> Grup Oluştur
-              </button>
-            </div>
-          )}
-          <button
+                {/* Patient Button */}
+                <motion.button
+                  initial={{ opacity: 0, x: 60, scale: 0.9 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 60, scale: 0.9 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 20,
+                    delay: 0.05,
+                  }}
+                  onClick={() => {
+                    setShowModal("patient");
+                    setFabOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-brand-main text-white rounded-xl  font-bold hover:bg-brand-red transition"
+                >
+                  <UserPlusIcon className="h-7" /> Müşteri Ekle
+                </motion.button>
+                {/* Group Button */}
+                <motion.button
+                  initial={{ opacity: 0, x: 60, scale: 0.9 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 60, scale: 0.9 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 20,
+                    delay: 0.12,
+                  }}
+                  onClick={() => {
+                    setShowModal("group");
+                    setFabOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-brand-main rounded-xl  font-bold hover:bg-brand-fuchsia transition"
+                >
+                  <UserGroupIcon className="h-7" /> Grup Oluştur
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <motion.button
             className="w-14 h-14 rounded-full bg-brand-main flex items-center justify-center text-white hover:bg-brand-red transition text-3xl"
             onClick={() => setFabOpen((o) => !o)}
             aria-label="Yeni ekle"
+            animate={{ rotate: fabOpen ? 45 : 0 }} // 135deg makes a + look like x
+            transition={{ type: "spring", stiffness: 400, damping: 18 }}
+            whileTap={{ scale: 0.93 }}
+            style={{ originX: 0.5, originY: 0.5 }}
           >
             <PlusIcon className="h-8 w-8" />
-          </button>
+          </motion.button>
         </div>
       </div>
 

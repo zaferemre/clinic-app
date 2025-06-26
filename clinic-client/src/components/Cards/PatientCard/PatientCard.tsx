@@ -1,22 +1,25 @@
 // src/components/Cards/PatientCard/PatientCard.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   PencilIcon,
   PhoneIcon,
   TrashIcon,
   ChevronUpIcon,
   ChevronDownIcon,
+  BanknotesIcon,
 } from "@heroicons/react/24/outline";
 import EditPatientModal from "../../Modals/EditPatientModal";
 import GroupPreviewList from "../../Lists/GroupPreviewList";
-import {
-  flagPatientCall,
-  deletePatient,
-  getPatientAppointments,
-} from "../../../api/patientApi";
+import { flagPatientCall, deletePatient } from "../../../api/patientApi";
 import { useAuth } from "../../../contexts/AuthContext";
-import type { Patient, Group } from "../../../types/sharedTypes";
-
+import { useEnrichedAppointments } from "../../../hooks/useEnrichedAppointments";
+import type {
+  Patient,
+  Group,
+  EnrichedAppointment,
+} from "../../../types/sharedTypes";
+import AddPaymentModal from "../../Modals/AddPaymentModal";
+import { recordPayment } from "../../../api/patientApi";
 interface PatientCardProps {
   patient: Patient;
   groups?: Group[];
@@ -35,34 +38,34 @@ const PatientCard: React.FC<PatientCardProps> = ({
   onUpdatePatient,
 }) => {
   const { idToken, selectedCompanyId, selectedClinicId } = useAuth();
-  const [pastAppointments, setPastAppointments] = useState<
-    { id: string; start: string; status: string; employeeId: string }[]
-  >([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [showCallModal, setShowCallModal] = useState(false);
-  const [callNote, setCallNote] = useState("");
-  const [sendingCall, setSendingCall] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const { appointments } = useEnrichedAppointments(
+    idToken!,
+    selectedCompanyId!,
+    selectedClinicId!
+  );
 
-  function isIdEqual(a: any, b: any) {
-    return a?.toString?.() === b?.toString?.();
-  }
+  // --- FILTER FOR THIS PATIENT ---
+  const patientAppointments = useMemo<EnrichedAppointment[]>(
+    () => (appointments || []).filter((a) => a.patientId === patient._id),
+    [appointments, patient._id]
+  );
 
+  // --- OTHER CALCULATIONS ---
   const myGroups = groups.filter(
     (g) =>
       Array.isArray(g.patients) &&
-      g.patients.some((pid) => isIdEqual(pid, patient._id))
+      g.patients.some((pid) => pid.toString() === patient._id.toString())
   );
 
   const lastPayment = patient.paymentHistory?.length
     ? patient.paymentHistory[patient.paymentHistory.length - 1].method
     : "Yok";
 
-  const activityCount = pastAppointments.length;
+  const activityCount = patientAppointments.length;
   const lastAppointment = activityCount
     ? new Date(
         Math.max(
-          ...pastAppointments.map((appt) => new Date(appt.start).getTime())
+          ...patientAppointments.map((appt) => new Date(appt.start).getTime())
         )
       ).toLocaleDateString("tr-TR")
     : "Yok";
@@ -74,41 +77,13 @@ const PatientCard: React.FC<PatientCardProps> = ({
       })
     : "";
 
-  // Fetch past appointments on mount
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      if (!idToken || !selectedCompanyId || !selectedClinicId) return;
-      setLoadingHistory(true);
-      try {
-        const data = await getPatientAppointments(
-          idToken,
-          selectedCompanyId,
-          selectedClinicId,
-          patient._id
-        );
-        if (!cancelled) {
-          setPastAppointments(
-            data.map((appt: any) => ({
-              id: appt.id,
-              start: appt.start,
-              status: appt.status,
-              employeeId: appt.employeeId || "-",
-            }))
-          );
-        }
-      } catch {
-        if (!cancelled) setPastAppointments([]);
-      } finally {
-        if (!cancelled) setLoadingHistory(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [idToken, selectedCompanyId, selectedClinicId, patient._id]);
+  // --- LOCAL UI STATE ---
+  const [showCallModal, setShowCallModal] = useState(false);
+  const [callNote, setCallNote] = useState("");
+  const [sendingCall, setSendingCall] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
+  // --- HANDLERS ---
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!window.confirm("Bu müşteriyi silmek istediğinize emin misiniz?"))
@@ -149,8 +124,10 @@ const PatientCard: React.FC<PatientCardProps> = ({
       setSendingCall(false);
     }
   };
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
 
-  // Determine pill styles
+  // --- STYLES FOR PILLS ---
   const pillBase = "rounded px-2 py-0.5 text-xs";
   const creditStyle = "bg-brand-main-50 text-brand-main-700";
   const activityStyle =
@@ -226,6 +203,7 @@ const PatientCard: React.FC<PatientCardProps> = ({
       {/* Expanded Details */}
       {isExpanded && (
         <div className="mt-4 space-y-4 text-sm text-gray-700">
+          {/* Action Buttons */}
           <div className="flex gap-3 justify-center">
             <button
               onClick={(e) => {
@@ -236,6 +214,17 @@ const PatientCard: React.FC<PatientCardProps> = ({
             >
               <PencilIcon className="w-5 h-5" />
             </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPaymentModal(true);
+              }}
+              className="p-2 rounded-full bg-brand-main-50 hover:bg-brand-main-100 text-brand-main transition"
+              title="Ödeme Ekle"
+            >
+              <BanknotesIcon className="w-5 h-5" />
+            </button>
+
             <button
               onClick={handleCallClick}
               className="p-2 rounded-full bg-brand-main-50 hover:bg-brand-main-100 text-brand-main transition"
@@ -249,10 +238,14 @@ const PatientCard: React.FC<PatientCardProps> = ({
               <TrashIcon className="w-5 h-5" />
             </button>
           </div>
+
+          {/* Groups */}
           <div>
             <span className="font-medium text-gray-900">Gruplar:</span>
             <GroupPreviewList groups={myGroups} />
           </div>
+
+          {/* Services */}
           <div>
             <span className="font-medium text-gray-900">Hizmetler:</span>
             {patient.services?.length ? (
@@ -268,14 +261,29 @@ const PatientCard: React.FC<PatientCardProps> = ({
               <span className="ml-2 text-gray-500">Yok</span>
             )}
           </div>
+
+          {/* Payment History */}
           <div>
             <span className="font-medium text-gray-900">Ödeme Geçmişi:</span>
             {patient.paymentHistory?.length ? (
               <ul className="ml-4 list-disc">
                 {patient.paymentHistory.map((ph, i) => (
-                  <li key={i}>
-                    {new Date(ph.date).toLocaleDateString()} - {ph.method}
-                    {ph.note && ` (${ph.note})`}
+                  <li
+                    key={i}
+                    className={
+                      ph.method === "Unpaid" ? "text-red-400 font-semibold" : ""
+                    }
+                  >
+                    {new Date(ph.date).toLocaleDateString("tr-TR")} –{" "}
+                    {ph.method === "Unpaid"
+                      ? `Ödenmedi: ${ph.amount.toLocaleString("tr-TR", {
+                          style: "currency",
+                          currency: "TRY",
+                        })}${ph.note ? ` (${ph.note})` : ""}`
+                      : `${ph.method}: ${ph.amount.toLocaleString("tr-TR", {
+                          style: "currency",
+                          currency: "TRY",
+                        })}${ph.note ? ` (${ph.note})` : ""}`}
                   </li>
                 ))}
               </ul>
@@ -283,18 +291,19 @@ const PatientCard: React.FC<PatientCardProps> = ({
               <span className="ml-2 text-gray-500">Yok</span>
             )}
           </div>
+
+          {/* Past Appointments with Employee Names */}
           <div>
             <span className="font-medium text-gray-900">
               Geçmiş Randevular:
             </span>
-            {loadingHistory ? (
-              <span className="ml-2 text-gray-500">Yükleniyor...</span>
-            ) : pastAppointments.length ? (
+            {patientAppointments.length ? (
               <ul className="ml-4 list-disc">
-                {pastAppointments.map((a, i) => (
-                  <li key={i}>
-                    {new Date(a.start).toLocaleDateString()} –{" "}
-                    <strong>{a.employeeId}</strong> – {a.status}
+                {patientAppointments.map((a) => (
+                  <li key={a.id}>
+                    {new Date(a.start).toLocaleDateString("tr-TR")} –{" "}
+                    <strong>{a.employeeName || a.employeeEmail || "-"}</strong>{" "}
+                    – {a.status}
                   </li>
                 ))}
               </ul>
@@ -302,6 +311,8 @@ const PatientCard: React.FC<PatientCardProps> = ({
               <span className="ml-2 text-gray-500">Yok</span>
             )}
           </div>
+
+          {/* Created At */}
           <div>
             <span className="font-medium text-gray-900">Kayıt Tarihi:</span>
             <span className="ml-2 text-gray-600">{createdAtString}</span>
@@ -354,6 +365,35 @@ const PatientCard: React.FC<PatientCardProps> = ({
         onClose={() => setShowEditModal(false)}
         patient={patient}
         onUpdated={onUpdatePatient}
+      />
+      <AddPaymentModal
+        open={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        loading={paymentLoading}
+        onSubmit={async (entry) => {
+          setPaymentLoading(true);
+          try {
+            await recordPayment(
+              idToken!,
+              selectedCompanyId!,
+              selectedClinicId!,
+              patient._id,
+              entry
+            );
+            // Optionally: update parent UI or refetch patient/payments here
+            setShowPaymentModal(false);
+            onUpdatePatient?.({}); // Just a signal to refresh, or do nothing if not needed
+          } catch (err: any) {
+            alert(err.message || "Ödeme kaydı başarısız.");
+          } finally {
+            setPaymentLoading(false);
+          }
+        }}
+        lastPayments={
+          patient.paymentHistory
+            ? [...patient.paymentHistory].reverse().slice(0, 5)
+            : []
+        }
       />
     </div>
   );

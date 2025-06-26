@@ -19,7 +19,9 @@ const EditPatientModal: React.FC<EditPatientModalProps> = ({
 }) => {
   const { idToken, selectedCompanyId } = useAuth();
   const [name, setName] = useState(patient.name);
-  const [age, setAge] = useState(patient.age?.toString() ?? "");
+  const [credit, setCredit] = useState(
+    patient.credit !== undefined ? patient.credit.toString() : ""
+  );
   const [phone, setPhone] = useState(patient.phone ?? "");
   const [note, setNote] = useState(patient.note ?? "");
   const [message, setMessage] = useState("");
@@ -29,7 +31,7 @@ const EditPatientModal: React.FC<EditPatientModalProps> = ({
   useEffect(() => {
     if (open) {
       setName(patient.name);
-      setAge(patient.age?.toString() ?? "");
+      setCredit(patient.credit !== undefined ? patient.credit.toString() : "");
       setPhone(patient.phone ?? "");
       setNote(patient.note ?? "");
       setMessage("");
@@ -49,13 +51,18 @@ const EditPatientModal: React.FC<EditPatientModalProps> = ({
         patient._id,
         {
           name: name.trim(),
-          age: age ? Number(age) : undefined,
+          credit: credit ? Number(credit) : undefined,
           phone: phone.trim(),
           note: note.trim(),
         }
       );
       setMessage("Hasta başarıyla güncellendi.");
-      onUpdated?.({ name, age: age ? Number(age) : undefined, phone, note });
+      onUpdated?.({
+        name,
+        credit: credit ? Number(credit) : undefined,
+        phone,
+        note,
+      });
       // close after brief delay
       setTimeout(() => onClose(), 800);
     } catch (err: unknown) {
@@ -87,19 +94,20 @@ const EditPatientModal: React.FC<EditPatientModalProps> = ({
         </div>
         <div>
           <label
-            htmlFor="edit-patient-age"
+            htmlFor="edit-patient-credit"
             className="block text-sm font-medium text-brand-black"
           >
-            Yaş
+            Seans Kredisi
           </label>
           <input
-            id="edit-patient-age"
+            id="edit-patient-credit"
             type="number"
             min="0"
+            step="1"
             className="mt-1 block w-full border border-brand-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-green-300"
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
-            placeholder="Yaş"
+            value={credit}
+            onChange={(e) => setCredit(e.target.value)}
+            placeholder="Kredi miktarı"
           />
         </div>
         <div>

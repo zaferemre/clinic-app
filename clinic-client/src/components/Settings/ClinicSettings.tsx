@@ -1,11 +1,12 @@
 // src/pages/Settings/ClinicSettings.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BuildingStorefrontIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { TrashIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "../../contexts/AuthContext";
 import { getClinicById, updateClinic, deleteClinic } from "../../api/clinicApi";
 import { NavigationBar } from "../../components/NavigationBar/NavigationBar";
 import type { Clinic } from "../../types/sharedTypes";
+import GreetingHeader from "../GreetingHeader/GreetingHeader";
 
 interface AddressFields {
   province: string;
@@ -29,7 +30,7 @@ const DEFAULT_ADDRESS: AddressFields = {
 };
 
 const ClinicSettings: React.FC = () => {
-  const { idToken, selectedCompanyId, selectedClinicId } = useAuth();
+  const { idToken, selectedCompanyId, selectedClinicId, user } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<ClinicFormFields>({
@@ -107,16 +108,15 @@ const ClinicSettings: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg">
-      <header className="px-6 py-4 bg-accent-bg shadow-md">
-        <div className="max-w-4xl mx-auto flex items-center">
-          <BuildingStorefrontIcon className="w-6 h-6 text-brand-main mr-2" />
-          <h1 className="text-2xl font-semibold text-brand-black">
-            Klinik Ayarları
-          </h1>
-        </div>
-      </header>
-
-      <main className="flex-1 max-w-4xl mx-auto p-6 space-y-6">
+      <div className="p-4">
+        <GreetingHeader
+          userAvatarUrl={user?.photoUrl}
+          clinicName={formData.name ?? ""}
+          pageTitle="Klinik Ayarları"
+          showBackButton
+        />
+      </div>
+      <main className="flex-1 max-w-4xl mx-auto px-4 pb-24 space-y-6">
         <div className="bg-accent-bg p-6 rounded-lg shadow">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-2">

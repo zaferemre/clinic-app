@@ -64,8 +64,9 @@ export const Dashboard: React.FC = () => {
     {
       icon: <ChatBubbleLeftRightIcon className="h-10 w-10 text-green-500" />,
       label: "Mesajlar",
-      colorClass: "text-green-600",
-      onClick: () => go("/messaging"),
+      colorClass: "text-gray-400",
+      disabled: true,
+      soonText: "Çok Yakında",
     },
     {
       icon: <CogIcon className="h-10 w-10 text-gray-600" />,

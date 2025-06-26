@@ -1,6 +1,6 @@
 import Appointment from "../models/Appointment";
 import Patient, { PatientDocument } from "../models/Patient";
-import { Types } from "mongoose";
+import { Types, UpdateQuery } from "mongoose";
 
 export async function listPatients(
   companyId: string,
@@ -32,9 +32,9 @@ export async function findPatientById(
 
 export async function updatePatientById(
   patientId: string,
-  updates: Partial<PatientDocument>
+  updates: UpdateQuery<PatientDocument>
 ): Promise<PatientDocument | null> {
-  return Patient.findByIdAndUpdate(patientId, updates, { new: true });
+  return Patient.findByIdAndUpdate(patientId, updates, { new: true }).exec();
 }
 
 export async function deletePatientById(patientId: string): Promise<void> {

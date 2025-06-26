@@ -61,6 +61,7 @@ export default function AppRoutes() {
     selectedCompanyId,
     selectedClinicId,
   } = useAuth();
+  console.log("AppRoutes", { needsSignup, idToken, ctxUser });
 
   if (checkingCompany) {
     return (
@@ -69,6 +70,8 @@ export default function AppRoutes() {
       </div>
     );
   }
+
+  // --- FIX: needsSignup guard should be above idToken/user guard ---
   if (needsSignup) {
     return (
       <Routes>
@@ -77,6 +80,8 @@ export default function AppRoutes() {
       </Routes>
     );
   }
+
+  // This guard comes *after* needsSignup
   if (!idToken || ctxUser === null) {
     return (
       <Routes>
@@ -85,6 +90,7 @@ export default function AppRoutes() {
       </Routes>
     );
   }
+
   // Company onboarding
   const companyMemberships = memberships.filter((m) => m.companyId);
   const uniqueCompanies = Array.from(

@@ -23,7 +23,6 @@ export const GroupsList: React.FC<GroupsListProps> = ({
 }) => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showNotFull, setShowNotFull] = useState(false);
 
   useEffect(() => {
@@ -70,13 +69,7 @@ export const GroupsList: React.FC<GroupsListProps> = ({
         </button>
       </div>
       {visibleGroups.map((grp) => (
-        <GroupCard
-          key={grp._id}
-          group={grp}
-          patients={patients}
-          isExpanded={expandedId === grp._id}
-          onToggleExpand={setExpandedId}
-        />
+        <GroupCard key={grp._id} group={grp} patients={patients} />
       ))}
     </div>
   );

@@ -39,8 +39,8 @@ const PatientPreviewCard: React.FC<PatientPreviewCardProps> = ({
       </div>
 
       {typeof patient.credit === "number" && (
-        <span className="ml-3 text-xs font-semibold bg-success bg-opacity-20 text-success px-2 py-1 rounded-full">
-          Kredi {patient.credit}
+        <span className="ml-3 text-xs font-semibold bg-opacity-20 text-success px-2 py-1 rounded-full">
+          Seans Kredisi {patient.credit}
         </span>
       )}
     </button>

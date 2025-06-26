@@ -5,11 +5,13 @@ import CreateCompanyButton from "../../components/Button/CreateCompanyButton/Cre
 import JoinCompanyButton from "../../components/Button/JoinCompanyButton/JoinCompanyButton";
 import { ArrowLeftStartOnRectangleIcon } from "@heroicons/react/24/outline";
 
+const MAIN_BG =
+  "linear-gradient(135deg, #ffe1da 0%, #fdf3ef 45%, #fff7f4 100%)";
+
 const CompanyOnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const { signOut, companies, refreshUserContext } = useAuth();
 
-  // Optional: auto-redirect if user already has company
   React.useEffect(() => {
     if (companies && companies.length > 0) {
       navigate("/clinics", { replace: true });
@@ -21,24 +23,23 @@ const CompanyOnboardingPage: React.FC = () => {
     navigate("/login", { replace: true });
   };
 
-  // Use async to refresh context after create/join
   const handleCompanySuccess = async () => {
     await refreshUserContext();
     navigate("/clinics", { replace: true });
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-white flex flex-col">
-      {/* Gradient glass background */}
-      <div className="absolute inset-0 h-[48%] z-0 bg-[radial-gradient(circle_at_top,_rgba(226,114,91,0.62)_0%,_rgba(184,108,255,0.23)_50%,_white_100%)]" />
-
-      {/* Logout */}
+    <div
+      className="relative min-h-screen w-full flex flex-col"
+      style={{ background: MAIN_BG, fontFamily: "'Inter', sans-serif" }}
+    >
+      {/* Logout Button */}
       <button
         onClick={handleLogout}
         className="
           absolute top-4 right-4 z-20 flex items-center gap-2
           px-4 py-2 bg-white/60 backdrop-blur
-          text-brand-main font-semibold rounded-2xl border border-white/30 shadow
+          text-[#e2725b] font-semibold rounded-2xl border border-white/30 shadow
           hover:bg-white/80 hover:text-red-600 transition
           active:scale-95
           text-base
@@ -46,28 +47,34 @@ const CompanyOnboardingPage: React.FC = () => {
         title="Çıkış Yap"
       >
         <ArrowLeftStartOnRectangleIcon className="w-5 h-5" />
+        Çıkış
       </button>
 
-      {/* App name */}
-      <div className="relative z-10 w-full flex flex-col items-center pt-16 pb-2 select-none">
-        <span className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg tracking-wide">
-          randevy
-        </span>
-      </div>
+      {/* HEADER at the very top */}
+      <div className="w-full flex flex-col items-center pt-14 pb-2 select-none">
+        <img
+          src="/randevi-small.png"
+          alt="randevi logo"
+          className="h-14 rounded-lg mb-2"
+        />
 
-      {/* Info */}
-      <div className="relative z-10 w-full flex flex-col items-center pt-2 pb-2">
-        <span className="text-md text-gray-700">
+        <p className="text-base text-gray-700 mb-1 font-medium">
           Bir şirkete katıl veya yeni bir şirket oluştur!
-        </span>
+        </p>
       </div>
 
-      {/* Actions */}
-      <div className="relative z-10 mt-auto px-6 pb-12 w-full">
-        <div className="w-full max-w-xl mx-auto flex flex-col gap-8">
-          <CreateCompanyButton onCreated={handleCompanySuccess} />
-          <JoinCompanyButton onJoined={handleCompanySuccess} />
-        </div>
+      {/* Spacer to push buttons to the bottom */}
+      <div className="flex-1" />
+
+      {/* ACTION BUTTONS at the bottom */}
+      <div className="w-full max-w-[380px] mx-auto flex flex-col gap-5 mb-16 px-4">
+        <CreateCompanyButton onCreated={handleCompanySuccess} />
+        <JoinCompanyButton onJoined={handleCompanySuccess} />
+      </div>
+
+      {/* Footer */}
+      <div className="absolute bottom-2 left-0 w-full text-center text-xs text-gray-400 pointer-events-none select-none z-0">
+        © {new Date().getFullYear()} randevi
       </div>
     </div>
   );

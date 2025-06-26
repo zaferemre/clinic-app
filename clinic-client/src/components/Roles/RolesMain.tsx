@@ -117,7 +117,7 @@ const RolesMain: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-gray-100 pb-20">
-      <div className="px-4 pt-4">
+      <div className="p-4">
         <GreetingHeader
           userAvatarUrl={user?.photoUrl ?? ""}
           clinicName={selectedClinicName}
@@ -130,7 +130,7 @@ const RolesMain: React.FC = () => {
         <RolesInfoBox />
       </div>
 
-      <main className="flex-1 p-6 overflow-auto">
+      <main className="flex-1 px-4 overflow-auto">
         {roles.length === 0 ? (
           <EmptyRoles onAdd={openCreate} />
         ) : (
@@ -141,7 +141,7 @@ const RolesMain: React.FC = () => {
 
       {/* FAB */}
       <button
-        className="fixed bottom-20 right-6 w-16 h-16 rounded-full bg-brand-main shadow-lg flex items-center justify-center text-white hover:bg-brand-red transition duration-200 text-3xl"
+        className="fixed bottom-20 right-6 w-12 h-12 rounded-full bg-brand-main shadow-lg flex items-center justify-center text-white hover:bg-brand-red transition duration-200 text-3xl"
         onClick={openCreate}
         aria-label="Rol Ekle"
       >
