@@ -43,28 +43,24 @@ const userRepo = __importStar(require("../dataAccess/userRepository"));
 const employeeRepo = __importStar(require("../dataAccess/employeeRepository"));
 const companyRepo = __importStar(require("../dataAccess/companyRepository"));
 const mongoose_1 = require("mongoose");
+const cacheHelpers_1 = require("../utils/cacheHelpers");
 /**
- * List all clinics for a company
+ * List all clinics for a company (with cache)
  */
 async function listClinics(companyId) {
-    return clinicRepo.listClinics(companyId);
+    const cacheKey = `company:${companyId}:clinics`;
+    return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => clinicRepo.listClinics(companyId));
 }
 /**
- * Create a new clinic in the company, add the user as:
- * - Clinic admin (employee)
- * - UserMembership entry for the clinic
- * - Push the clinicId to the parent company's clinics array
+ * Create a new clinic in the company...
  */
 async function createClinic(companyId, data, uid) {
-    // 1. Create the clinic
     const clinic = await clinicRepo.createClinic({
         ...data,
         companyId,
     });
-    // 2. Fetch company for name
     const company = await companyRepo.findCompanyById(companyId);
     const companyName = company?.name ?? "";
-    // 3. Add employee (admin) to this clinic
     await employeeRepo.createEmployee({
         userUid: uid,
         companyId: new mongoose_1.Types.ObjectId(companyId),
@@ -72,7 +68,6 @@ async function createClinic(companyId, data, uid) {
         roles: ["owner"],
         isActive: true,
     });
-    // 4. Add clinic membership to the user
     await userRepo.addMembership(uid, {
         companyId: companyId,
         companyName: companyName,
@@ -80,16 +75,31 @@ async function createClinic(companyId, data, uid) {
         clinicName: clinic.name,
         roles: ["owner"],
     });
-    // 5. Add clinicId to company.clinics array
     await companyRepo.addClinicToCompany(companyId, clinic._id);
+    // Invalidate company clinics cache
+    await (0, cacheHelpers_1.invalidateCache)(`company:${companyId}:clinics`);
     return clinic;
 }
 async function getClinicById(companyId, clinicId) {
-    return clinicRepo.findClinicById(companyId, clinicId);
+    const cacheKey = `clinic:${clinicId}`;
+    return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => clinicRepo.findClinicById(companyId, clinicId));
 }
 async function updateClinic(clinicId, updates) {
-    return clinicRepo.updateClinicById(clinicId, updates);
+    const updated = await clinicRepo.updateClinicById(clinicId, updates);
+    // Invalidate cache for this clinic and for all clinics in the parent company
+    if (updated?.companyId) {
+        await (0, cacheHelpers_1.invalidateCache)(`company:${updated.companyId.toString()}:clinics`);
+    }
+    await (0, cacheHelpers_1.invalidateCache)(`clinic:${clinicId}`);
+    return updated;
 }
 async function deleteClinic(clinicId) {
-    return clinicRepo.deleteClinicById(clinicId);
+    // Find first so we can invalidate company clinics cache
+    const clinic = await clinicRepo.findClinicById(undefined, clinicId); // fudge companyId as not needed here
+    const result = await clinicRepo.deleteClinicById(clinicId);
+    if (clinic?.companyId) {
+        await (0, cacheHelpers_1.invalidateCache)(`company:${clinic.companyId.toString()}:clinics`);
+    }
+    await (0, cacheHelpers_1.invalidateCache)(`clinic:${clinicId}`);
+    return result;
 }

@@ -47,9 +47,17 @@ exports.flagPatientCall = flagPatientCall;
 const repoPat = __importStar(require("../dataAccess/patientRepository"));
 const http_errors_1 = __importDefault(require("http-errors"));
 const mongoose_1 = require("mongoose");
+const cacheHelpers_1 = require("../utils/cacheHelpers");
+/**
+ * Get all patients for a company and clinic (with caching)
+ */
 async function getPatients(companyId, clinicId) {
-    return repoPat.listPatients(companyId, clinicId);
+    const cacheKey = `patients:${companyId}:${clinicId}`;
+    return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => repoPat.listPatients(companyId, clinicId));
 }
+/**
+ * Create a new patient and invalidate the patient list cache
+ */
 async function createPatient(companyId, clinicId, data) {
     const doc = {
         companyId: new mongoose_1.Types.ObjectId(companyId),
@@ -57,27 +65,54 @@ async function createPatient(companyId, clinicId, data) {
         ...data,
         credit: typeof data.credit === "number" ? data.credit : 0,
     };
-    return repoPat.createPatient(doc);
+    const created = await repoPat.createPatient(doc);
+    await (0, cacheHelpers_1.invalidateCache)(`patients:${companyId}:${clinicId}`);
+    return created;
 }
+/**
+ * Get a single patient by ID
+ */
 async function getPatientById(companyId, clinicId, patientId) {
     const patient = await repoPat.findPatientById(companyId, clinicId, patientId);
     if (!patient)
         throw (0, http_errors_1.default)(404, "Patient not found");
     return patient;
 }
+/**
+ * Update a patient and invalidate the patient list cache
+ */
 async function updatePatient(companyId, clinicId, patientId, updates) {
-    return repoPat.updatePatientById(patientId, updates);
+    const updated = await repoPat.updatePatientById(patientId, updates);
+    await (0, cacheHelpers_1.invalidateCache)(`patients:${companyId}:${clinicId}`);
+    return updated;
 }
+/**
+ * Delete a patient and invalidate the patient list cache
+ */
 async function deletePatient(companyId, clinicId, patientId) {
-    return repoPat.deletePatientById(patientId);
+    const deleted = await repoPat.deletePatientById(patientId);
+    await (0, cacheHelpers_1.invalidateCache)(`patients:${companyId}:${clinicId}`);
+    return deleted;
 }
+/**
+ * Add a payment entry for the patient (invalidate patient list if you want)
+ */
 async function recordPayment(companyId, clinicId, patientId, entry) {
-    return repoPat.addPaymentHistory(companyId, clinicId, patientId, entry);
+    const updated = await repoPat.addPaymentHistory(companyId, clinicId, patientId, entry);
+    await (0, cacheHelpers_1.invalidateCache)(`patients:${companyId}:${clinicId}`); // Optional: invalidate cache if payment info is surfaced in the list
+    return updated;
 }
+/**
+ * Get all appointments for a patient (no cache here, can add if needed)
+ */
 async function getPatientAppointments(companyId, clinicId, patientId) {
     return repoPat.getPatientAppointments(companyId, clinicId, patientId);
 }
+/**
+ * Flag a patient for a call (no cache, but could invalidate if flag info is in list)
+ */
 async function flagPatientCall(companyId, clinicId, patientId, flagType) {
-    // You could expand this for different flag types in the future
-    return repoPat.flagPatientCall(companyId, clinicId, patientId, flagType);
+    const flagged = await repoPat.flagPatientCall(companyId, clinicId, patientId, flagType);
+    await (0, cacheHelpers_1.invalidateCache)(`patients:${companyId}:${clinicId}`); // Optional, as above
+    return flagged;
 }

@@ -47,13 +47,15 @@ const groupRepo = __importStar(require("../dataAccess/groupRepository"));
 const patientRepo = __importStar(require("../dataAccess/patientRepository"));
 const mongoose_1 = require("mongoose");
 const http_errors_1 = __importDefault(require("http-errors"));
+const cacheHelpers_1 = require("../utils/cacheHelpers");
 function validId(id) {
     return mongoose_1.Types.ObjectId.isValid(id);
 }
 async function listGroups(companyId, clinicId) {
     if (!validId(companyId) || !validId(clinicId))
         throw (0, http_errors_1.default)(400, "Invalid company or clinic id");
-    return groupRepo.listGroups(companyId, clinicId);
+    const cacheKey = `groups:${companyId}:${clinicId}`;
+    return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => groupRepo.listGroups(companyId, clinicId));
 }
 async function createGroup(companyId, clinicId, data, uid) {
     if (!validId(companyId) || !validId(clinicId))
@@ -77,6 +79,7 @@ async function createGroup(companyId, clinicId, data, uid) {
     if (doc.patients.length) {
         await patientRepo.addGroupToPatients(doc.patients.map((o) => o.toString()), group.id.toString());
     }
+    await (0, cacheHelpers_1.invalidateCache)(`groups:${companyId}:${clinicId}`);
     return group;
 }
 async function getGroup(companyId, clinicId, groupId) {
@@ -88,15 +91,13 @@ async function getGroup(companyId, clinicId, groupId) {
     return group;
 }
 async function updateGroup(companyId, clinicId, groupId, updates) {
-    if (!validId(groupId))
-        throw (0, http_errors_1.default)(400, "Invalid groupId");
-    return groupRepo.updateGroupById(groupId, updates);
+    const updated = await groupRepo.updateGroupById(groupId, updates);
+    await (0, cacheHelpers_1.invalidateCache)(`groups:${companyId}:${clinicId}`);
+    return updated;
 }
 async function deleteGroup(companyId, clinicId, groupId) {
-    if (!validId(groupId))
-        throw (0, http_errors_1.default)(400, "Invalid groupId");
-    await patientRepo.removeGroupFromAllPatients(groupId);
     await groupRepo.deleteGroupById(groupId);
+    await (0, cacheHelpers_1.invalidateCache)(`groups:${companyId}:${clinicId}`);
 }
 async function addPatientToGroup(companyId, clinicId, groupId, patientId) {
     if (!validId(groupId) || !validId(patientId))

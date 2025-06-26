@@ -20,7 +20,7 @@ export interface ClinicDocument extends Document {
     coordinates: [number, number];
   };
   workingHours: WorkingHour[];
-  services: Types.ObjectId[];
+  services?: Types.ObjectId[];
   employees: Types.ObjectId[];
   isActive: boolean;
   createdAt: Date;

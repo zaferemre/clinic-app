@@ -39,39 +39,84 @@ exports.createAppointment = createAppointment;
 exports.updateAppointment = updateAppointment;
 exports.deleteAppointment = deleteAppointment;
 exports.getAppointmentsByUser = getAppointmentsByUser;
+// src/services/appointmentService.ts
 const repo = __importStar(require("../dataAccess/appointmentRepository"));
+const patientRepo = __importStar(require("../dataAccess/patientRepository"));
 const mongoose_1 = require("mongoose");
-// List appointments with optional filters
+const cacheHelpers_1 = require("../utils/cacheHelpers");
+/**
+ * List appointments with optional filters (cache key includes filters)
+ */
 async function getAppointments(companyId, clinicId, filters = {}) {
-    // filters.employeeId is now always a string UID => pass through
-    return repo.listAppointments(companyId, clinicId, filters);
+    const filtersKey = JSON.stringify(filters);
+    const cacheKey = `appointments:${companyId}:${clinicId}:${filtersKey}`;
+    return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => repo.listAppointments(companyId, clinicId, filters));
 }
-// Get single appointment by ID
+/**
+ * Get single appointment by ID
+ */
 async function getAppointmentById(companyId, clinicId, appointmentId) {
-    return repo.findAppointmentById(companyId, clinicId, appointmentId);
+    const cacheKey = `appointment:${appointmentId}`;
+    return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => repo.findAppointmentById(companyId, clinicId, appointmentId));
 }
-// Create a new appointment
-async function createAppointment(companyId, clinicId, data, createdByUid) {
+/**
+ * Create a new appointment.
+ *   - We only decrement the patient's credit if it's > 0.
+ */
+async function createAppointment(companyId, clinicId, data, // must include data.patientId
+createdByUid) {
     const doc = {
         companyId: new mongoose_1.Types.ObjectId(companyId),
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
-        // everything in data, including data.employeeId which is a UID string
         ...data,
         createdBy: createdByUid,
     };
-    return repo.createAppointment(doc);
+    // 1) create the appointment
+    const appt = await repo.createAppointment(doc);
+    // 2) decrement the patient’s credit by 1, but only if current credit > 0
+    if (data.patientId) {
+        const pid = data.patientId.toString();
+        const patient = await patientRepo.findPatientById(companyId, clinicId, pid);
+        if (patient && typeof patient.credit === "number" && patient.credit > 0) {
+            await patientRepo.updatePatientById(pid, { $inc: { credit: -1 } });
+        }
+    }
+    // 3) invalidate the appointment list cache for this clinic/company
+    await (0, cacheHelpers_1.invalidateCache)(`appointments:${companyId}:${clinicId}:${JSON.stringify({})}`);
+    return appt;
 }
-// Update appointment
+/**
+ * Update an appointment
+ */
 async function updateAppointment(companyId, clinicId, appointmentId, updates) {
-    return repo.updateAppointmentById(appointmentId, updates);
+    const updated = await repo.updateAppointmentById(appointmentId, updates);
+    await (0, cacheHelpers_1.invalidateCache)(`appointment:${appointmentId}`);
+    await (0, cacheHelpers_1.invalidateCache)(`appointments:${companyId}:${clinicId}:${JSON.stringify({})}`);
+    return updated;
 }
-// Delete appointment
+/**
+ * Delete an appointment.
+ *   - We always restore 1 credit back to the patient.
+ */
 async function deleteAppointment(companyId, clinicId, appointmentId) {
-    return repo.deleteAppointmentById(appointmentId);
+    // 1) fetch appointment so we know its patientId
+    const toDelete = await repo.findAppointmentById(companyId, clinicId, appointmentId);
+    // 2) delete the appointment
+    const deleted = await repo.deleteAppointmentById(appointmentId);
+    // 3) give the patient back 1 credit
+    if (toDelete?.patientId) {
+        const pid = toDelete.patientId.toString();
+        await patientRepo.updatePatientById(pid, { $inc: { credit: 1 } });
+    }
+    // 4) invalidate caches
+    await (0, cacheHelpers_1.invalidateCache)(`appointment:${appointmentId}`);
+    await (0, cacheHelpers_1.invalidateCache)(`appointments:${companyId}:${clinicId}:${JSON.stringify({})}`);
+    return deleted;
 }
 /**
  * Fetch all appointments tagged with createdBy = userId
  */
 async function getAppointmentsByUser(userId) {
-    return repo.listAppointmentsByUser(userId);
+    const cacheKey = `appointments:user:${userId}`;
+    return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => repo.listAppointmentsByUser(userId));
 }

@@ -35,7 +35,7 @@ async function findPatientById(companyId, clinicId, patientId) {
     });
 }
 async function updatePatientById(patientId, updates) {
-    return Patient_1.default.findByIdAndUpdate(patientId, updates, { new: true });
+    return Patient_1.default.findByIdAndUpdate(patientId, updates, { new: true }).exec();
 }
 async function deletePatientById(patientId) {
     await Patient_1.default.findByIdAndDelete(patientId);

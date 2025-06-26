@@ -54,6 +54,15 @@ const getMe = async (req, res, next) => {
     try {
         const uid = req.user.uid;
         const user = await userService.getUserProfile(uid);
+        // If userService returns null/undefined, treat as "not found"
+        if (!user) {
+            // Option 1: return 404
+            res.status(404).json({ message: "User not found" });
+            return;
+            // Option 2 (less common): return 500
+            // res.status(500).json({ message: "User not registered" });
+            // return;
+        }
         res.json(user);
     }
     catch (err) {

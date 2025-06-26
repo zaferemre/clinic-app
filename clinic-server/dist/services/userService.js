@@ -41,37 +41,50 @@ exports.getUserClinics = getUserClinics;
 exports.registerUser = registerUser;
 exports.addUserMembership = addUserMembership;
 const userRepo = __importStar(require("../dataAccess/userRepository"));
+const cacheHelpers_1 = require("../utils/cacheHelpers");
 async function getUserProfile(uid) {
-    const user = await userRepo.findByUid(uid);
-    if (!user)
-        throw new Error("User not found");
-    return user;
+    const cacheKey = `user:profile:${uid}`;
+    return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => userRepo.findByUid(uid));
 }
 async function updateUserSettings(uid, updates) {
-    return userRepo.updateSettings(uid, updates);
+    const updated = await userRepo.updateSettings(uid, updates);
+    await (0, cacheHelpers_1.invalidateCache)(`user:profile:${uid}`);
+    return updated;
 }
 async function deleteUser(uid) {
-    return userRepo.deleteUser(uid);
+    const deleted = await userRepo.deleteUser(uid);
+    await (0, cacheHelpers_1.invalidateCache)(`user:profile:${uid}`);
+    await (0, cacheHelpers_1.invalidateCache)(`user:memberships:${uid}`);
+    await (0, cacheHelpers_1.invalidateCache)(`user:clinics:${uid}`);
+    return deleted;
 }
 async function getUserMemberships(uid) {
-    return userRepo.getUserMemberships(uid);
+    const cacheKey = `user:memberships:${uid}`;
+    return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => userRepo.getUserMemberships(uid));
 }
 async function getUserClinics(uid) {
-    // implement similar to memberships
-    return userRepo.getUserClinics(uid);
+    const cacheKey = `user:clinics:${uid}`;
+    return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => userRepo.getUserClinics(uid));
 }
-// New registration service
+// Registration — Invalidate caches
 async function registerUser(uid, data) {
     const { name } = data;
     if (!name)
         throw new Error("Name is required to register");
-    return userRepo.upsertUser({
+    const result = await userRepo.upsertUser({
         uid,
         email: data.email,
         name,
         photoUrl: data.photoUrl,
     });
+    await (0, cacheHelpers_1.invalidateCache)(`user:profile:${uid}`);
+    await (0, cacheHelpers_1.invalidateCache)(`user:memberships:${uid}`);
+    await (0, cacheHelpers_1.invalidateCache)(`user:clinics:${uid}`);
+    return result;
 }
 async function addUserMembership(uid, membership) {
-    return userRepo.addMembership(uid, membership);
+    const updated = await userRepo.addMembership(uid, membership);
+    await (0, cacheHelpers_1.invalidateCache)(`user:memberships:${uid}`);
+    await (0, cacheHelpers_1.invalidateCache)(`user:clinics:${uid}`);
+    return updated;
 }
