@@ -41,6 +41,12 @@ const DEFAULT_WORKING_HOURS: WorkingHour[] = WEEK_DAYS_TR.map((d) => ({
   closed: false,
 }));
 
+interface ServiceInput {
+  name: string;
+  price: number;
+  duration: number;
+}
+
 interface PhoneInputProps {
   phone: string;
   setPhone: React.Dispatch<React.SetStateAction<string>>;
@@ -148,6 +154,7 @@ export default function CreateClinicForm({
   const [workingHours, setWorkingHours] = useState<WorkingHour[]>(
     DEFAULT_WORKING_HOURS
   );
+  const [newServices, setNewServices] = useState<ServiceInput[]>([]);
   const [message, setMessage] = useState("");
 
   interface NeighbourhoodData {
@@ -159,7 +166,7 @@ export default function CreateClinicForm({
   }
   const provinces: NeighbourhoodData[] = turkeyGeo;
 
-  // --- Turkish-insensitive filtering ---
+  // Turkish-insensitive filtering
   useEffect(() => {
     setProvSug(
       provinces
@@ -170,7 +177,6 @@ export default function CreateClinicForm({
     setTownSug([]);
     setNeighSug([]);
   }, [provQuery]);
-
   useEffect(() => {
     const p = provinces.find(
       (p) => normalizeTR(p.Province) === normalizeTR(provQuery)
@@ -182,7 +188,6 @@ export default function CreateClinicForm({
     setTownSug([]);
     setNeighSug([]);
   }, [districtQuery, provQuery]);
-
   useEffect(() => {
     const p = provinces.find(
       (p) => normalizeTR(p.Province) === normalizeTR(provQuery)
@@ -196,7 +201,6 @@ export default function CreateClinicForm({
     );
     setNeighSug([]);
   }, [townQuery, districtQuery, provQuery]);
-
   useEffect(() => {
     const p = provinces.find(
       (p) => normalizeTR(p.Province) === normalizeTR(provQuery)
@@ -212,6 +216,16 @@ export default function CreateClinicForm({
       list.filter((n) => normalizeTR(n).includes(normalizeTR(neighQuery)))
     );
   }, [neighQuery, townQuery, districtQuery, provQuery]);
+
+  // Service handlers
+  const addService = () =>
+    setNewServices((s) => [...s, { name: "", price: 0, duration: 30 }]);
+  const updateService = (idx: number, field: keyof ServiceInput, value: any) =>
+    setNewServices((s) =>
+      s.map((svc, i) => (i === idx ? { ...svc, [field]: value } : svc))
+    );
+  const removeService = (idx: number) =>
+    setNewServices((s) => s.filter((_, i) => i !== idx));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,13 +251,12 @@ export default function CreateClinicForm({
           coordinates: [mapLocation.lng, mapLocation.lat],
         },
         workingHours,
-
-        services: [] as string[],
+        services: newServices.map((svc) => svc.name),
       };
       const created = await createClinic(idToken!, selectedCompanyId!, payload);
       onCreated(created._id, created.name);
     } catch (err: unknown) {
-      console.error("[CreateClinicForm] Error creating clinic:", err);
+      console.error(err);
       setMessage(err instanceof Error ? err.message : "Hata oluştu.");
     }
   };
@@ -335,6 +348,51 @@ export default function CreateClinicForm({
           setWorkingHours={setWorkingHours}
         />
       </div>
+
+      {/* Services Builder */}
+      <div>
+        <label className="block mb-2 font-semibold">Hizmetler</label>
+        {newServices.map((svc, idx) => (
+          <div key={idx} className="flex gap-2 items-end mb-2">
+            <input
+              type="text"
+              placeholder="Ad"
+              value={svc.name}
+              onChange={(e) => updateService(idx, "name", e.target.value)}
+              className="border px-2 py-1 rounded flex-1"
+            />
+            <input
+              type="number"
+              placeholder="Fiyat"
+              value={svc.price || ""}
+              onChange={(e) => updateService(idx, "price", +e.target.value)}
+              className="border px-2 py-1 rounded w-24"
+            />
+            <input
+              type="number"
+              placeholder="Süre (dk)"
+              value={svc.duration || ""}
+              onChange={(e) => updateService(idx, "duration", +e.target.value)}
+              className="border px-2 py-1 rounded w-24"
+            />
+            <button
+              type="button"
+              onClick={() => removeService(idx)}
+              className="text-red-500 px-2 py-1"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={addService}
+          className="mt-1 text-sm text-brand-main rounded-xl px-3 py-2 bg-gray-100 hover:bg-gray-200 transition flex items-center gap-1"
+        >
+          + Hizmet Ekle
+        </button>
+      </div>
+
       {message && <p className="text-red-600">{message}</p>}
       <button
         type="submit"
