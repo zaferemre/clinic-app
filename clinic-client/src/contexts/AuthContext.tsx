@@ -178,7 +178,7 @@ export const AuthContextProvider: React.FC<{ children: ReactNode }> = ({
 
       setNeedsSignup(false);
     } catch (error: any) {
-      if (error.status === 404) setNeedsSignup(true);
+      if (error.status === 404 || error.status === 500) setNeedsSignup(true);
       else setNeedsSignup(false);
       setUser(null);
       setMemberships([]);
