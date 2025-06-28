@@ -96,7 +96,7 @@ export async function joinByCode(uid: string, code: string) {
  * Leave a company (removes user's membership for this company).
  */
 export async function leaveCompany(uid: string, companyId: string) {
-  await userRepo.removeMembership(uid, companyId, "");
+  await userRepo.removeMembershipAndEmployee(uid, companyId, "");
   return { success: true, message: "Left company" };
 }
 

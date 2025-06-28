@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import Appointment from "../models/Appointment";
 import Employee from "../models/Employee";
 import User, { UserDocument } from "../models/User";
@@ -36,20 +37,39 @@ export async function updateSettings(uid: string, settings: any) {
   ).exec();
 }
 
-export async function removeMembership(
+/**
+ * Remove a membership from a user and delete their corresponding employee record.
+ * @param uid - The user UID
+ * @param companyId - The company ID
+ * @param clinicId - The clinic ID (optional)
+ */
+export async function removeMembershipAndEmployee(
   uid: string,
   companyId: string,
   clinicId?: string
 ) {
+  // Remove the membership from the user document
   const pull: any = { companyId: companyId.toString() };
   if (clinicId && clinicId.length > 0) pull.clinicId = clinicId;
-  return User.findOneAndUpdate(
+  const user = await User.findOneAndUpdate(
     { uid },
-    { $pull: { memberships: pull } },
+    { $pull: { memberships: pull }, $set: { updatedAt: new Date() } },
     { new: true }
   ).exec();
-}
 
+  // Remove the corresponding Employee record
+  const employeeFilter: any = {
+    companyId: new Types.ObjectId(companyId),
+    userUid: uid,
+  };
+  if (clinicId && clinicId.length > 0) {
+    employeeFilter.clinicId = new Types.ObjectId(clinicId);
+  }
+
+  await Employee.deleteMany(employeeFilter);
+
+  return user;
+}
 export async function getUserMemberships(uid: string) {
   const user = await User.findOne({ uid });
   return user?.memberships || [];
