@@ -35,7 +35,7 @@ app.use(
       "https://api.randevi.app",
     ],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["authorization", "content-type"],
   })
 );
 
