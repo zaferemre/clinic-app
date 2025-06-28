@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { connectDB } from "./config/mongoose";
@@ -24,43 +24,17 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ----- CORS Debug Logger -----
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://sweet-fascination-production.up.railway.app",
-  "https://www.randevi.app",
-  "https://randevi.app",
-  "https://api.randevi.app",
-];
+// CORS
 
-// Log all incoming requests with their Origin header
-app.use((req: Request, res: Response, next: NextFunction) => {
-  console.log(`[CORS DEBUG] Incoming request: ${req.method} ${req.url}`);
-  console.log(`[CORS DEBUG] Origin: ${req.headers.origin}`);
-  next();
-});
-
-// CORS middleware with logging of matched origin
 app.use(
   cors({
-    origin: function (origin, callback) {
-      console.log(`[CORS DEBUG] Evaluating Origin:`, origin);
-      if (!origin) {
-        // No origin (like curl or server-to-server requests)
-        console.log("[CORS DEBUG] No Origin header, allow by default.");
-        return callback(null, true);
-      }
-      if (allowedOrigins.includes(origin)) {
-        console.log(`[CORS DEBUG] Origin allowed: ${origin}`);
-        return callback(null, true);
-      } else {
-        console.log(`[CORS DEBUG] Origin NOT allowed: ${origin}`);
-        return callback(
-          new Error(`Origin not allowed by CORS: ${origin}`),
-          false
-        );
-      }
-    },
+    origin: [
+      "http://localhost:5173",
+      "https://sweet-fascination-production.up.railway.app",
+      "https://www.randevi.app",
+      "https://randevi.app",
+      "https://api.randevi.app",
+    ],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -102,9 +76,5 @@ app.use((req: Request, res: Response) => {
 
 connectDB().then(() => {
   const port = process.env.PORT ?? 3001;
-  console.log(`[SERVER] Allowed CORS origins:`);
-  allowedOrigins.forEach((o) => console.log(`- ${o}`));
-  app.listen(port, () =>
-    console.log(`[SERVER] Server running on port ${port}`)
-  );
+  app.listen(port, () => console.log(`Server running on port ${port}`));
 });

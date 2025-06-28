@@ -24,43 +24,17 @@ const app = (0, express_1.default)();
 // Body parsing, before any routes
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
-// --- Robust CORS setup ---
-const allowedOrigins = [
-    "http://localhost:5173",
-    "https://sweet-fascination-production.up.railway.app",
-    "https://www.randevi.app",
-    "https://randevi.app",
-    "https://api.randevi.app",
-];
+// CORS
 app.use((0, cors_1.default)({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (e.g. mobile apps, curl, Postman)
-        if (!origin)
-            return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        }
-        else {
-            return callback(new Error("Not allowed by CORS"), false);
-        }
-    },
+    origin: [
+        "http://localhost:5173",
+        "https://sweet-fascination-production.up.railway.app",
+        "https://www.randevi.app",
+        "https://randevi.app",
+        "https://api.randevi.app",
+    ],
     credentials: true,
-    allowedHeaders: ["authorization", "content-type"],
-}));
-// Always handle preflight (OPTIONS) requests for all routes
-app.options("*", (0, cors_1.default)({
-    origin: function (origin, callback) {
-        if (!origin)
-            return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        }
-        else {
-            return callback(new Error("Not allowed by CORS"), false);
-        }
-    },
-    credentials: true,
-    allowedHeaders: ["authorization", "content-type"],
+    allowedHeaders: ["Content-Type", "Authorization"],
 }));
 // --- Public/user-level routes (no auth required) ---
 app.use("/user", userRoutes_1.default);
