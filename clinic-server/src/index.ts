@@ -30,6 +30,8 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://sweet-fascination-production.up.railway.app",
+      "https://www.randevi.app",
+      "https://randevi.app",
     ],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
