@@ -32,6 +32,7 @@ app.use(
       "https://sweet-fascination-production.up.railway.app",
       "https://www.randevi.app",
       "https://randevi.app",
+      "https://api.randevi.app",
     ],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
