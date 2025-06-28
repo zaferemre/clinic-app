@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { connectDB } from "./config/mongoose";
@@ -24,7 +24,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- Robust CORS setup ---
+// ----- CORS Debug Logger -----
 const allowedOrigins = [
   "http://localhost:5173",
   "https://sweet-fascination-production.up.railway.app",
@@ -33,36 +33,36 @@ const allowedOrigins = [
   "https://api.randevi.app",
 ];
 
+// Log all incoming requests with their Origin header
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`[CORS DEBUG] Incoming request: ${req.method} ${req.url}`);
+  console.log(`[CORS DEBUG] Origin: ${req.headers.origin}`);
+  next();
+});
+
+// CORS middleware with logging of matched origin
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (e.g. mobile apps, curl, Postman)
-      if (!origin) return callback(null, true);
+      console.log(`[CORS DEBUG] Evaluating Origin:`, origin);
+      if (!origin) {
+        // No origin (like curl or server-to-server requests)
+        console.log("[CORS DEBUG] No Origin header, allow by default.");
+        return callback(null, true);
+      }
       if (allowedOrigins.includes(origin)) {
+        console.log(`[CORS DEBUG] Origin allowed: ${origin}`);
         return callback(null, true);
       } else {
-        return callback(new Error("Not allowed by CORS"), false);
+        console.log(`[CORS DEBUG] Origin NOT allowed: ${origin}`);
+        return callback(
+          new Error(`Origin not allowed by CORS: ${origin}`),
+          false
+        );
       }
     },
     credentials: true,
-    allowedHeaders: ["authorization", "content-type"],
-  })
-);
-
-// Always handle preflight (OPTIONS) requests for all routes
-app.options(
-  "*",
-  cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(new Error("Not allowed by CORS"), false);
-      }
-    },
-    credentials: true,
-    allowedHeaders: ["authorization", "content-type"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -102,5 +102,9 @@ app.use((req: Request, res: Response) => {
 
 connectDB().then(() => {
   const port = process.env.PORT ?? 3001;
-  app.listen(port, () => console.log(`Server running on port ${port}`));
+  console.log(`[SERVER] Allowed CORS origins:`);
+  allowedOrigins.forEach((o) => console.log(`- ${o}`));
+  app.listen(port, () =>
+    console.log(`[SERVER] Server running on port ${port}`)
+  );
 });

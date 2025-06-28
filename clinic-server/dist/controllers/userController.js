@@ -40,7 +40,6 @@ const registerUser = async (req, res, next) => {
     try {
         const uid = req.user.uid;
         const { email, name, photoUrl } = req.body;
-        // service will throw if name missing
         const user = await userService.registerUser(uid, { email, name, photoUrl });
         res.status(201).json(user);
     }
@@ -49,19 +48,14 @@ const registerUser = async (req, res, next) => {
     }
 };
 exports.registerUser = registerUser;
-// GET /user/me — only returns if already registered
+// GET /user/me
 const getMe = async (req, res, next) => {
     try {
         const uid = req.user.uid;
         const user = await userService.getUserProfile(uid);
-        // If userService returns null/undefined, treat as "not found"
         if (!user) {
-            // Option 1: return 404
             res.status(404).json({ message: "User not found" });
             return;
-            // Option 2 (less common): return 500
-            // res.status(500).json({ message: "User not registered" });
-            // return;
         }
         res.json(user);
     }
@@ -94,7 +88,7 @@ const deleteUserAccount = async (_req, res, next) => {
     }
 };
 exports.deleteUserAccount = deleteUserAccount;
-// List companies, clinics, leave membership omitted for brevity
+// GET /user/companies (or memberships)
 const listUserCompanies = async (req, res, next) => {
     try {
         const uid = req.user.uid;
@@ -106,6 +100,7 @@ const listUserCompanies = async (req, res, next) => {
     }
 };
 exports.listUserCompanies = listUserCompanies;
+// GET /user/clinics
 const listUserClinics = async (req, res, next) => {
     try {
         const uid = req.user.uid;
@@ -127,8 +122,9 @@ const addMembership = async (req, res, next) => {
             return;
         }
         const membership = { companyId, companyName, clinicId, clinicName, roles };
-        const user = await userService.addUserMembership(uid, membership);
-        res.status(200).json(user);
+        // Return FRESH memberships immediately after mutation!
+        const memberships = await userService.addUserMembership(uid, membership);
+        res.status(200).json(memberships);
     }
     catch (err) {
         next(err);
