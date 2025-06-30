@@ -11,15 +11,15 @@ exports.getUserMemberships = getUserMemberships;
 exports.getUserClinics = getUserClinics;
 exports.deleteUser = deleteUser;
 exports.addMembership = addMembership;
-const mongoose_1 = require("mongoose");
-const Appointment_1 = __importDefault(require("../models/Appointment"));
-const Employee_1 = __importDefault(require("../models/Employee"));
 const User_1 = __importDefault(require("../models/User"));
+const Employee_1 = __importDefault(require("../models/Employee"));
+const Appointment_1 = __importDefault(require("../models/Appointment"));
+// Find user by Firebase UID
 async function findByUid(uid) {
     return User_1.default.findOne({ uid });
 }
+// Upsert user (create or update basic profile)
 async function upsertUser(user) {
-    // create if missing, otherwise update name/email/photo
     return User_1.default.findOneAndUpdate({ uid: user.uid }, {
         $setOnInsert: { createdAt: new Date() },
         $set: {
@@ -30,81 +30,72 @@ async function upsertUser(user) {
         },
     }, { new: true, upsert: true }).exec();
 }
+// Update user settings
 async function updateSettings(uid, settings) {
     return User_1.default.findOneAndUpdate({ uid }, { $set: settings, updatedAt: new Date() }, { new: true }).exec();
 }
-/**
- * Remove a membership from a user and delete their corresponding employee record.
- * @param uid - The user UID
- * @param companyId - The company ID
- * @param clinicId - The clinic ID (optional)
- */
+// Remove a membership and employee
 async function removeMembershipAndEmployee(uid, companyId, clinicId) {
-    // Remove the membership from the user document
-    const pull = { companyId: companyId.toString() };
-    if (clinicId && clinicId.length > 0)
+    const pull = { companyId };
+    if (clinicId)
         pull.clinicId = clinicId;
+    // Remove membership
     const user = await User_1.default.findOneAndUpdate({ uid }, { $pull: { memberships: pull }, $set: { updatedAt: new Date() } }, { new: true }).exec();
-    // Remove the corresponding Employee record
-    const employeeFilter = {
-        companyId: new mongoose_1.Types.ObjectId(companyId),
-        userUid: uid,
-    };
-    if (clinicId && clinicId.length > 0) {
-        employeeFilter.clinicId = new mongoose_1.Types.ObjectId(clinicId);
-    }
-    await Employee_1.default.deleteMany(employeeFilter);
+    // Remove Employee
+    const filter = { companyId, userUid: uid };
+    if (clinicId)
+        filter.clinicId = clinicId;
+    await Employee_1.default.deleteMany(filter);
     return user;
 }
+// Get all memberships
 async function getUserMemberships(uid) {
     const user = await User_1.default.findOne({ uid });
     return user?.memberships || [];
 }
+// Get all clinics user is a member of
 async function getUserClinics(uid) {
     const user = await User_1.default.findOne({ uid });
-    // flatten memberships with clinicId present:
     return user?.memberships.filter((m) => m.clinicId) || [];
 }
+// Delete user and all related data
 async function deleteUser(uid) {
-    // 1. Find user (get _id and other info)
     const user = await User_1.default.findOne({ uid });
     if (!user)
         return null;
-    // 2. Delete user document
     await User_1.default.deleteOne({ uid });
-    // 3. Delete all employee records for user
     await Employee_1.default.deleteMany({ userUid: uid });
-    // 4. Delete all appointments where user is patient or assigned employee
     await Appointment_1.default.deleteMany({
-        $or: [
-            { patientId: uid },
-            { employeeId: uid }, // or whatever your field is
-        ],
+        $or: [{ patientId: uid }, { employeeId: uid }],
     });
     return true;
 }
+/**
+ * Add membership, skipping duplicates. Always use Types.ObjectId for companyId/clinicId.
+ * Only adds if company+clinic combo doesn't exist yet.
+ */
 async function addMembership(uid, membership) {
-    // Only add if that exact companyId + clinicId is not present
-    const query = { uid };
-    if (membership.clinicId) {
-        query["memberships"] = {
+    // Only add if this combination does NOT exist
+    const query = {
+        uid,
+        memberships: {
             $not: {
                 $elemMatch: {
                     companyId: membership.companyId,
-                    clinicId: membership.clinicId,
+                    ...(membership.clinicId
+                        ? { clinicId: membership.clinicId }
+                        : { clinicId: { $exists: false } }),
                 },
             },
-        };
-    }
-    else {
-        query["memberships"] = {
-            $not: {
-                $elemMatch: {
-                    companyId: membership.companyId,
-                    clinicId: { $exists: false },
-                },
-            },
-        };
-    }
-    return User_1.default.findOneAndUpdate(query, { $push: { memberships: membership }, $set: { updatedAt: new Date() } }, { new: true }).exec();
+        },
+    };
+    // Construct the membership object to add
+    const membershipObj = {
+        companyId: membership.companyId,
+        companyName: membership.companyName,
+        ...(membership.clinicId && { clinicId: membership.clinicId }),
+        ...(membership.clinicName && { clinicName: membership.clinicName }),
+        roles: membership.roles ?? [],
+    };
+    return User_1.default.findOneAndUpdate(query, { $push: { memberships: membershipObj }, $set: { updatedAt: new Date() } }, { new: true }).exec();
 }

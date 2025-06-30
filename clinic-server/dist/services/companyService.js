@@ -54,9 +54,9 @@ async function createCompany(uid, data) {
         ownerUid: uid,
         joinCode: (0, uuid_1.v4)(),
     });
-    // 2. Add owner membership to user
+    // 2. Add owner membership to user (companyId as Types.ObjectId)
     await userRepo.addMembership(uid, {
-        companyId: company._id.toString(),
+        companyId: company._id,
         companyName: company.name,
         roles: ["owner"],
     });
@@ -106,15 +106,15 @@ async function joinByCode(uid, code) {
     const company = await companyRepo.findCompanyByJoinCode(code);
     if (!company)
         return { success: false, message: "Invalid code" };
-    // Add membership (avoid duplicate)
+    // Add membership (avoid duplicate, companyId as Types.ObjectId)
     await userRepo.addMembership(uid, {
-        companyId: company._id.toString(),
+        companyId: company._id,
         companyName: company.name,
         roles: ["staff"],
     });
     return {
         success: true,
-        companyId: company._id.toString(),
+        companyId: company._id, // send as OID to backend clients, or use .toString() for frontend if needed
         companyName: company.name,
     };
 }
@@ -122,7 +122,7 @@ async function joinByCode(uid, code) {
  * Leave a company (removes user's membership for this company).
  */
 async function leaveCompany(uid, companyId) {
-    await userRepo.removeMembershipAndEmployee(uid, companyId, "");
+    await userRepo.removeMembershipAndEmployee(uid, companyId);
     return { success: true, message: "Left company" };
 }
 /**

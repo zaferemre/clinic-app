@@ -1,4 +1,3 @@
-// src/dataAccess/employeeRepository.ts
 import Employee, { EmployeeDocument } from "../models/Employee";
 import User from "../models/User";
 import { Types } from "mongoose";
@@ -14,62 +13,70 @@ interface EnrichedEmployee {
   clinicId: string;
 }
 
+// Upsert (create if not exists, update otherwise)
 export async function upsertEmployee(
-  companyId: string,
-  clinicId: string,
+  companyId: string | Types.ObjectId,
+  clinicId: string | Types.ObjectId,
   userUid: string,
   data: Partial<EmployeeDocument>
 ) {
+  const cId =
+    companyId instanceof Types.ObjectId
+      ? companyId
+      : new Types.ObjectId(companyId);
+  const clId =
+    clinicId instanceof Types.ObjectId
+      ? clinicId
+      : new Types.ObjectId(clinicId);
+
   return Employee.findOneAndUpdate(
     {
-      companyId: new Types.ObjectId(companyId),
-      clinicId: new Types.ObjectId(clinicId),
+      companyId: cId,
+      clinicId: clId,
       userUid,
     },
-    { $set: data },
+    { $set: { ...data, companyId: cId, clinicId: clId, userUid } },
     { new: true, upsert: true }
-  );
+  ).exec();
 }
 
-/**
- * List employees in a clinic/company, enriched with minimal user data.
- * Only returns: userId, name, pictureUrl, role, services, workingHours, companyId, clinicId.
- */
+// List employees, with enrichment
 export async function listEmployees(
-  companyId: string,
-  clinicId?: string
+  companyId: string | Types.ObjectId,
+  clinicId?: string | Types.ObjectId
 ): Promise<EnrichedEmployee[]> {
-  const filter: any = { companyId: new Types.ObjectId(companyId) };
-  if (clinicId) filter.clinicId = new Types.ObjectId(clinicId);
+  const cId =
+    companyId instanceof Types.ObjectId
+      ? companyId
+      : new Types.ObjectId(companyId);
+  const filter: any = { companyId: cId };
+  if (clinicId)
+    filter.clinicId =
+      clinicId instanceof Types.ObjectId
+        ? clinicId
+        : new Types.ObjectId(clinicId);
 
-  // Fetch employees
   const employees = await Employee.find(filter).lean();
-
   if (!employees.length) return [];
 
-  // Gather all user UIDs (avoid duplicates)
   const userUids = [...new Set(employees.map((e) => e.userUid))];
-
-  // Fetch user info in one query
   const users = await User.find({ uid: { $in: userUids } })
     .select({ uid: 1, name: 1, photoUrl: 1, memberships: 1 })
     .lean();
 
-  // Map UID -> user object
+  // Map UID -> user
   const userMap: Record<string, any> = {};
-  for (const u of users) userMap[u.uid] = u;
+  users.forEach((u) => (userMap[u.uid] = u));
 
-  // Map each employee to EnrichedEmployee
   const result: EnrichedEmployee[] = employees.map((emp) => {
     const user = userMap[emp.userUid] ?? {};
-    // Role from employee first, fallback to user's membership if available
+    // Best role match logic
     let role = emp.roles?.[0];
     if (!role && user.memberships && Array.isArray(user.memberships)) {
-      // Try to match on companyId/clinicId for most accurate role
       const membership = user.memberships.find(
         (m: any) =>
-          m.companyId === emp.companyId.toString() &&
-          (!emp.clinicId || m.clinicId === emp.clinicId.toString())
+          m.companyId?.toString() === emp.companyId.toString() &&
+          (!emp.clinicId || m.clinicId?.toString() === emp.clinicId.toString())
       );
       role = membership?.roles?.[0] ?? "employee";
     }
@@ -88,38 +95,50 @@ export async function listEmployees(
   return result;
 }
 
+// Remove one employee by company, clinic, user
 export async function removeEmployee(
-  companyId: string,
-  clinicId: string,
+  companyId: string | Types.ObjectId,
+  clinicId: string | Types.ObjectId,
   userUid: string
 ) {
+  const cId =
+    companyId instanceof Types.ObjectId
+      ? companyId
+      : new Types.ObjectId(companyId);
+  const clId =
+    clinicId instanceof Types.ObjectId
+      ? clinicId
+      : new Types.ObjectId(clinicId);
+
   return Employee.deleteOne({
-    companyId: new Types.ObjectId(companyId),
-    clinicId: new Types.ObjectId(clinicId),
+    companyId: cId,
+    clinicId: clId,
     userUid,
   }).exec();
 }
 
-export async function addEmployee(
-  companyId: string,
-  data: Partial<EmployeeDocument>
-) {
-  return Employee.create({ ...data, companyId: new Types.ObjectId(companyId) });
-}
-
+// Update by employeeId
 export async function updateEmployee(
-  employeeId: string,
+  employeeId: string | Types.ObjectId,
   updates: Partial<EmployeeDocument>
 ) {
-  return Employee.findByIdAndUpdate(new Types.ObjectId(employeeId), updates, {
-    new: true,
-  }).exec();
+  const eId =
+    employeeId instanceof Types.ObjectId
+      ? employeeId
+      : new Types.ObjectId(employeeId);
+  return Employee.findByIdAndUpdate(eId, updates, { new: true }).exec();
 }
 
-export async function deleteEmployee(employeeId: string) {
-  return Employee.findByIdAndDelete(new Types.ObjectId(employeeId)).exec();
+// Delete by employeeId
+export async function deleteEmployee(employeeId: string | Types.ObjectId) {
+  const eId =
+    employeeId instanceof Types.ObjectId
+      ? employeeId
+      : new Types.ObjectId(employeeId);
+  return Employee.findByIdAndDelete(eId).exec();
 }
 
+// Only use this for "raw" creates (not for upsert logic)
 export async function createEmployee(data: Partial<EmployeeDocument>) {
   return Employee.create(data);
 }

@@ -34,6 +34,7 @@ app.use(
       "https://www.randevi.app",
       "https://randevi.app",
       "https://api.randevi.app",
+      "http://192.168.1.165:8081",
     ],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],

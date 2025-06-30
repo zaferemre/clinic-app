@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
 import * as companyService from "../services/companyService";
+import { Types } from "mongoose";
 
 // List all companies user belongs to
 export const listCompanies: RequestHandler = async (req, res, next) => {
@@ -27,7 +28,8 @@ export const createCompany: RequestHandler = async (req, res, next) => {
 // Get company by ID
 export const getCompany: RequestHandler = async (req, res, next) => {
   try {
-    const company = await companyService.getCompanyById(req.params.companyId);
+    const companyId = new Types.ObjectId(req.params.companyId);
+    const company = await companyService.getCompanyById(companyId);
     if (!company) {
       res.status(404).json({ error: "Company not found" });
       return;
@@ -42,8 +44,9 @@ export const getCompany: RequestHandler = async (req, res, next) => {
 export const updateCompany: RequestHandler = async (req, res, next) => {
   try {
     const uid = (req.user as any)?.uid;
+    const companyId = new Types.ObjectId(req.params.companyId);
     const updated = await companyService.updateCompany(
-      req.params.companyId,
+      companyId,
       req.body,
       uid
     );
@@ -57,7 +60,8 @@ export const updateCompany: RequestHandler = async (req, res, next) => {
 export const deleteCompany: RequestHandler = async (req, res, next) => {
   try {
     const uid = (req.user as any)?.uid;
-    await companyService.deleteCompany(req.params.companyId, uid);
+    const companyId = new Types.ObjectId(req.params.companyId);
+    await companyService.deleteCompany(companyId, uid);
     res.sendStatus(204);
   } catch (err) {
     next(err);
@@ -81,7 +85,8 @@ export const leaveCompany: RequestHandler = async (req, res, next) => {
   try {
     const { companyId } = req.params;
     const user = (req as any).user;
-    const result = await companyService.leaveCompany(user.uid, companyId);
+    const oid = new Types.ObjectId(companyId);
+    const result = await companyService.leaveCompany(user.uid, oid);
     res.json(result);
   } catch (err) {
     next(err);
@@ -92,7 +97,8 @@ export const leaveCompany: RequestHandler = async (req, res, next) => {
 export const listEmployees: RequestHandler = async (req, res, next) => {
   try {
     const { companyId } = req.params;
-    const employees = await companyService.listEmployees(companyId);
+    const oid = new Types.ObjectId(companyId);
+    const employees = await companyService.listEmployees(oid);
     res.json(employees);
   } catch (err) {
     next(err);

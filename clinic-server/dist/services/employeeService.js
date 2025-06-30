@@ -53,7 +53,7 @@ async function removeEmployee(companyId, clinicId, userUid) {
 }
 // Basic CRUD (for admin panel etc)
 async function addEmployee(companyId, data) {
-    return empRepo.addEmployee(companyId, data);
+    return empRepo.createEmployee(data);
 }
 async function updateEmployee(employeeId, data) {
     return empRepo.updateEmployee(employeeId, data);

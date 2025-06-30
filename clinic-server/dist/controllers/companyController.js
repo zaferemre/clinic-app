@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listEmployees = exports.leaveCompany = exports.joinByCode = exports.deleteCompany = exports.updateCompany = exports.getCompany = exports.createCompany = exports.listCompanies = void 0;
 const companyService = __importStar(require("../services/companyService"));
+const mongoose_1 = require("mongoose");
 // List all companies user belongs to
 const listCompanies = async (req, res, next) => {
     try {
@@ -63,7 +64,8 @@ exports.createCompany = createCompany;
 // Get company by ID
 const getCompany = async (req, res, next) => {
     try {
-        const company = await companyService.getCompanyById(req.params.companyId);
+        const companyId = new mongoose_1.Types.ObjectId(req.params.companyId);
+        const company = await companyService.getCompanyById(companyId);
         if (!company) {
             res.status(404).json({ error: "Company not found" });
             return;
@@ -79,7 +81,8 @@ exports.getCompany = getCompany;
 const updateCompany = async (req, res, next) => {
     try {
         const uid = req.user?.uid;
-        const updated = await companyService.updateCompany(req.params.companyId, req.body, uid);
+        const companyId = new mongoose_1.Types.ObjectId(req.params.companyId);
+        const updated = await companyService.updateCompany(companyId, req.body, uid);
         res.json(updated);
     }
     catch (err) {
@@ -91,7 +94,8 @@ exports.updateCompany = updateCompany;
 const deleteCompany = async (req, res, next) => {
     try {
         const uid = req.user?.uid;
-        await companyService.deleteCompany(req.params.companyId, uid);
+        const companyId = new mongoose_1.Types.ObjectId(req.params.companyId);
+        await companyService.deleteCompany(companyId, uid);
         res.sendStatus(204);
     }
     catch (err) {
@@ -117,7 +121,8 @@ const leaveCompany = async (req, res, next) => {
     try {
         const { companyId } = req.params;
         const user = req.user;
-        const result = await companyService.leaveCompany(user.uid, companyId);
+        const oid = new mongoose_1.Types.ObjectId(companyId);
+        const result = await companyService.leaveCompany(user.uid, oid);
         res.json(result);
     }
     catch (err) {
@@ -129,7 +134,8 @@ exports.leaveCompany = leaveCompany;
 const listEmployees = async (req, res, next) => {
     try {
         const { companyId } = req.params;
-        const employees = await companyService.listEmployees(companyId);
+        const oid = new mongoose_1.Types.ObjectId(companyId);
+        const employees = await companyService.listEmployees(oid);
         res.json(employees);
     }
     catch (err) {

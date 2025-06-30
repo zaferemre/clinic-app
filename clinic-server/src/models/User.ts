@@ -1,17 +1,17 @@
-import { Schema, model, Document } from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
 
 export interface Membership {
-  companyId: string; // Company._id as string
+  companyId: Types.ObjectId; // Company._id as ObjectId
   companyName: string;
-  clinicId?: string; // Clinic._id as string
-  clinicName?: string; // Optional clinic name for convenience
+  clinicId?: Types.ObjectId; // Clinic._id as ObjectId
+  clinicName?: string; // Optional clinic name
   roles: string[]; // e.g. ['admin', 'staff']
 }
 
 export interface UserDocument extends Document {
   uid: string; // Firebase UID
   email?: string;
-  phoneNumber?: string; // Optional phone number
+  phoneNumber?: string;
   name?: string;
   photoUrl?: string;
   theme?: "light" | "dark" | "system";
@@ -27,10 +27,10 @@ export interface UserDocument extends Document {
 
 const MembershipSchema = new Schema<Membership>(
   {
-    companyId: { type: String, required: true },
+    companyId: { type: Schema.Types.ObjectId, required: true },
     companyName: { type: String, required: true },
-    clinicId: { type: String, required: false },
-    clinicName: { type: String, required: false }, // Optional clinic name for convenience
+    clinicId: { type: Schema.Types.ObjectId, required: false },
+    clinicName: { type: String, required: false },
     roles: { type: [String], default: [] },
   },
   { _id: false }
@@ -42,7 +42,7 @@ const UserSchema = new Schema<UserDocument>(
     email: { type: String },
     name: { type: String },
     photoUrl: { type: String },
-    phoneNumber: { type: String }, // Optional phone number
+    phoneNumber: { type: String },
     theme: {
       type: String,
       enum: ["light", "dark", "system"],

@@ -25,7 +25,7 @@ export async function removeEmployee(
 
 // Basic CRUD (for admin panel etc)
 export async function addEmployee(companyId: string, data: any) {
-  return empRepo.addEmployee(companyId, data);
+  return empRepo.createEmployee(data);
 }
 export async function updateEmployee(employeeId: string, data: any) {
   return empRepo.updateEmployee(employeeId, data);

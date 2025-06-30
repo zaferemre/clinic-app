@@ -1,7 +1,7 @@
-import { Schema, model, Document } from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
 
 export interface CompanyDocument extends Document {
-  _id: Schema.Types.ObjectId;
+  _id: Types.ObjectId;
   name: string;
   ownerUid: string;
   subscription: {
@@ -13,8 +13,8 @@ export interface CompanyDocument extends Document {
     allowedFeatures: string[];
   };
   joinCode: string;
-  clinics: Schema.Types.ObjectId[];
-  roles: Schema.Types.ObjectId[];
+  clinics: Types.ObjectId[];
+  roles: Types.ObjectId[];
   settings: {
     allowPublicBooking: boolean;
     inactivityThresholdDays: number;

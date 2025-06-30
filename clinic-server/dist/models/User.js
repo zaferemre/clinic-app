@@ -2,10 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = require("mongoose");
 const MembershipSchema = new mongoose_1.Schema({
-    companyId: { type: String, required: true },
+    companyId: { type: mongoose_1.Schema.Types.ObjectId, required: true },
     companyName: { type: String, required: true },
-    clinicId: { type: String, required: false },
-    clinicName: { type: String, required: false }, // Optional clinic name for convenience
+    clinicId: { type: mongoose_1.Schema.Types.ObjectId, required: false },
+    clinicName: { type: String, required: false },
     roles: { type: [String], default: [] },
 }, { _id: false });
 const UserSchema = new mongoose_1.Schema({
@@ -13,7 +13,7 @@ const UserSchema = new mongoose_1.Schema({
     email: { type: String },
     name: { type: String },
     photoUrl: { type: String },
-    phoneNumber: { type: String }, // Optional phone number
+    phoneNumber: { type: String },
     theme: {
         type: String,
         enum: ["light", "dark", "system"],

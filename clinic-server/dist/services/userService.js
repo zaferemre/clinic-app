@@ -42,28 +42,22 @@ exports.registerUser = registerUser;
 exports.addUserMembership = addUserMembership;
 const userRepo = __importStar(require("../dataAccess/userRepository"));
 const employeeRepo = __importStar(require("../dataAccess/employeeRepository"));
-const mongoose_1 = require("mongoose");
-// Get user profile directly from DB
+// User profile direct from DB
 async function getUserProfile(uid) {
     return userRepo.findByUid(uid);
 }
-// Update user settings (no cache)
 async function updateUserSettings(uid, updates) {
     return userRepo.updateSettings(uid, updates);
 }
-// Delete user and all related data (no cache)
 async function deleteUser(uid) {
     return userRepo.deleteUser(uid);
 }
-// Get user memberships directly from DB
 async function getUserMemberships(uid) {
     return userRepo.getUserMemberships(uid);
 }
-// Get user clinics directly from DB
 async function getUserClinics(uid) {
     return userRepo.getUserClinics(uid);
 }
-// Registration — no cache invalidation
 async function registerUser(uid, data) {
     const { name } = data;
     if (!name)
@@ -75,19 +69,24 @@ async function registerUser(uid, data) {
         photoUrl: data.photoUrl,
     });
 }
-// Add membership, write-through to employeeRepo if clinic is present, no cache
+// Add membership and create employee if clinicId is present
 async function addUserMembership(uid, membership) {
+    // Add membership (deduplication is handled at repo level)
     await userRepo.addMembership(uid, membership);
-    // If this is a clinic membership, also upsert as employee
+    // If a clinic membership, create the Employee (upsert style)
     if (membership.clinicId) {
         await employeeRepo.createEmployee({
             userUid: uid,
-            companyId: new mongoose_1.Types.ObjectId(membership.companyId),
-            clinicId: new mongoose_1.Types.ObjectId(membership.clinicId),
+            companyId: membership.companyId,
+            clinicId: membership.clinicId,
             roles: membership.roles ?? [],
             isActive: true,
+            services: [],
+            workingHours: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
         });
     }
-    // Return fresh memberships (straight from DB)
+    // Return fresh memberships
     return userRepo.getUserMemberships(uid);
 }

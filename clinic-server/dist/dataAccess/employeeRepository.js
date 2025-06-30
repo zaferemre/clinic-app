@@ -6,52 +6,54 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.upsertEmployee = upsertEmployee;
 exports.listEmployees = listEmployees;
 exports.removeEmployee = removeEmployee;
-exports.addEmployee = addEmployee;
 exports.updateEmployee = updateEmployee;
 exports.deleteEmployee = deleteEmployee;
 exports.createEmployee = createEmployee;
-// src/dataAccess/employeeRepository.ts
 const Employee_1 = __importDefault(require("../models/Employee"));
 const User_1 = __importDefault(require("../models/User"));
 const mongoose_1 = require("mongoose");
+// Upsert (create if not exists, update otherwise)
 async function upsertEmployee(companyId, clinicId, userUid, data) {
+    const cId = companyId instanceof mongoose_1.Types.ObjectId
+        ? companyId
+        : new mongoose_1.Types.ObjectId(companyId);
+    const clId = clinicId instanceof mongoose_1.Types.ObjectId
+        ? clinicId
+        : new mongoose_1.Types.ObjectId(clinicId);
     return Employee_1.default.findOneAndUpdate({
-        companyId: new mongoose_1.Types.ObjectId(companyId),
-        clinicId: new mongoose_1.Types.ObjectId(clinicId),
+        companyId: cId,
+        clinicId: clId,
         userUid,
-    }, { $set: data }, { new: true, upsert: true });
+    }, { $set: { ...data, companyId: cId, clinicId: clId, userUid } }, { new: true, upsert: true }).exec();
 }
-/**
- * List employees in a clinic/company, enriched with minimal user data.
- * Only returns: userId, name, pictureUrl, role, services, workingHours, companyId, clinicId.
- */
+// List employees, with enrichment
 async function listEmployees(companyId, clinicId) {
-    const filter = { companyId: new mongoose_1.Types.ObjectId(companyId) };
+    const cId = companyId instanceof mongoose_1.Types.ObjectId
+        ? companyId
+        : new mongoose_1.Types.ObjectId(companyId);
+    const filter = { companyId: cId };
     if (clinicId)
-        filter.clinicId = new mongoose_1.Types.ObjectId(clinicId);
-    // Fetch employees
+        filter.clinicId =
+            clinicId instanceof mongoose_1.Types.ObjectId
+                ? clinicId
+                : new mongoose_1.Types.ObjectId(clinicId);
     const employees = await Employee_1.default.find(filter).lean();
     if (!employees.length)
         return [];
-    // Gather all user UIDs (avoid duplicates)
     const userUids = [...new Set(employees.map((e) => e.userUid))];
-    // Fetch user info in one query
     const users = await User_1.default.find({ uid: { $in: userUids } })
         .select({ uid: 1, name: 1, photoUrl: 1, memberships: 1 })
         .lean();
-    // Map UID -> user object
+    // Map UID -> user
     const userMap = {};
-    for (const u of users)
-        userMap[u.uid] = u;
-    // Map each employee to EnrichedEmployee
+    users.forEach((u) => (userMap[u.uid] = u));
     const result = employees.map((emp) => {
         const user = userMap[emp.userUid] ?? {};
-        // Role from employee first, fallback to user's membership if available
+        // Best role match logic
         let role = emp.roles?.[0];
         if (!role && user.memberships && Array.isArray(user.memberships)) {
-            // Try to match on companyId/clinicId for most accurate role
-            const membership = user.memberships.find((m) => m.companyId === emp.companyId.toString() &&
-                (!emp.clinicId || m.clinicId === emp.clinicId.toString()));
+            const membership = user.memberships.find((m) => m.companyId?.toString() === emp.companyId.toString() &&
+                (!emp.clinicId || m.clinicId?.toString() === emp.clinicId.toString()));
             role = membership?.roles?.[0] ?? "employee";
         }
         return {
@@ -67,24 +69,35 @@ async function listEmployees(companyId, clinicId) {
     });
     return result;
 }
+// Remove one employee by company, clinic, user
 async function removeEmployee(companyId, clinicId, userUid) {
+    const cId = companyId instanceof mongoose_1.Types.ObjectId
+        ? companyId
+        : new mongoose_1.Types.ObjectId(companyId);
+    const clId = clinicId instanceof mongoose_1.Types.ObjectId
+        ? clinicId
+        : new mongoose_1.Types.ObjectId(clinicId);
     return Employee_1.default.deleteOne({
-        companyId: new mongoose_1.Types.ObjectId(companyId),
-        clinicId: new mongoose_1.Types.ObjectId(clinicId),
+        companyId: cId,
+        clinicId: clId,
         userUid,
     }).exec();
 }
-async function addEmployee(companyId, data) {
-    return Employee_1.default.create({ ...data, companyId: new mongoose_1.Types.ObjectId(companyId) });
-}
+// Update by employeeId
 async function updateEmployee(employeeId, updates) {
-    return Employee_1.default.findByIdAndUpdate(new mongoose_1.Types.ObjectId(employeeId), updates, {
-        new: true,
-    }).exec();
+    const eId = employeeId instanceof mongoose_1.Types.ObjectId
+        ? employeeId
+        : new mongoose_1.Types.ObjectId(employeeId);
+    return Employee_1.default.findByIdAndUpdate(eId, updates, { new: true }).exec();
 }
+// Delete by employeeId
 async function deleteEmployee(employeeId) {
-    return Employee_1.default.findByIdAndDelete(new mongoose_1.Types.ObjectId(employeeId)).exec();
+    const eId = employeeId instanceof mongoose_1.Types.ObjectId
+        ? employeeId
+        : new mongoose_1.Types.ObjectId(employeeId);
+    return Employee_1.default.findByIdAndDelete(eId).exec();
 }
+// Only use this for "raw" creates (not for upsert logic)
 async function createEmployee(data) {
     return Employee_1.default.create(data);
 }

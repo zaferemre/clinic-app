@@ -32,6 +32,7 @@ app.use((0, cors_1.default)({
         "https://www.randevi.app",
         "https://randevi.app",
         "https://api.randevi.app",
+        "http://192.168.1.165:8081",
     ],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],

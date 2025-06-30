@@ -42,6 +42,8 @@ const clinicRepo = __importStar(require("../dataAccess/clinicRepository"));
 const userRepo = __importStar(require("../dataAccess/userRepository"));
 const companyRepo = __importStar(require("../dataAccess/companyRepository"));
 const cacheHelpers_1 = require("../utils/cacheHelpers");
+const employeeRepo = __importStar(require("../dataAccess/employeeRepository"));
+const mongoose_1 = require("mongoose");
 /**
  * List all clinics for a company (with cache)
  */
@@ -51,23 +53,40 @@ async function listClinics(companyId) {
 }
 /**
  * Create a new clinic in the company...
- */
-async function createClinic(companyId, data, uid) {
+ */ async function createClinic(companyId, data, uid) {
+    // Always use Types.ObjectId for all ids
+    const companyObjectId = new mongoose_1.Types.ObjectId(companyId);
+    // 1. Create the clinic
     const clinic = await clinicRepo.createClinic({
         ...data,
-        companyId,
+        companyId: companyObjectId,
     });
-    const company = await companyRepo.findCompanyById(companyId);
+    // 2. Get company for name (optional)
+    const company = await companyRepo.findCompanyById(companyObjectId);
     const companyName = company?.name ?? "";
+    // 3. Create employee record for the owner
+    await employeeRepo.createEmployee({
+        userUid: uid,
+        companyId: companyObjectId,
+        clinicId: clinic._id,
+        roles: ["owner"],
+        isActive: true,
+        services: [],
+        workingHours: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    });
+    // 4. Add membership with ObjectId references
     await userRepo.addMembership(uid, {
-        companyId: companyId,
+        companyId: companyObjectId,
         companyName: companyName,
-        clinicId: clinic._id.toString(),
+        clinicId: clinic._id,
         clinicName: clinic.name,
         roles: ["owner"],
     });
-    await companyRepo.addClinicToCompany(companyId, clinic._id);
-    // Invalidate company clinics cache
+    // 5. Add clinic to company
+    await companyRepo.addClinicToCompany(companyObjectId, clinic._id);
+    // 6. Invalidate company clinics cache
     await (0, cacheHelpers_1.invalidateCache)(`company:${companyId}:clinics`);
     return clinic;
 }

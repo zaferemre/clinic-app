@@ -2,32 +2,27 @@ import * as userRepo from "../dataAccess/userRepository";
 import * as employeeRepo from "../dataAccess/employeeRepository";
 import { Types } from "mongoose";
 
-// Get user profile directly from DB
+// User profile direct from DB
 export async function getUserProfile(uid: string) {
   return userRepo.findByUid(uid);
 }
 
-// Update user settings (no cache)
 export async function updateUserSettings(uid: string, updates: any) {
   return userRepo.updateSettings(uid, updates);
 }
 
-// Delete user and all related data (no cache)
 export async function deleteUser(uid: string) {
   return userRepo.deleteUser(uid);
 }
 
-// Get user memberships directly from DB
 export async function getUserMemberships(uid: string) {
   return userRepo.getUserMemberships(uid);
 }
 
-// Get user clinics directly from DB
 export async function getUserClinics(uid: string) {
   return userRepo.getUserClinics(uid);
 }
 
-// Registration — no cache invalidation
 export async function registerUser(
   uid: string,
   data: { email?: string; name?: string; photoUrl?: string }
@@ -42,30 +37,35 @@ export async function registerUser(
   });
 }
 
-// Add membership, write-through to employeeRepo if clinic is present, no cache
+// Add membership and create employee if clinicId is present
 export async function addUserMembership(
   uid: string,
   membership: {
-    companyId: string;
+    companyId: Types.ObjectId;
     companyName: string;
-    clinicId?: string;
+    clinicId?: Types.ObjectId;
     clinicName?: string;
     roles?: string[];
   }
 ) {
+  // Add membership (deduplication is handled at repo level)
   await userRepo.addMembership(uid, membership);
 
-  // If this is a clinic membership, also upsert as employee
+  // If a clinic membership, create the Employee (upsert style)
   if (membership.clinicId) {
     await employeeRepo.createEmployee({
       userUid: uid,
-      companyId: new Types.ObjectId(membership.companyId),
-      clinicId: new Types.ObjectId(membership.clinicId),
+      companyId: membership.companyId,
+      clinicId: membership.clinicId,
       roles: membership.roles ?? [],
       isActive: true,
+      services: [],
+      workingHours: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
   }
 
-  // Return fresh memberships (straight from DB)
+  // Return fresh memberships
   return userRepo.getUserMemberships(uid);
 }
