@@ -100,19 +100,21 @@ async function createEmployee(data) {
 async function updateEmployee(employeeId, data) {
     if (data.roles && !Array.isArray(data.roles))
         data.roles = [data.roles];
-    // 1. Çalışanı güncelle
     const emp = await empRepo.updateEmployee(employeeId, data);
-    // 2. Eğer rol değiştiyse, user.memberships da güncellensin
-    if (data.roles && emp) {
+    // Sadece klinik membership'ını güncelle
+    if (data.roles && emp && emp.clinicId) {
+        const companyIdStr = emp.companyId.toString();
+        const clinicIdStr = emp.clinicId.toString();
+        // Sadece klinik membership'ı update et
         await User_1.default.updateOne({
             uid: emp.userUid,
-            "memberships.companyId": emp.companyId,
-            "memberships.clinicId": emp.clinicId,
-        }, {
-            $set: {
-                "memberships.$.roles": data.roles,
+            memberships: {
+                $elemMatch: {
+                    companyId: companyIdStr,
+                    clinicId: clinicIdStr,
+                },
             },
-        });
+        }, { $set: { "memberships.$.roles": data.roles } });
     }
     return emp;
 }

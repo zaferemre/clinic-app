@@ -18,7 +18,7 @@ async function createCompany(doc) {
     return Company_1.default.create(doc);
 }
 async function findCompanyById(id) {
-    return Company_1.default.findById(id).populate("clinics").populate("roles").exec();
+    return Company_1.default.findById(id).populate("clinics").exec();
 }
 async function findCompanyByJoinCode(code) {
     return Company_1.default.findOne({ joinCode: code }).exec();

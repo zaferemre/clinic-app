@@ -44,6 +44,7 @@ const companyRepo = __importStar(require("../dataAccess/companyRepository"));
 const cacheHelpers_1 = require("../utils/cacheHelpers");
 const employeeRepo = __importStar(require("../dataAccess/employeeRepository"));
 const mongoose_1 = require("mongoose");
+const roleRepo = __importStar(require("../dataAccess/roleRepository"));
 /**
  * List all clinics for a company (with cache)
  */
@@ -83,6 +84,13 @@ async function listClinics(companyId) {
         clinicId: clinic._id,
         clinicName: clinic.name,
         roles: ["owner"],
+    });
+    await roleRepo.createRole({
+        companyId: companyObjectId,
+        clinicId: clinic._id,
+        name: "Admin",
+        isDefault: true,
+        createdBy: uid,
     });
     // 5. Add clinic to company
     await companyRepo.addClinicToCompany(companyObjectId, clinic._id);

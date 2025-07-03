@@ -234,7 +234,7 @@ export default function CreateClinicForm({
           coordinates: [mapLocation.lng, mapLocation.lat],
         },
         workingHours,
-        services: newServices.map((svc) => svc.name),
+        services: [],
       };
       const created = await createClinic(idToken!, selectedCompanyId!, payload);
       onCreated(created._id, created.name);
