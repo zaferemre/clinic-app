@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import * as empService from "../services/employeeService";
 
-// List employees in a clinic/company
+// Listele (enriched)
 export const listEmployees: RequestHandler = async (req, res, next) => {
   try {
     const emps = await empService.listEmployees(
@@ -14,7 +14,7 @@ export const listEmployees: RequestHandler = async (req, res, next) => {
   }
 };
 
-// Add (or update) employee
+// Upsert (userUid)
 export const upsertEmployee: RequestHandler = async (req, res, next) => {
   try {
     const { userUid, ...data } = req.body;
@@ -30,7 +30,7 @@ export const upsertEmployee: RequestHandler = async (req, res, next) => {
   }
 };
 
-// Remove employee (by userUid)
+// Remove (userUid)
 export const removeEmployee: RequestHandler = async (req, res, next) => {
   try {
     await empService.removeEmployee(
@@ -44,31 +44,31 @@ export const removeEmployee: RequestHandler = async (req, res, next) => {
   }
 };
 
-// Basic CRUD (by employeeId, for admin panel etc)
-export const addEmployee: RequestHandler = async (req, res, next) => {
+// createEmployee (admin panel)
+export const createEmployee: RequestHandler = async (req, res, next) => {
   try {
-    const { companyId } = req.params;
-    const data = req.body;
-    const employee = await empService.addEmployee(companyId, data);
-    res.status(201).json(employee);
+    const emp = await empService.createEmployee(req.body);
+    res.status(201).json(emp);
   } catch (err) {
     next(err);
   }
 };
+
+// updateEmployee (employeeId)
 export const updateEmployee: RequestHandler = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
-    const data = req.body;
-    const employee = await empService.updateEmployee(employeeId, data);
-    res.json(employee);
+    const emp = await empService.updateEmployee(employeeId, req.body);
+    res.json(emp);
   } catch (err) {
     next(err);
   }
 };
+
+// deleteEmployee (employeeId)
 export const deleteEmployee: RequestHandler = async (req, res, next) => {
   try {
-    const { employeeId } = req.params;
-    await empService.deleteEmployee(employeeId);
+    await empService.deleteEmployee(req.params.employeeId);
     res.json({ success: true });
   } catch (err) {
     next(err);

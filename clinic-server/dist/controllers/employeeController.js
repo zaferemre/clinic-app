@@ -33,9 +33,9 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteEmployee = exports.updateEmployee = exports.addEmployee = exports.removeEmployee = exports.upsertEmployee = exports.listEmployees = void 0;
+exports.deleteEmployee = exports.updateEmployee = exports.createEmployee = exports.removeEmployee = exports.upsertEmployee = exports.listEmployees = void 0;
 const empService = __importStar(require("../services/employeeService"));
-// List employees in a clinic/company
+// Listele (enriched)
 const listEmployees = async (req, res, next) => {
     try {
         const emps = await empService.listEmployees(req.params.companyId, req.params.clinicId);
@@ -46,7 +46,7 @@ const listEmployees = async (req, res, next) => {
     }
 };
 exports.listEmployees = listEmployees;
-// Add (or update) employee
+// Upsert (userUid)
 const upsertEmployee = async (req, res, next) => {
     try {
         const { userUid, ...data } = req.body;
@@ -58,7 +58,7 @@ const upsertEmployee = async (req, res, next) => {
     }
 };
 exports.upsertEmployee = upsertEmployee;
-// Remove employee (by userUid)
+// Remove (userUid)
 const removeEmployee = async (req, res, next) => {
     try {
         await empService.removeEmployee(req.params.companyId, req.params.clinicId, req.params.userUid);
@@ -69,35 +69,33 @@ const removeEmployee = async (req, res, next) => {
     }
 };
 exports.removeEmployee = removeEmployee;
-// Basic CRUD (by employeeId, for admin panel etc)
-const addEmployee = async (req, res, next) => {
+// createEmployee (admin panel)
+const createEmployee = async (req, res, next) => {
     try {
-        const { companyId } = req.params;
-        const data = req.body;
-        const employee = await empService.addEmployee(companyId, data);
-        res.status(201).json(employee);
+        const emp = await empService.createEmployee(req.body);
+        res.status(201).json(emp);
     }
     catch (err) {
         next(err);
     }
 };
-exports.addEmployee = addEmployee;
+exports.createEmployee = createEmployee;
+// updateEmployee (employeeId)
 const updateEmployee = async (req, res, next) => {
     try {
         const { employeeId } = req.params;
-        const data = req.body;
-        const employee = await empService.updateEmployee(employeeId, data);
-        res.json(employee);
+        const emp = await empService.updateEmployee(employeeId, req.body);
+        res.json(emp);
     }
     catch (err) {
         next(err);
     }
 };
 exports.updateEmployee = updateEmployee;
+// deleteEmployee (employeeId)
 const deleteEmployee = async (req, res, next) => {
     try {
-        const { employeeId } = req.params;
-        await empService.deleteEmployee(employeeId);
+        await empService.deleteEmployee(req.params.employeeId);
         res.json({ success: true });
     }
     catch (err) {

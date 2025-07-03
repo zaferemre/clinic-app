@@ -26,7 +26,6 @@ const CompanySchema = new mongoose_1.Schema({
     },
     joinCode: { type: String, required: true, unique: true },
     clinics: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Clinic" }],
-    roles: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Role" }],
     settings: {
         allowPublicBooking: { type: Boolean, default: false },
         inactivityThresholdDays: { type: Number, default: 90 },

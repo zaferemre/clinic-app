@@ -4,6 +4,7 @@ import * as companyRepo from "../dataAccess/companyRepository";
 import { getOrSetCache, invalidateCache } from "../utils/cacheHelpers";
 import * as employeeRepo from "../dataAccess/employeeRepository";
 import { Types } from "mongoose";
+import * as roleRepo from "../dataAccess/roleRepository";
 /**
  * List all clinics for a company (with cache)
  */
@@ -52,6 +53,14 @@ export async function listClinics(companyId: string) {
     clinicId: clinic._id,
     clinicName: clinic.name,
     roles: ["owner"],
+  });
+
+  await roleRepo.createRole({
+    companyId: companyObjectId,
+    clinicId: clinic._id,
+    name: "Admin",
+    isDefault: true,
+    createdBy: uid,
   });
 
   // 5. Add clinic to company

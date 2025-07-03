@@ -8,7 +8,7 @@ export async function createCompany(doc: Partial<CompanyDocument>) {
 }
 
 export async function findCompanyById(id: Types.ObjectId) {
-  return Company.findById(id).populate("clinics").populate("roles").exec();
+  return Company.findById(id).populate("clinics").exec();
 }
 
 export async function findCompanyByJoinCode(code: string) {

@@ -14,7 +14,6 @@ export interface CompanyDocument extends Document {
   };
   joinCode: string;
   clinics: Types.ObjectId[];
-  roles: Types.ObjectId[];
   settings: {
     allowPublicBooking: boolean;
     inactivityThresholdDays: number;
@@ -53,7 +52,6 @@ const CompanySchema = new Schema<CompanyDocument>(
     },
     joinCode: { type: String, required: true, unique: true },
     clinics: [{ type: Schema.Types.ObjectId, ref: "Clinic" }],
-    roles: [{ type: Schema.Types.ObjectId, ref: "Role" }],
     settings: {
       allowPublicBooking: { type: Boolean, default: false },
       inactivityThresholdDays: { type: Number, default: 90 },

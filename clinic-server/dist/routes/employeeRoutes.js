@@ -1,4 +1,5 @@
 "use strict";
+// src/routes/employeeRoutes.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -37,13 +38,24 @@ const express_1 = require("express");
 const empCtrl = __importStar(require("../controllers/employeeController"));
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
 const router = (0, express_1.Router)({ mergeParams: true });
+// All routes below require authentication!
 router.use(verifyFirebaseToken_1.verifyFirebaseToken);
-// Flexible (recommended for app)
+/**
+ * APP CLIENT ROUTES (recommend using these in your app):
+ * - /company/:companyId/clinics/:clinicId/employees/...
+ */
+// List all employees (optionally filter by clinic)
 router.get("/", empCtrl.listEmployees);
+// Upsert (create or update) employee by userUid
 router.post("/upsert", empCtrl.upsertEmployee);
+// Remove employee by userUid
 router.delete("/remove/:userUid", empCtrl.removeEmployee);
-// Admin CRUD (optional)
-router.post("/", empCtrl.addEmployee);
+/**
+ * ADMIN/INTERNAL PANEL ROUTES (optional, not required for typical app usage):
+ * - /employees/...
+ */
+// Update employee by employeeId (admin only)
 router.patch("/:employeeId", empCtrl.updateEmployee);
+// Delete employee by employeeId (admin only)
 router.delete("/:employeeId", empCtrl.deleteEmployee);
 exports.default = router;

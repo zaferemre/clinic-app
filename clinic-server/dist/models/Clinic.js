@@ -21,7 +21,6 @@ const ClinicSchema = new mongoose_1.Schema({
     },
     workingHours: { type: [WorkingHour_1.workingHourSchema], default: [] },
     services: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Service" }],
-    employees: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Employee" }],
     isActive: { type: Boolean, default: true },
 }, { timestamps: true });
 exports.default = (0, mongoose_1.model)("Clinic", ClinicSchema);

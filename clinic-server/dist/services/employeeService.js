@@ -32,32 +32,91 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.upsertEmployee = upsertEmployee;
 exports.listEmployees = listEmployees;
 exports.removeEmployee = removeEmployee;
-exports.addEmployee = addEmployee;
+exports.createEmployee = createEmployee;
 exports.updateEmployee = updateEmployee;
 exports.deleteEmployee = deleteEmployee;
 const empRepo = __importStar(require("../dataAccess/employeeRepository"));
-// By userUid (clinic management)
+const User_1 = __importDefault(require("../models/User"));
+// Çalışanı ekle/güncelle (upsert)
 async function upsertEmployee(companyId, clinicId, userUid, data) {
+    if (data.roles && !Array.isArray(data.roles))
+        data.roles = [data.roles];
     return empRepo.upsertEmployee(companyId, clinicId, userUid, data);
 }
-// List by company/clinic
+// Tüm çalışanları listeler (enriched, user datası ile)
 async function listEmployees(companyId, clinicId) {
-    return empRepo.listEmployees(companyId, clinicId);
+    const employees = await empRepo.listEmployees(companyId, clinicId);
+    if (!employees.length)
+        return [];
+    const userUids = [...new Set(employees.map((e) => e.userUid))];
+    const users = await User_1.default.find({ uid: { $in: userUids } })
+        .select({ uid: 1, name: 1, photoUrl: 1, memberships: 1 })
+        .lean();
+    const userMap = {};
+    users.forEach((u) => (userMap[u.uid] = u));
+    return employees.map((emp) => {
+        const user = userMap[emp.userUid] ?? {};
+        let roles = Array.isArray(emp.roles) ? emp.roles : [];
+        if ((!roles || roles.length === 0) &&
+            user.memberships &&
+            Array.isArray(user.memberships)) {
+            const membership = user.memberships.find((m) => m.companyId?.toString() === emp.companyId.toString() &&
+                (!emp.clinicId || m.clinicId?.toString() === emp.clinicId.toString()));
+            if (membership?.roles?.length)
+                roles = membership.roles;
+        }
+        return {
+            _id: emp._id?.toString(),
+            userId: emp.userUid,
+            name: user.name ?? "—",
+            pictureUrl: user.photoUrl ?? "",
+            roles: roles ?? [],
+            services: emp.services ?? [],
+            workingHours: emp.workingHours ?? [],
+            companyId: emp.companyId.toString(),
+            clinicId: emp.clinicId?.toString() ?? "",
+        };
+    });
 }
+// Çalışanı sil (userUid ile)
 async function removeEmployee(companyId, clinicId, userUid) {
     return empRepo.removeEmployee(companyId, clinicId, userUid);
 }
-// Basic CRUD (for admin panel etc)
-async function addEmployee(companyId, data) {
+// Yeni çalışan oluştur
+async function createEmployee(data) {
+    if (data.roles && !Array.isArray(data.roles))
+        data.roles = [data.roles];
     return empRepo.createEmployee(data);
 }
+// Çalışan güncelle (employeeId ile)
+// NOT: User.memberships'daki rol de güncellenir!
 async function updateEmployee(employeeId, data) {
-    return empRepo.updateEmployee(employeeId, data);
+    if (data.roles && !Array.isArray(data.roles))
+        data.roles = [data.roles];
+    // 1. Çalışanı güncelle
+    const emp = await empRepo.updateEmployee(employeeId, data);
+    // 2. Eğer rol değiştiyse, user.memberships da güncellensin
+    if (data.roles && emp) {
+        await User_1.default.updateOne({
+            uid: emp.userUid,
+            "memberships.companyId": emp.companyId,
+            "memberships.clinicId": emp.clinicId,
+        }, {
+            $set: {
+                "memberships.$.roles": data.roles,
+            },
+        });
+    }
+    return emp;
 }
+// Çalışanı sil (employeeId ile)
 async function deleteEmployee(employeeId) {
     return empRepo.deleteEmployee(employeeId);
 }

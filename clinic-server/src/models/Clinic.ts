@@ -21,7 +21,6 @@ export interface ClinicDocument extends Document {
   };
   workingHours: WorkingHour[];
   services?: Types.ObjectId[];
-  employees: Types.ObjectId[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -47,7 +46,6 @@ const ClinicSchema = new Schema<ClinicDocument>(
     },
     workingHours: { type: [workingHourSchema], default: [] },
     services: [{ type: Schema.Types.ObjectId, ref: "Service" }],
-    employees: [{ type: Schema.Types.ObjectId, ref: "Employee" }],
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
