@@ -7,7 +7,7 @@ import { WorkingHour } from "../models/WorkingHour";
 // Response tipi
 export interface EnrichedEmployee {
   _id: string;
-  userId: string;
+  userUid: string;
   name: string;
   pictureUrl: string;
   roles: string[];
@@ -61,7 +61,7 @@ export async function listEmployees(
     }
     return {
       _id: emp._id?.toString(),
-      userId: emp.userUid,
+      userUid: emp.userUid,
       name: user.name ?? "—",
       pictureUrl: user.photoUrl ?? "",
       roles: roles ?? [],
