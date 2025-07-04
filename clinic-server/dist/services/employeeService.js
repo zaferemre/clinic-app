@@ -74,7 +74,7 @@ async function listEmployees(companyId, clinicId) {
         }
         return {
             _id: emp._id?.toString(),
-            userId: emp.userUid,
+            userUid: emp.userUid,
             name: user.name ?? "—",
             pictureUrl: user.photoUrl ?? "",
             roles: roles ?? [],
