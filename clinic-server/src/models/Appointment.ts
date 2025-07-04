@@ -5,7 +5,7 @@ export interface AppointmentDocument extends Document {
   clinicId: Types.ObjectId;
   patientId?: Types.ObjectId;
   groupId?: Types.ObjectId;
-  employeeId: string; // <- always Mongo ObjectId, not Firebase UID!
+  employeeId: Types.ObjectId;
   serviceId?: Types.ObjectId;
   start: Date;
   end: Date;
@@ -23,7 +23,7 @@ const AppointmentSchema = new Schema<AppointmentDocument>(
     patientId: { type: Schema.Types.ObjectId, ref: "Patient" },
     groupId: { type: Schema.Types.ObjectId, ref: "Group" },
     employeeId: {
-      type: String,
+      type: Schema.Types.ObjectId,
       ref: "Employee",
       required: true,
     },
