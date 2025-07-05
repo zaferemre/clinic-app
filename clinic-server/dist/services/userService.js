@@ -1,4 +1,5 @@
 "use strict";
+// src/services/userService.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -40,8 +41,14 @@ exports.getUserMemberships = getUserMemberships;
 exports.getUserClinics = getUserClinics;
 exports.registerUser = registerUser;
 exports.addUserMembership = addUserMembership;
+exports.getAllAppointmentsForUser = getAllAppointmentsForUser;
+exports.addUserPushToken = addUserPushToken;
+exports.removeUserPushToken = removeUserPushToken;
+exports.setUserPushTokens = setUserPushTokens;
+exports.getUserPushTokens = getUserPushTokens;
 const userRepo = __importStar(require("../dataAccess/userRepository"));
 const employeeRepo = __importStar(require("../dataAccess/employeeRepository"));
+const cacheHelpers_1 = require("../utils/cacheHelpers");
 // User profile direct from DB
 async function getUserProfile(uid) {
     return userRepo.findByUid(uid);
@@ -89,4 +96,30 @@ async function addUserMembership(uid, membership) {
     }
     // Return fresh memberships
     return userRepo.getUserMemberships(uid);
+}
+/**
+ * Bir kullanıcının tüm Employee ID'lerinden appointmentlarını getirir.
+ * @param uid
+ * @returns Appointment[]
+ * Bu fonksiyonda cache kullanıyoruz.
+ */
+async function getAllAppointmentsForUser(uid) {
+    const cacheKey = `user:${uid}:allAppointments`;
+    return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => userRepo.getAllAppointmentsForUser(uid));
+}
+// Push token ekle
+async function addUserPushToken(uid, token) {
+    return userRepo.addPushToken(uid, token);
+}
+// Push token kaldır
+async function removeUserPushToken(uid, token) {
+    return userRepo.removePushToken(uid, token);
+}
+// Tüm tokenları güncelle
+async function setUserPushTokens(uid, tokens) {
+    return userRepo.setPushTokens(uid, tokens);
+}
+// Tokenları getir
+async function getUserPushTokens(uid) {
+    return userRepo.getPushTokens(uid);
 }

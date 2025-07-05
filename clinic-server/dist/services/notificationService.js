@@ -42,9 +42,14 @@ exports.markNotificationDone = markNotificationDone;
 exports.processPending = processPending;
 const mongoose_1 = require("mongoose");
 const notifRepo = __importStar(require("../dataAccess/notificationRepository"));
+const employeeRepo = __importStar(require("../dataAccess/employeeRepository"));
+const User_1 = __importDefault(require("../models/User"));
 const http_errors_1 = __importDefault(require("http-errors"));
+const expo_server_sdk_1 = require("expo-server-sdk");
+const expo = new expo_server_sdk_1.Expo();
 async function createNotification(companyId, clinicId, data) {
-    return notifRepo.createNotification({
+    // 1. DB'ye kaydet
+    const notif = (await notifRepo.createNotification({
         companyId: new mongoose_1.Types.ObjectId(companyId),
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
         patientId: data.patientId ? new mongoose_1.Types.ObjectId(data.patientId) : undefined,
@@ -62,13 +67,39 @@ async function createNotification(companyId, clinicId, data) {
         meta: data.meta,
         createdAt: new Date(),
         updatedAt: new Date(),
-    });
+    }));
+    // 2. Klinik çalışanlarının userUid'lerini çek
+    const employees = await employeeRepo.listEmployees(companyId, clinicId);
+    const userUids = employees.map((e) => e.userUid);
+    // 3. Bu userUid'lere sahip kullanıcıları çek (push tokenları için)
+    const users = await User_1.default.find({ uid: { $in: userUids } }).select("pushTokens");
+    // Uniq ve boş olmayan tokenlar
+    const pushTokens = Array.from(new Set(users.flatMap((u) => u.pushTokens ?? []).filter(Boolean)));
+    // 4. Push notification gönder
+    if (pushTokens.length > 0) {
+        const messages = pushTokens.map((token) => ({
+            to: token,
+            sound: "default",
+            title: data.title ?? "Yeni Bildirim",
+            body: data.message,
+            data: { notificationId: notif._id.toString(), ...data },
+        }));
+        const chunks = expo.chunkPushNotifications(messages);
+        for (const chunk of chunks) {
+            try {
+                await expo.sendPushNotificationsAsync(chunk);
+            }
+            catch (error) {
+                console.error("Push notification send error:", error);
+            }
+        }
+    }
+    return notif;
 }
 async function listNotifications(companyId, clinicId) {
     return notifRepo.listNotifications(companyId, clinicId);
 }
 async function markNotificationDone(companyId, clinicId, notificationId) {
-    // You might want to check companyId/clinicId for permission, but for now:
     const notif = await notifRepo.updateNotificationStatus(notificationId, "done");
     if (!notif)
         throw (0, http_errors_1.default)(404, "Notification not found");

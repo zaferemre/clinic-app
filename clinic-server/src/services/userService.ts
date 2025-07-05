@@ -1,6 +1,9 @@
+// src/services/userService.ts
+
 import * as userRepo from "../dataAccess/userRepository";
 import * as employeeRepo from "../dataAccess/employeeRepository";
 import { Types } from "mongoose";
+import { getOrSetCache } from "../utils/cacheHelpers";
 
 // User profile direct from DB
 export async function getUserProfile(uid: string) {
@@ -68,4 +71,35 @@ export async function addUserMembership(
 
   // Return fresh memberships
   return userRepo.getUserMemberships(uid);
+}
+
+/**
+ * Bir kullanıcının tüm Employee ID'lerinden appointmentlarını getirir.
+ * @param uid
+ * @returns Appointment[]
+ * Bu fonksiyonda cache kullanıyoruz.
+ */
+export async function getAllAppointmentsForUser(uid: string) {
+  const cacheKey = `user:${uid}:allAppointments`;
+  return getOrSetCache(cacheKey, () => userRepo.getAllAppointmentsForUser(uid));
+}
+
+// Push token ekle
+export async function addUserPushToken(uid: string, token: string) {
+  return userRepo.addPushToken(uid, token);
+}
+
+// Push token kaldır
+export async function removeUserPushToken(uid: string, token: string) {
+  return userRepo.removePushToken(uid, token);
+}
+
+// Tüm tokenları güncelle
+export async function setUserPushTokens(uid: string, tokens: string[]) {
+  return userRepo.setPushTokens(uid, tokens);
+}
+
+// Tokenları getir
+export async function getUserPushTokens(uid: string) {
+  return userRepo.getPushTokens(uid);
 }

@@ -1,4 +1,5 @@
 "use strict";
+// src/dataAccess/userRepository.ts
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -11,6 +12,11 @@ exports.getUserMemberships = getUserMemberships;
 exports.getUserClinics = getUserClinics;
 exports.deleteUser = deleteUser;
 exports.addMembership = addMembership;
+exports.getAllAppointmentsForUser = getAllAppointmentsForUser;
+exports.addPushToken = addPushToken;
+exports.removePushToken = removePushToken;
+exports.setPushTokens = setPushTokens;
+exports.getPushTokens = getPushTokens;
 const User_1 = __importDefault(require("../models/User"));
 const Employee_1 = __importDefault(require("../models/Employee"));
 const Appointment_1 = __importDefault(require("../models/Appointment"));
@@ -98,4 +104,35 @@ async function addMembership(uid, membership) {
         roles: membership.roles ?? [],
     };
     return User_1.default.findOneAndUpdate(query, { $push: { memberships: membershipObj }, $set: { updatedAt: new Date() } }, { new: true }).exec();
+}
+/**
+ * Bir kullanıcının tüm Employee kimliklerinden (farklı company/clinic’lerde olabilir) appointment'larını getirir.
+ * @param uid Firebase UID
+ * @returns Appointment[]
+ */
+async function getAllAppointmentsForUser(uid) {
+    // 1. Kullanıcının tüm Employee kimliklerini bul
+    const employees = await Employee_1.default.find({ userUid: uid }, { _id: 1 }).lean();
+    if (!employees.length)
+        return [];
+    const employeeIds = employees.map((e) => e._id);
+    // 2. Tüm Appointment'ları getir
+    return Appointment_1.default.find({ employeeId: { $in: employeeIds } }).lean();
+}
+// Push token ekle (duplicate varsa eklemez)
+async function addPushToken(uid, token) {
+    return User_1.default.findOneAndUpdate({ uid }, { $addToSet: { pushTokens: token } }, { new: true });
+}
+// Push token kaldır
+async function removePushToken(uid, token) {
+    return User_1.default.findOneAndUpdate({ uid }, { $pull: { pushTokens: token } }, { new: true });
+}
+// Tüm push tokenları güncelle (override)
+async function setPushTokens(uid, tokens) {
+    return User_1.default.findOneAndUpdate({ uid }, { pushTokens: tokens }, { new: true });
+}
+// Kullanıcıdan tüm push tokenları çek
+async function getPushTokens(uid) {
+    const user = await User_1.default.findOne({ uid }).select("pushTokens");
+    return user?.pushTokens ?? null;
 }

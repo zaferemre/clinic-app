@@ -38,7 +38,6 @@ exports.getAppointmentById = getAppointmentById;
 exports.createAppointment = createAppointment;
 exports.updateAppointment = updateAppointment;
 exports.deleteAppointment = deleteAppointment;
-exports.getAppointmentsByUser = getAppointmentsByUser;
 // src/services/appointmentService.ts
 const repo = __importStar(require("../dataAccess/appointmentRepository"));
 const patientRepo = __importStar(require("../dataAccess/patientRepository"));
@@ -112,11 +111,4 @@ async function deleteAppointment(companyId, clinicId, appointmentId) {
     await (0, cacheHelpers_1.invalidateCache)(`appointment:${appointmentId}`);
     await (0, cacheHelpers_1.invalidateCache)(`appointments:${companyId}:${clinicId}:${JSON.stringify({})}`);
     return deleted;
-}
-/**
- * Fetch all appointments tagged with createdBy = userId
- */
-async function getAppointmentsByUser(userId) {
-    const cacheKey = `appointments:user:${userId}`;
-    return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => repo.listAppointmentsByUser(userId));
 }

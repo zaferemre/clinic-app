@@ -25,5 +25,6 @@ const UserSchema = new mongoose_1.Schema({
         push: { type: Boolean, default: true },
         sms: { type: Boolean, default: false },
     },
+    pushTokens: { type: [String], default: [] },
 }, { timestamps: true });
 exports.default = (0, mongoose_1.model)("User", UserSchema);

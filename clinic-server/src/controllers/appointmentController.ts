@@ -94,21 +94,3 @@ export const deleteAppointment: RequestHandler = async (req, res, next) => {
     next(err);
   }
 };
-
-/**
- * List all appointments across all companies/clinics for a given user.
- * Route: GET /api/appointments/user/:userId
- */
-export const listAppointmentsByUser: RequestHandler = async (
-  req,
-  res,
-  next
-) => {
-  try {
-    const uid = (req.user as any).uid;
-    const appointments = await appointmentService.getAppointmentsByUser(uid);
-    res.json(appointments);
-  } catch (err) {
-    next(err);
-  }
-};

@@ -1,4 +1,5 @@
 "use strict";
+// src/controllers/userController.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -33,7 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addMembership = exports.listUserClinics = exports.listUserCompanies = exports.deleteUserAccount = exports.updateMe = exports.getMe = exports.registerUser = void 0;
+exports.getPushTokens = exports.setPushTokens = exports.removePushToken = exports.addPushToken = exports.listAllAppointmentsForMe = exports.addMembership = exports.listUserClinics = exports.listUserCompanies = exports.deleteUserAccount = exports.updateMe = exports.getMe = exports.registerUser = void 0;
 const userService = __importStar(require("../services/userService"));
 // POST /user/register
 const registerUser = async (req, res, next) => {
@@ -77,9 +78,9 @@ const updateMe = async (req, res, next) => {
 };
 exports.updateMe = updateMe;
 // DELETE /user/me
-const deleteUserAccount = async (_req, res, next) => {
+const deleteUserAccount = async (req, res, next) => {
     try {
-        const uid = _req.user.uid;
+        const uid = req.user.uid;
         await userService.deleteUser(uid);
         res.sendStatus(204);
     }
@@ -88,7 +89,7 @@ const deleteUserAccount = async (_req, res, next) => {
     }
 };
 exports.deleteUserAccount = deleteUserAccount;
-// GET /user/companies (or memberships)
+// GET /user/companies
 const listUserCompanies = async (req, res, next) => {
     try {
         const uid = req.user.uid;
@@ -131,3 +132,111 @@ const addMembership = async (req, res, next) => {
     }
 };
 exports.addMembership = addMembership;
+// GET /user/appointments
+const listAllAppointmentsForMe = async (req, res, next) => {
+    try {
+        const uid = req.user?.uid;
+        if (!uid) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+        const appointments = await userService.getAllAppointmentsForUser(uid);
+        res.json(appointments);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.listAllAppointmentsForMe = listAllAppointmentsForMe;
+// --- PUSH TOKEN ENDPOINTLERİ ---
+const addPushToken = async (req, res, next) => {
+    try {
+        const uid = req.params.uid || req.user?.uid;
+        const { token } = req.body;
+        if (!uid) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+        if (!token) {
+            res.status(400).json({ error: "Token is required" });
+            return;
+        }
+        const user = await userService.addUserPushToken(uid, token);
+        if (!user) {
+            res.status(404).json({ error: "User not found" });
+            return;
+        }
+        res.json({ pushTokens: user.pushTokens });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.addPushToken = addPushToken;
+const removePushToken = async (req, res, next) => {
+    try {
+        const uid = req.params.uid || req.user?.uid;
+        const { token } = req.body;
+        if (!uid) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+        if (!token) {
+            res.status(400).json({ error: "Token is required" });
+            return;
+        }
+        const user = await userService.removeUserPushToken(uid, token);
+        if (!user) {
+            res.status(404).json({ error: "User not found" });
+            return;
+        }
+        res.json({ pushTokens: user.pushTokens });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.removePushToken = removePushToken;
+const setPushTokens = async (req, res, next) => {
+    try {
+        const uid = req.params.uid || req.user?.uid;
+        const { tokens } = req.body;
+        if (!uid) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+        if (!Array.isArray(tokens)) {
+            res.status(400).json({ error: "Tokens must be array" });
+            return;
+        }
+        const user = await userService.setUserPushTokens(uid, tokens);
+        if (!user) {
+            res.status(404).json({ error: "User not found" });
+            return;
+        }
+        res.json({ pushTokens: user.pushTokens });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.setPushTokens = setPushTokens;
+const getPushTokens = async (req, res, next) => {
+    try {
+        const uid = req.params.uid || req.user?.uid;
+        if (!uid) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+        const tokens = await userService.getUserPushTokens(uid);
+        if (!tokens) {
+            res.status(404).json({ error: "User not found" });
+            return;
+        }
+        res.json({ pushTokens: tokens });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.getPushTokens = getPushTokens;

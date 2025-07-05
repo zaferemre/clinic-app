@@ -17,22 +17,19 @@ const NotificationSchema = new mongoose_1.Schema({
         default: "pending",
     },
     message: { type: String, required: true },
-    title: { type: String }, // Optional: short subject/title
+    title: { type: String },
     trigger: { type: String },
-    workerUid: { type: String }, // Action taker
-    targetUserId: { type: String }, // (optional) direct notification recipient
+    workerUid: { type: String },
+    targetUserId: { type: String },
     note: { type: String },
     sentAt: { type: Date },
-    // New: in-app read status & when read
     read: { type: Boolean, default: false },
     readAt: { type: Date },
-    // New: importance
     priority: {
         type: String,
         enum: ["low", "normal", "high"],
         default: "normal",
     },
-    // New: flexible JSON blob for extra data
     meta: { type: mongoose_1.Schema.Types.Mixed },
 }, { timestamps: true });
 // For fast list queries in dashboards
@@ -41,5 +38,18 @@ NotificationSchema.index({
     clinicId: 1,
     status: 1,
     createdAt: -1,
+});
+// Virtual id field for frontend
+NotificationSchema.virtual("id").get(function () {
+    // @ts-ignore
+    return this._id.toString();
+});
+NotificationSchema.set("toJSON", {
+    virtuals: true,
+    versionKey: false,
+    transform: function (doc, ret) {
+        // If you want to remove _id from responses, uncomment:
+        // delete ret._id;
+    },
 });
 exports.default = (0, mongoose_1.model)("Notification", NotificationSchema);

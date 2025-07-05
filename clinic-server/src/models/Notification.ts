@@ -9,16 +9,16 @@ export interface NotificationDocument extends Document {
   type: "call" | "sms" | "email" | "whatsapp" | "system";
   status: "pending" | "sent" | "failed" | "done";
   message: string;
-  title?: string; // (optional) for UI/email subject
+  title?: string;
   trigger: string;
-  workerUid?: string; // User who performed the action (e.g., staff)
-  targetUserId?: string; // (optional) who should see this notification
+  workerUid?: string;
+  targetUserId?: string;
   note?: string;
   sentAt?: Date;
-  read?: boolean; // User has viewed/acknowledged notification
-  readAt?: Date; // When notification was read
+  read?: boolean;
+  readAt?: Date;
   priority?: "low" | "normal" | "high";
-  meta?: any; // Flexible: links, objects, extra data, etc.
+  meta?: any;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,7 +29,6 @@ const NotificationSchema = new Schema<NotificationDocument>(
     clinicId: { type: Schema.Types.ObjectId, ref: "Clinic", required: true },
     patientId: { type: Schema.Types.ObjectId, ref: "Patient" },
     groupId: { type: Schema.Types.ObjectId, ref: "Group" },
-
     type: {
       type: String,
       enum: ["call", "sms", "email", "whatsapp", "system"],
@@ -41,25 +40,19 @@ const NotificationSchema = new Schema<NotificationDocument>(
       default: "pending",
     },
     message: { type: String, required: true },
-    title: { type: String }, // Optional: short subject/title
+    title: { type: String },
     trigger: { type: String },
-    workerUid: { type: String }, // Action taker
-    targetUserId: { type: String }, // (optional) direct notification recipient
+    workerUid: { type: String },
+    targetUserId: { type: String },
     note: { type: String },
     sentAt: { type: Date },
-
-    // New: in-app read status & when read
     read: { type: Boolean, default: false },
     readAt: { type: Date },
-
-    // New: importance
     priority: {
       type: String,
       enum: ["low", "normal", "high"],
       default: "normal",
     },
-
-    // New: flexible JSON blob for extra data
     meta: { type: Schema.Types.Mixed },
   },
   { timestamps: true }
@@ -71,6 +64,20 @@ NotificationSchema.index({
   clinicId: 1,
   status: 1,
   createdAt: -1,
+});
+
+// Virtual id field for frontend
+NotificationSchema.virtual("id").get(function () {
+  // @ts-ignore
+  return this._id.toString();
+});
+NotificationSchema.set("toJSON", {
+  virtuals: true,
+  versionKey: false,
+  transform: function (doc, ret) {
+    // If you want to remove _id from responses, uncomment:
+    // delete ret._id;
+  },
 });
 
 export default model<NotificationDocument>("Notification", NotificationSchema);

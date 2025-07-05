@@ -1,3 +1,5 @@
+// src/dataAccess/userRepository.ts
+
 import User, { UserDocument, Membership } from "../models/User";
 import Employee from "../models/Employee";
 import Appointment from "../models/Appointment";
@@ -132,4 +134,57 @@ export async function addMembership(
     { $push: { memberships: membershipObj }, $set: { updatedAt: new Date() } },
     { new: true }
   ).exec();
+}
+
+/**
+ * Bir kullanıcının tüm Employee kimliklerinden (farklı company/clinic’lerde olabilir) appointment'larını getirir.
+ * @param uid Firebase UID
+ * @returns Appointment[]
+ */
+export async function getAllAppointmentsForUser(uid: string) {
+  // 1. Kullanıcının tüm Employee kimliklerini bul
+  const employees = await Employee.find({ userUid: uid }, { _id: 1 }).lean();
+  if (!employees.length) return [];
+  const employeeIds = employees.map((e) => e._id);
+
+  // 2. Tüm Appointment'ları getir
+  return Appointment.find({ employeeId: { $in: employeeIds } }).lean();
+}
+
+// Push token ekle (duplicate varsa eklemez)
+export async function addPushToken(
+  uid: string,
+  token: string
+): Promise<UserDocument | null> {
+  return User.findOneAndUpdate(
+    { uid },
+    { $addToSet: { pushTokens: token } },
+    { new: true }
+  );
+}
+
+// Push token kaldır
+export async function removePushToken(
+  uid: string,
+  token: string
+): Promise<UserDocument | null> {
+  return User.findOneAndUpdate(
+    { uid },
+    { $pull: { pushTokens: token } },
+    { new: true }
+  );
+}
+
+// Tüm push tokenları güncelle (override)
+export async function setPushTokens(
+  uid: string,
+  tokens: string[]
+): Promise<UserDocument | null> {
+  return User.findOneAndUpdate({ uid }, { pushTokens: tokens }, { new: true });
+}
+
+// Kullanıcıdan tüm push tokenları çek
+export async function getPushTokens(uid: string): Promise<string[] | null> {
+  const user = await User.findOne({ uid }).select("pushTokens");
+  return user?.pushTokens ?? null;
 }

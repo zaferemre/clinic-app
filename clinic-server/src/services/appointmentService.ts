@@ -123,11 +123,3 @@ export async function deleteAppointment(
 
   return deleted;
 }
-
-/**
- * Fetch all appointments tagged with createdBy = userId
- */
-export async function getAppointmentsByUser(userId: string) {
-  const cacheKey = `appointments:user:${userId}`;
-  return getOrSetCache(cacheKey, () => repo.listAppointmentsByUser(userId));
-}

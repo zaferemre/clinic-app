@@ -1,15 +1,15 @@
 import { Schema, model, Document, Types } from "mongoose";
 
 export interface Membership {
-  companyId: Types.ObjectId; // Company._id as ObjectId
+  companyId: Types.ObjectId;
   companyName: string;
-  clinicId?: Types.ObjectId; // Clinic._id as ObjectId
-  clinicName?: string; // Optional clinic name
-  roles: string[]; // e.g. ['admin', 'staff']
+  clinicId?: Types.ObjectId;
+  clinicName?: string;
+  roles: string[];
 }
 
 export interface UserDocument extends Document {
-  uid: string; // Firebase UID
+  uid: string;
   email?: string;
   phoneNumber?: string;
   name?: string;
@@ -21,6 +21,7 @@ export interface UserDocument extends Document {
     push?: boolean;
     sms?: boolean;
   };
+  pushTokens?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,6 +55,7 @@ const UserSchema = new Schema<UserDocument>(
       push: { type: Boolean, default: true },
       sms: { type: Boolean, default: false },
     },
+    pushTokens: { type: [String], default: [] },
   },
   { timestamps: true }
 );

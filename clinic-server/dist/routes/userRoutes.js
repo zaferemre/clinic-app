@@ -1,4 +1,5 @@
 "use strict";
+// src/routes/userRoutes.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -36,19 +37,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const userCtrl = __importStar(require("../controllers/userController"));
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
-const apptCtrl = __importStar(require("../controllers/appointmentController"));
 const router = (0, express_1.Router)();
 // All /user/* routes require a valid Firebase token
 router.use(verifyFirebaseToken_1.verifyFirebaseToken);
-// 2) Existing profile endpoints
 router.get("/me", userCtrl.getMe);
 router.patch("/me", userCtrl.updateMe);
-router.post("/register", userCtrl.registerUser); // This is for creating a new user profile if not registered
+router.post("/register", userCtrl.registerUser);
 router.get("/me/companies", userCtrl.listUserCompanies);
 router.get("/me/clinics", userCtrl.listUserClinics);
 router.delete("/me", userCtrl.deleteUserAccount);
 router.post("/membership", userCtrl.addMembership);
-// ─── NEW: list my appointments ─────────────────────
-router.get("/appointments", apptCtrl.listAppointmentsByUser);
-// now GET /user/appointments returns everything with createdBy = my UID
+router.get("/appointments", userCtrl.listAllAppointmentsForMe);
+// Push Token API
+router.post("/:uid/push-token", userCtrl.addPushToken);
+router.delete("/:uid/push-token", userCtrl.removePushToken);
+router.put("/:uid/push-tokens", userCtrl.setPushTokens);
+router.get("/:uid/push-tokens", userCtrl.getPushTokens);
 exports.default = router;
