@@ -22,5 +22,10 @@ const ClinicSchema = new mongoose_1.Schema({
     workingHours: { type: [WorkingHour_1.workingHourSchema], default: [] },
     services: [{ type: mongoose_1.Schema.Types.ObjectId, ref: "Service" }],
     isActive: { type: Boolean, default: true },
+    // --- KVKK/Sözleşme alanları ---
+    kvkkText: { type: String, default: "" },
+    kvkkRequired: { type: Boolean, default: false },
+    kvkkLastSetAt: { type: Date },
+    // ---
 }, { timestamps: true });
 exports.default = (0, mongoose_1.model)("Clinic", ClinicSchema);

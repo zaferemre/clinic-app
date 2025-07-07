@@ -64,6 +64,11 @@ async function createPatient(companyId, clinicId, data) {
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
         ...data,
         credit: typeof data.credit === "number" ? data.credit : 0,
+        kvkkAccepted: data.kvkkAccepted ?? true,
+        kvkkAcceptedAt: data.kvkkAcceptedAt ?? new Date(),
+        clinicKvkkAccepted: data.clinicKvkkAccepted,
+        clinicKvkkAcceptedAt: data.clinicKvkkAcceptedAt,
+        clinicKvkkVersionAtAccept: data.clinicKvkkVersionAtAccept,
     };
     const created = await repoPat.createPatient(doc);
     await (0, cacheHelpers_1.invalidateCache)(`patients:${companyId}:${clinicId}`);

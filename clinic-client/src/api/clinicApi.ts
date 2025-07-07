@@ -54,3 +54,47 @@ export function deleteClinic(
     token,
   });
 }
+
+export function getClinicKvkk(
+  token: string,
+  companyId: string,
+  clinicId: string
+): Promise<{
+  kvkkText: string;
+  kvkkRequired: boolean;
+  kvkkLastSetAt?: string;
+}> {
+  return request(`/company/${companyId}/clinics/${clinicId}/kvkk`, {
+    token,
+  });
+}
+
+// Klinik KVKK bilgisini güncelle
+export function setClinicKvkk(
+  token: string,
+  companyId: string,
+  clinicId: string,
+  kvkkText: string,
+  kvkkRequired: boolean
+): Promise<{
+  kvkkText: string;
+  kvkkRequired: boolean;
+  kvkkLastSetAt?: string;
+}> {
+  return request(`/company/${companyId}/clinics/${clinicId}/kvkk`, {
+    method: "POST",
+    token,
+    body: { kvkkText, kvkkRequired },
+  });
+}
+
+export function getQrToken(
+  token: string,
+  companyId: string,
+  clinicId: string
+): Promise<{ token: string }> {
+  return request(`/company/${companyId}/clinics/${clinicId}/qr-token`, {
+    method: "POST",
+    token,
+  });
+}

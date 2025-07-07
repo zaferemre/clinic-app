@@ -40,5 +40,12 @@ const PatientSchema = new mongoose_1.Schema({
     },
     lastAppointmentAt: { type: Date },
     note: { type: String },
+    // --- KVKK onay alanları ---
+    kvkkAccepted: { type: Boolean, default: true }, // Otomatik true!
+    kvkkAcceptedAt: { type: Date },
+    clinicKvkkAccepted: { type: Boolean },
+    clinicKvkkAcceptedAt: { type: Date },
+    clinicKvkkVersionAtAccept: { type: Date },
+    // ---
 }, { timestamps: true });
 exports.default = (0, mongoose_1.model)("Patient", PatientSchema);

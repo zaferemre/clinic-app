@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
 import * as clinicService from "../services/clinicService";
-
+import jwt from "jsonwebtoken";
 // List all clinics in a company
 export const listClinics: RequestHandler = async (req, res, next) => {
   try {
@@ -63,3 +63,21 @@ export const deleteClinic: RequestHandler = async (req, res, next) => {
   }
 };
 export { getClinic as getClinicById } from "./clinicController";
+
+const JWT_SECRET = process.env.QR_TOKEN_SECRET ?? "supersecret";
+
+// QR token üret
+export const getQrToken: RequestHandler = async (req, res, next) => {
+  try {
+    const { companyId, clinicId } = req.params;
+    // İstediğin claimleri koyabilirsin
+    const token = jwt.sign(
+      { companyId, clinicId, ts: Date.now() },
+      JWT_SECRET,
+      { expiresIn: "2h" }
+    );
+    res.json({ token });
+  } catch (err) {
+    next(err);
+  }
+};

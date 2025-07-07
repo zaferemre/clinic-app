@@ -32,9 +32,13 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getClinicById = exports.deleteClinic = exports.updateClinic = exports.getClinic = exports.createClinic = exports.listClinics = void 0;
+exports.getQrToken = exports.getClinicById = exports.deleteClinic = exports.updateClinic = exports.getClinic = exports.createClinic = exports.listClinics = void 0;
 const clinicService = __importStar(require("../services/clinicService"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 // List all clinics in a company
 const listClinics = async (req, res, next) => {
     try {
@@ -95,3 +99,17 @@ const deleteClinic = async (req, res, next) => {
 exports.deleteClinic = deleteClinic;
 var clinicController_1 = require("./clinicController");
 Object.defineProperty(exports, "getClinicById", { enumerable: true, get: function () { return clinicController_1.getClinic; } });
+const JWT_SECRET = process.env.QR_TOKEN_SECRET ?? "supersecret";
+// QR token üret
+const getQrToken = async (req, res, next) => {
+    try {
+        const { companyId, clinicId } = req.params;
+        // İstediğin claimleri koyabilirsin
+        const token = jsonwebtoken_1.default.sign({ companyId, clinicId, ts: Date.now() }, JWT_SECRET, { expiresIn: "2h" });
+        res.json({ token });
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.getQrToken = getQrToken;

@@ -8,6 +8,8 @@ exports.listClinics = listClinics;
 exports.findClinicById = findClinicById;
 exports.updateClinicById = updateClinicById;
 exports.deleteClinicById = deleteClinicById;
+exports.getKvkk = getKvkk;
+exports.setKvkk = setKvkk;
 const Clinic_1 = __importDefault(require("../models/Clinic"));
 async function createClinic(doc) {
     return Clinic_1.default.create(doc);
@@ -23,4 +25,14 @@ async function updateClinicById(clinicId, updates) {
 }
 async function deleteClinicById(clinicId) {
     return Clinic_1.default.findByIdAndDelete(clinicId);
+}
+async function getKvkk(clinicId) {
+    return Clinic_1.default.findById(clinicId, "kvkkText kvkkRequired kvkkLastSetAt");
+}
+async function setKvkk(clinicId, kvkkText, kvkkRequired) {
+    return Clinic_1.default.findByIdAndUpdate(clinicId, {
+        kvkkText,
+        kvkkRequired,
+        kvkkLastSetAt: new Date(),
+    }, { new: true });
 }

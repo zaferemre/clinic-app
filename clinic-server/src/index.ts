@@ -7,6 +7,8 @@ import { verifyFirebaseToken } from "./middlewares/verifyFirebaseToken";
 // Routers
 import companyRoutes from "./routes/companyRoutes";
 import clinicRoutes from "./routes/clinicRoutes";
+import clinicKvkkRoutes from "./routes/clinicKvkkRoutes";
+
 import appointmentRoutes from "./routes/appointmentRoutes";
 import employeeRoutes from "./routes/employeeRoutes";
 import patientRoutes from "./routes/patientRoutes";
@@ -44,10 +46,15 @@ app.use(
 // --- Public/user-level routes (no auth required) ---
 app.use("/user", userRoutes);
 
+// --- Clinic routes ---
+app.use("/company/:companyId/clinics", clinicRoutes);
+
 // --- All other routes require authentication ---
 app.use(verifyFirebaseToken);
 
 // --- Clinic-scoped sub-routes ---
+app.use("/company/:companyId/clinics/:clinicId/kvkk", clinicKvkkRoutes);
+
 app.use(
   "/company/:companyId/clinics/:clinicId/appointments",
   appointmentRoutes
@@ -63,9 +70,6 @@ app.use("/company/:companyId/clinics/:clinicId/groups", groupRoutes);
 
 // Roles (company-level but before companyRoutes)
 app.use("/company/:companyId/clinics/:clinicId/roles", roleRoutes);
-
-// --- Clinic routes ---
-app.use("/company/:companyId/clinics", clinicRoutes);
 
 // --- Company-level routes ---
 app.use("/company", companyRoutes);

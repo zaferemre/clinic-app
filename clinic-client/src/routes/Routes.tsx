@@ -26,6 +26,9 @@ import CompanySettingsPage from "../pages/CompanySettings/CompanySettingsPage";
 import ProfilePage from "../pages/ProfilePage/ProfilePage";
 import { UserMembership } from "../types/sharedTypes";
 
+// SELF REGISTER PAGE
+import SelfRegisterPage from "../pages/SelfRegister/SelfRegisterPage";
+
 function getUserRoleForClinic(
   user: any,
   memberships: UserMembership[],
@@ -70,112 +73,138 @@ export default function AppRoutes() {
     );
   }
 
-  // --- FIX: needsSignup guard should be above idToken/user guard ---
-  if (needsSignup) {
-    return (
-      <Routes>
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="*" element={<Navigate to="/signup" replace />} />
-      </Routes>
-    );
-  }
-
-  // This guard comes *after* needsSignup
-  if (!idToken || ctxUser === null) {
-    return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    );
-  }
-
-  // Company onboarding
-  const companyMemberships = memberships.filter((m) => m.companyId);
-  const uniqueCompanies = Array.from(
-    new Set(companyMemberships.map((m) => m.companyId))
-  );
-  if (!companies || companies.length === 0) {
-    return (
-      <Routes>
-        <Route path="/onboarding" element={<CompanyOnboardingPage />} />
-        <Route path="*" element={<Navigate to="/onboarding" replace />} />
-      </Routes>
-    );
-  }
-  if (!selectedCompanyId && uniqueCompanies.length > 1) {
-    return (
-      <Routes>
-        <Route path="/companies" element={<CompanySelectorPage />} />
-        <Route path="*" element={<Navigate to="/companies" replace />} />
-      </Routes>
-    );
-  }
-  // Clinic select
-  const clinicsForSelectedCompany = memberships.filter(
-    (m) => m.companyId === selectedCompanyId && m.clinicId
-  );
-  if (!selectedClinicId && clinicsForSelectedCompany.length === 0) {
-    return (
-      <Routes>
-        <Route path="/clinics" element={<ClinicSelectorPage />} />
-        <Route path="*" element={<Navigate to="/clinics" replace />} />
-      </Routes>
-    );
-  }
-  // Main app
-  const role = getUserRoleForClinic(
-    ctxUser,
-    memberships,
-    selectedCompanyId,
-    selectedClinicId
-  );
-  const elevated = isElevatedRole(role ?? "staff");
-  const settingsRoot = `/clinics/${selectedClinicId}/settings`;
-
+  // --- PUBLIC: Self-register hasta QR ile ---
+  // Bu route auth gerektirmez!
+  // /self-register/:companyId/:clinicId/:token
+  // Sıralamanın EN ÜSTÜNDE olsun ki protected route'lara takılmaz!
   return (
     <Routes>
       <Route
-        path="/login"
-        element={<Navigate to={`/clinics/${selectedClinicId}`} replace />}
+        path="/self-register/:companyId/:clinicId/:token"
+        element={<SelfRegisterPage />}
       />
-      {role === "owner" && (
-        <Route path="/company-settings" element={<CompanySettingsPage />} />
+
+      {/* PROTECTED ROUTES */}
+      {/* needsSignup guard should be above idToken/user guard */}
+      {needsSignup ? (
+        <>
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="*" element={<Navigate to="/signup" replace />} />
+        </>
+      ) : !idToken || ctxUser === null ? (
+        <>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </>
+      ) : (
+        (() => {
+          // Company onboarding
+          const companyMemberships = memberships.filter((m) => m.companyId);
+          const uniqueCompanies = Array.from(
+            new Set(companyMemberships.map((m) => m.companyId))
+          );
+          if (!companies || companies.length === 0) {
+            return (
+              <>
+                <Route path="/onboarding" element={<CompanyOnboardingPage />} />
+                <Route
+                  path="*"
+                  element={<Navigate to="/onboarding" replace />}
+                />
+              </>
+            );
+          }
+          if (!selectedCompanyId && uniqueCompanies.length > 1) {
+            return (
+              <>
+                <Route path="/companies" element={<CompanySelectorPage />} />
+                <Route
+                  path="*"
+                  element={<Navigate to="/companies" replace />}
+                />
+              </>
+            );
+          }
+          // Clinic select
+          const clinicsForSelectedCompany = memberships.filter(
+            (m) => m.companyId === selectedCompanyId && m.clinicId
+          );
+          if (!selectedClinicId && clinicsForSelectedCompany.length === 0) {
+            return (
+              <>
+                <Route path="/clinics" element={<ClinicSelectorPage />} />
+                <Route path="*" element={<Navigate to="/clinics" replace />} />
+              </>
+            );
+          }
+          // Main app
+          const role = getUserRoleForClinic(
+            ctxUser,
+            memberships,
+            selectedCompanyId,
+            selectedClinicId
+          );
+          const elevated = isElevatedRole(role ?? "staff");
+          const settingsRoot = `/clinics/${selectedClinicId}/settings`;
+
+          return (
+            <>
+              <Route
+                path="/login"
+                element={
+                  <Navigate to={`/clinics/${selectedClinicId}`} replace />
+                }
+              />
+              {role === "owner" && (
+                <Route
+                  path="/company-settings"
+                  element={<CompanySettingsPage />}
+                />
+              )}
+              <Route path="/clinics/:clinicId" element={<ClinicLayout />}>
+                <Route index element={<Home />} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="patients" element={<PatientsPage />} />
+                <Route path="calendar" element={<CalendarPage />} />
+                <Route path="employees" element={<EmployeesPage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
+                <Route path="messaging" element={<MessagingPage />} />
+                <Route path="services" element={<ServicesPage />} />
+                {/* Settings subtree */}
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="settings/user" element={<UserSettings />} />
+                <Route
+                  path="settings/roles"
+                  element={
+                    elevated ? (
+                      <RolesPage />
+                    ) : (
+                      <Navigate to={settingsRoot} replace />
+                    )
+                  }
+                />
+                <Route
+                  path="settings/clinic"
+                  element={
+                    elevated ? (
+                      <ClinicSettings />
+                    ) : (
+                      <Navigate to={settingsRoot} replace />
+                    )
+                  }
+                />
+              </Route>
+              <Route
+                path="*"
+                element={
+                  <Navigate to={`/clinics/${selectedClinicId}`} replace />
+                }
+              />
+            </>
+          );
+        })()
       )}
-      <Route path="/clinics/:clinicId" element={<ClinicLayout />}>
-        <Route index element={<Home />} />
-        <Route path="profile" element={<ProfilePage />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="patients" element={<PatientsPage />} />
-        <Route path="calendar" element={<CalendarPage />} />
-        <Route path="employees" element={<EmployeesPage />} />
-        <Route path="notifications" element={<NotificationsPage />} />
-        <Route path="messaging" element={<MessagingPage />} />
-        <Route path="services" element={<ServicesPage />} />
-        {/* Settings subtree */}
-        <Route path="settings" element={<SettingsPage />} />
-        <Route path="settings/user" element={<UserSettings />} />
-        <Route
-          path="settings/roles"
-          element={
-            elevated ? <RolesPage /> : <Navigate to={settingsRoot} replace />
-          }
-        />
-        <Route
-          path="settings/clinic"
-          element={
-            elevated ? (
-              <ClinicSettings />
-            ) : (
-              <Navigate to={settingsRoot} replace />
-            )
-          }
-        />
-      </Route>
-      <Route
-        path="*"
-        element={<Navigate to={`/clinics/${selectedClinicId}`} replace />}
-      />
     </Routes>
   );
 }

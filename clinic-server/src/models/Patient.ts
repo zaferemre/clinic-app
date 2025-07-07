@@ -23,6 +23,13 @@ export interface PatientDocument extends Document {
   status: "active" | "inactive" | "archived";
   lastAppointmentAt?: Date;
   note?: string;
+  // --- KVKK onay bilgileri ---
+  kvkkAccepted: boolean;
+  kvkkAcceptedAt?: Date;
+  clinicKvkkAccepted?: boolean;
+  clinicKvkkAcceptedAt?: Date;
+  clinicKvkkVersionAtAccept?: Date;
+  // ---
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,6 +74,13 @@ const PatientSchema = new Schema<PatientDocument>(
     },
     lastAppointmentAt: { type: Date },
     note: { type: String },
+    // --- KVKK onay alanları ---
+    kvkkAccepted: { type: Boolean, default: true }, // Otomatik true!
+    kvkkAcceptedAt: { type: Date },
+    clinicKvkkAccepted: { type: Boolean },
+    clinicKvkkAcceptedAt: { type: Date },
+    clinicKvkkVersionAtAccept: { type: Date },
+    // ---
   },
   { timestamps: true }
 );

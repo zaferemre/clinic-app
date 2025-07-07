@@ -16,6 +16,7 @@ export async function getPatients(companyId: string, clinicId: string) {
 /**
  * Create a new patient and invalidate the patient list cache
  */
+
 export async function createPatient(
   companyId: string,
   clinicId: string,
@@ -26,6 +27,11 @@ export async function createPatient(
     clinicId: new Types.ObjectId(clinicId),
     ...data,
     credit: typeof data.credit === "number" ? data.credit : 0,
+    kvkkAccepted: data.kvkkAccepted ?? true,
+    kvkkAcceptedAt: data.kvkkAcceptedAt ?? new Date(),
+    clinicKvkkAccepted: data.clinicKvkkAccepted,
+    clinicKvkkAcceptedAt: data.clinicKvkkAcceptedAt,
+    clinicKvkkVersionAtAccept: data.clinicKvkkVersionAtAccept,
   };
   const created = await repoPat.createPatient(doc);
   await invalidateCache(`patients:${companyId}:${clinicId}`);

@@ -22,6 +22,11 @@ export interface ClinicDocument extends Document {
   workingHours: WorkingHour[];
   services?: Types.ObjectId[];
   isActive: boolean;
+  // --- KVKK/Sözleşme özellikleri ---
+  kvkkText?: string;
+  kvkkRequired?: boolean;
+  kvkkLastSetAt?: Date;
+  // ---
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +52,11 @@ const ClinicSchema = new Schema<ClinicDocument>(
     workingHours: { type: [workingHourSchema], default: [] },
     services: [{ type: Schema.Types.ObjectId, ref: "Service" }],
     isActive: { type: Boolean, default: true },
+    // --- KVKK/Sözleşme alanları ---
+    kvkkText: { type: String, default: "" },
+    kvkkRequired: { type: Boolean, default: false },
+    kvkkLastSetAt: { type: Date },
+    // ---
   },
   { timestamps: true }
 );

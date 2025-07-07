@@ -24,3 +24,22 @@ export async function updateClinicById(
 export async function deleteClinicById(clinicId: string) {
   return Clinic.findByIdAndDelete(clinicId);
 }
+export async function getKvkk(clinicId: string) {
+  return Clinic.findById(clinicId, "kvkkText kvkkRequired kvkkLastSetAt");
+}
+
+export async function setKvkk(
+  clinicId: string,
+  kvkkText: string,
+  kvkkRequired: boolean
+) {
+  return Clinic.findByIdAndUpdate(
+    clinicId,
+    {
+      kvkkText,
+      kvkkRequired,
+      kvkkLastSetAt: new Date(),
+    },
+    { new: true }
+  );
+}

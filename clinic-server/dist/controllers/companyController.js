@@ -51,6 +51,7 @@ const listCompanies = async (req, res, next) => {
 exports.listCompanies = listCompanies;
 // Create new company
 const createCompany = async (req, res, next) => {
+    console.log("Gelen req.body:", req.body);
     try {
         const uid = req.user?.uid;
         const company = await companyService.createCompany(uid, req.body);

@@ -11,6 +11,8 @@ export async function createCompany(
   uid: string,
   data: Partial<CompanyDocument>
 ) {
+  console.log("companyService.createCompany - gelen data:", data);
+
   // 1. Create the company document
   const company = await companyRepo.createCompany({
     ...data,

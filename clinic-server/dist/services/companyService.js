@@ -48,6 +48,7 @@ const uuid_1 = require("uuid");
  * Create a new company and add the creating user as the owner in their memberships.
  */
 async function createCompany(uid, data) {
+    console.log("companyService.createCompany - gelen data:", data);
     // 1. Create the company document
     const company = await companyRepo.createCompany({
         ...data,
