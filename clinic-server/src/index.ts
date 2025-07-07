@@ -49,7 +49,6 @@ app.use("/user", userRoutes);
 
 // --- Clinic routes ---
 app.use("/company/:companyId/clinics", clinicRoutes);
-app.use("/company/:companyId/clinics/:clinicId/kvkk", clinicKvkkRoutes);
 app.use("/self-register", selfRegisterRoutes);
 // --- All other routes require authentication ---
 app.use(verifyFirebaseToken);

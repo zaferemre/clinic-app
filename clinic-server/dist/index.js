@@ -11,7 +11,6 @@ const verifyFirebaseToken_1 = require("./middlewares/verifyFirebaseToken");
 // Routers
 const companyRoutes_1 = __importDefault(require("./routes/companyRoutes"));
 const clinicRoutes_1 = __importDefault(require("./routes/clinicRoutes"));
-const clinicKvkkRoutes_1 = __importDefault(require("./routes/clinicKvkkRoutes"));
 const appointmentRoutes_1 = __importDefault(require("./routes/appointmentRoutes"));
 const employeeRoutes_1 = __importDefault(require("./routes/employeeRoutes"));
 const patientRoutes_1 = __importDefault(require("./routes/patientRoutes"));
@@ -43,7 +42,6 @@ app.use((0, cors_1.default)({
 app.use("/user", userRoutes_1.default);
 // --- Clinic routes ---
 app.use("/company/:companyId/clinics", clinicRoutes_1.default);
-app.use("/company/:companyId/clinics/:clinicId/kvkk", clinicKvkkRoutes_1.default);
 app.use("/self-register", selfRegisterRoutes_1.default);
 // --- All other routes require authentication ---
 app.use(verifyFirebaseToken_1.verifyFirebaseToken);

@@ -10,27 +10,38 @@ import {
 } from "@heroicons/react/24/outline";
 import logo from "../../../public/randevi-small.png";
 
+// GENEL KVKK (her zaman gösterilecek)
+const RANDEVI_KVKK_TEXT = `
+Randevi Kişisel Verilerin Korunması ve İşlenmesi Politikası
+Burada Randevi'nin KVKK metni yer alacaktır. Kullanıcılar bu metni her zaman okumalı ve onaylamalıdır.
+`;
+
 export default function SelfRegisterPage() {
   const { companyId, clinicId, token } = useParams();
 
-  const [kvkk, setKvkk] = useState<{
+  // Klinik KVKK state
+  const [clinicKvkk, setClinicKvkk] = useState<{
     kvkkText: string;
     kvkkRequired: boolean;
   } | null>(null);
+
+  // Form state
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [kvkkAccepted, setKvkkAccepted] = useState(false);
   const [clinicKvkkAccepted, setClinicKvkkAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
-  const [showKvkk, setShowKvkk] = useState(false);
+  const [showGeneralKvkk, setShowGeneralKvkk] = useState(false);
+  const [showClinicKvkk, setShowClinicKvkk] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Klinik KVKK metnini çek
   useEffect(() => {
     if (companyId && clinicId) {
       getClinicKvkk("", companyId, clinicId)
-        .then(setKvkk)
-        .catch(() => {});
+        .then(setClinicKvkk)
+        .catch(() => setClinicKvkk(null));
     }
   }, [companyId, clinicId]);
 
@@ -58,11 +69,11 @@ export default function SelfRegisterPage() {
       return;
     }
     if (!kvkkAccepted) {
-      setErrMsg("KVKK'yı kabul etmelisiniz.");
+      setErrMsg("Randevi KVKK'sını kabul etmelisiniz.");
       return;
     }
-    if (kvkk?.kvkkRequired && !clinicKvkkAccepted) {
-      setErrMsg("Klinik sözleşmesini kabul etmelisiniz.");
+    if (clinicKvkk?.kvkkRequired && !clinicKvkkAccepted) {
+      setErrMsg("Klinik KVKK'sını kabul etmelisiniz.");
       return;
     }
     setLoading(true);
@@ -80,9 +91,10 @@ export default function SelfRegisterPage() {
     setLoading(false);
   }
 
+  // Kabul edilen KVKK’ları listele
   const acceptedConsents = [
     { label: "Randevi KVKK’sı kabul edildi.", accepted: kvkkAccepted },
-    kvkk?.kvkkRequired
+    clinicKvkk?.kvkkRequired
       ? {
           label: "Klinik KVKK’sı kabul edildi.",
           accepted: clinicKvkkAccepted,
@@ -210,7 +222,7 @@ export default function SelfRegisterPage() {
                 />
               </div>
 
-              {/* KVKK */}
+              {/* Randevi KVKK */}
               <label className="flex items-center gap-2 cursor-pointer text-sm select-none mb-1">
                 <input
                   type="checkbox"
@@ -225,14 +237,16 @@ export default function SelfRegisterPage() {
                   <button
                     type="button"
                     className="text-[#e2725b] underline underline-offset-2 hover:text-[#e15d2f]"
-                    onClick={() => setShowKvkk(true)}
+                    onClick={() => setShowGeneralKvkk(true)}
                   >
                     oku
                   </button>{" "}
                   ve kabul ediyorum.
                 </span>
               </label>
-              {kvkk?.kvkkRequired && (
+
+              {/* Klinik KVKK */}
+              {clinicKvkk?.kvkkRequired && (
                 <label className="flex items-center gap-2 cursor-pointer text-sm select-none mb-1">
                   <input
                     type="checkbox"
@@ -242,7 +256,17 @@ export default function SelfRegisterPage() {
                     required
                     disabled={loading}
                   />
-                  <span>Klinik KVKK’sını okudum, kabul ediyorum.</span>
+                  <span>
+                    Klinik KVKK’sını{" "}
+                    <button
+                      type="button"
+                      className="text-[#e2725b] underline underline-offset-2 hover:text-[#e15d2f]"
+                      onClick={() => setShowClinicKvkk(true)}
+                    >
+                      oku
+                    </button>{" "}
+                    ve kabul ediyorum.
+                  </span>
                 </label>
               )}
               <button
@@ -260,9 +284,9 @@ export default function SelfRegisterPage() {
           )}
         </AnimatePresence>
 
-        {/* KVKK Modal */}
+        {/* Randevi KVKK Modal */}
         <AnimatePresence>
-          {showKvkk && (
+          {showGeneralKvkk && (
             <motion.div
               className="fixed inset-0 z-50 flex items-center justify-center bg-[#0005]"
               initial={{ opacity: 0 }}
@@ -277,20 +301,58 @@ export default function SelfRegisterPage() {
                 transition={{ type: "spring", duration: 0.35 }}
               >
                 <button
-                  onClick={() => setShowKvkk(false)}
+                  onClick={() => setShowGeneralKvkk(false)}
                   className="absolute top-3 right-3 text-xl font-bold text-[#e2725b] hover:text-[#e15d2f]"
                   aria-label="Kapat"
                 >
                   ×
                 </button>
                 <div className="text-[#e2725b] font-bold mb-1 text-lg">
-                  KVKK Metni
+                  Randevi KVKK Metni
                 </div>
                 <div
                   className="max-h-[45vh] overflow-auto text-gray-700 text-sm whitespace-pre-line"
                   style={{ lineHeight: "1.7" }}
                 >
-                  {kvkk?.kvkkText ? kvkk.kvkkText : "KVKK metni yüklenemedi."}
+                  {RANDEVI_KVKK_TEXT}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {/* Klinik KVKK Modal */}
+        <AnimatePresence>
+          {showClinicKvkk && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-[#0005]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg mx-2 relative"
+                initial={{ scale: 0.86, y: 22 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 14 }}
+                transition={{ type: "spring", duration: 0.35 }}
+              >
+                <button
+                  onClick={() => setShowClinicKvkk(false)}
+                  className="absolute top-3 right-3 text-xl font-bold text-[#e2725b] hover:text-[#e15d2f]"
+                  aria-label="Kapat"
+                >
+                  ×
+                </button>
+                <div className="text-[#e2725b] font-bold mb-1 text-lg">
+                  Klinik KVKK Metni
+                </div>
+                <div
+                  className="max-h-[45vh] overflow-auto text-gray-700 text-sm whitespace-pre-line"
+                  style={{ lineHeight: "1.7" }}
+                >
+                  {clinicKvkk?.kvkkText
+                    ? clinicKvkk.kvkkText
+                    : "Klinik KVKK metni yüklenemedi."}
                 </div>
               </motion.div>
             </motion.div>
