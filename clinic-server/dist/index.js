@@ -20,6 +20,7 @@ const serviceRoutes_1 = __importDefault(require("./routes/serviceRoutes"));
 const groupRoutes_1 = __importDefault(require("./routes/groupRoutes"));
 const roleRoutes_1 = __importDefault(require("./routes/roleRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
+const selfRegisterRoutes_1 = __importDefault(require("./routes/selfRegisterRoutes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 // Body parsing, before any routes
@@ -42,10 +43,11 @@ app.use((0, cors_1.default)({
 app.use("/user", userRoutes_1.default);
 // --- Clinic routes ---
 app.use("/company/:companyId/clinics", clinicRoutes_1.default);
+app.use("/company/:companyId/clinics/:clinicId/kvkk", clinicKvkkRoutes_1.default);
+app.use("/self-register", selfRegisterRoutes_1.default);
 // --- All other routes require authentication ---
 app.use(verifyFirebaseToken_1.verifyFirebaseToken);
 // --- Clinic-scoped sub-routes ---
-app.use("/company/:companyId/clinics/:clinicId/kvkk", clinicKvkkRoutes_1.default);
 app.use("/company/:companyId/clinics/:clinicId/appointments", appointmentRoutes_1.default);
 app.use("/company/:companyId/clinics/:clinicId/employees", employeeRoutes_1.default);
 app.use("/company/:companyId/clinics/:clinicId/patients", patientRoutes_1.default);

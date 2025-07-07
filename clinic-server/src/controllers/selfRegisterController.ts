@@ -1,6 +1,9 @@
+// src/controllers/selfRegisterController.ts
+
 import { RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import * as patientService from "../services/patientService";
+import * as notificationService from "../services/notificationService"; // EKLENDİ
 import Clinic from "../models/Clinic";
 import createError from "http-errors";
 
@@ -29,6 +32,7 @@ export const selfRegisterPatient: RequestHandler = async (req, res, next) => {
       throw createError(400, "Klinik sözleşmesi zorunlu");
     }
 
+    // Hasta oluştur
     const created = await patientService.createPatient(companyId, clinicId, {
       name,
       phone,
@@ -38,6 +42,23 @@ export const selfRegisterPatient: RequestHandler = async (req, res, next) => {
       clinicKvkkAccepted: clinicKvkkAccepted ?? false,
       clinicKvkkAcceptedAt: clinicKvkkAccepted ? new Date() : undefined,
       clinicKvkkVersionAtAccept: clinic?.kvkkLastSetAt,
+    });
+
+    // === Klinik çalışanlarına bildirimi yolla ===
+    await notificationService.createNotification(companyId, clinicId, {
+      type: "system",
+      status: "sent",
+      title: "Yeni Müşteri Kaydı",
+      message: `Yeni müşteri kendi kaydını oluşturdu: ${name}`,
+      note: "Müşteriyi düzenlemeyi unutma! Bu kayıt QR ile hasta tarafından yapıldı.",
+      priority: "normal",
+      patientId:
+        typeof created._id === "string" ? created._id : String(created._id),
+      meta: {
+        phone,
+        email,
+        registeredVia: "self-register",
+      },
     });
 
     res.status(201).json({ ok: true, patientId: created._id });

@@ -1,4 +1,5 @@
 "use strict";
+// src/controllers/selfRegisterController.ts
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -39,6 +40,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.selfRegisterPatient = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const patientService = __importStar(require("../services/patientService"));
+const notificationService = __importStar(require("../services/notificationService")); // EKLENDİ
 const Clinic_1 = __importDefault(require("../models/Clinic"));
 const http_errors_1 = __importDefault(require("http-errors"));
 if (!process.env.QR_TOKEN_SECRET && process.env.NODE_ENV === "production") {
@@ -61,6 +63,7 @@ const selfRegisterPatient = async (req, res, next) => {
         if (clinic?.kvkkRequired && !clinicKvkkAccepted) {
             throw (0, http_errors_1.default)(400, "Klinik sözleşmesi zorunlu");
         }
+        // Hasta oluştur
         const created = await patientService.createPatient(companyId, clinicId, {
             name,
             phone,
@@ -70,6 +73,21 @@ const selfRegisterPatient = async (req, res, next) => {
             clinicKvkkAccepted: clinicKvkkAccepted ?? false,
             clinicKvkkAcceptedAt: clinicKvkkAccepted ? new Date() : undefined,
             clinicKvkkVersionAtAccept: clinic?.kvkkLastSetAt,
+        });
+        // === Klinik çalışanlarına bildirimi yolla ===
+        await notificationService.createNotification(companyId, clinicId, {
+            type: "system",
+            status: "sent",
+            title: "Yeni Müşteri Kaydı",
+            message: `Yeni müşteri kendi kaydını oluşturdu: ${name}`,
+            note: "Müşteriyi düzenlemeyi unutma! Bu kayıt QR ile hasta tarafından yapıldı.",
+            priority: "normal",
+            patientId: typeof created._id === "string" ? created._id : String(created._id),
+            meta: {
+                phone,
+                email,
+                registeredVia: "self-register",
+            },
         });
         res.status(201).json({ ok: true, patientId: created._id });
     }

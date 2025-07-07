@@ -17,6 +17,7 @@ import serviceRoutes from "./routes/serviceRoutes";
 import groupRoutes from "./routes/groupRoutes";
 import roleRoutes from "./routes/roleRoutes";
 import userRoutes from "./routes/userRoutes";
+import selfRegisterRoutes from "./routes/selfRegisterRoutes";
 
 dotenv.config();
 
@@ -48,12 +49,12 @@ app.use("/user", userRoutes);
 
 // --- Clinic routes ---
 app.use("/company/:companyId/clinics", clinicRoutes);
-
+app.use("/company/:companyId/clinics/:clinicId/kvkk", clinicKvkkRoutes);
+app.use("/self-register", selfRegisterRoutes);
 // --- All other routes require authentication ---
 app.use(verifyFirebaseToken);
 
 // --- Clinic-scoped sub-routes ---
-app.use("/company/:companyId/clinics/:clinicId/kvkk", clinicKvkkRoutes);
 
 app.use(
   "/company/:companyId/clinics/:clinicId/appointments",
