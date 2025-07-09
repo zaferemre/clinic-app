@@ -37,6 +37,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const empCtrl = __importStar(require("../controllers/employeeController"));
 const verifyFirebaseToken_1 = require("../middlewares/verifyFirebaseToken");
+const apptCtrl = __importStar(require("../controllers/appointmentController"));
 const router = (0, express_1.Router)({ mergeParams: true });
 // All routes below require authentication!
 router.use(verifyFirebaseToken_1.verifyFirebaseToken);
@@ -50,6 +51,8 @@ router.get("/", empCtrl.listEmployees);
 router.post("/upsert", empCtrl.upsertEmployee);
 // Remove employee by userUid
 router.delete("/remove/:userUid", empCtrl.removeEmployee);
+// Busy slots endpoint
+router.get("/:employeeId/busy", apptCtrl.getEmployeeBusySlots);
 /**
  * ADMIN/INTERNAL PANEL ROUTES (optional, not required for typical app usage):
  * - /employees/...

@@ -3,7 +3,7 @@
 import { Router } from "express";
 import * as empCtrl from "../controllers/employeeController";
 import { verifyFirebaseToken } from "../middlewares/verifyFirebaseToken";
-
+import * as apptCtrl from "../controllers/appointmentController";
 const router = Router({ mergeParams: true });
 
 // All routes below require authentication!
@@ -22,6 +22,8 @@ router.post("/upsert", empCtrl.upsertEmployee);
 
 // Remove employee by userUid
 router.delete("/remove/:userUid", empCtrl.removeEmployee);
+// Busy slots endpoint
+router.get("/:employeeId/busy", apptCtrl.getEmployeeBusySlots);
 
 /**
  * ADMIN/INTERNAL PANEL ROUTES (optional, not required for typical app usage):

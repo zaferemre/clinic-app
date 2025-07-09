@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAppointments = getAppointments;
+exports.getEmployeeBusySlots = getEmployeeBusySlots;
 exports.getAppointmentById = getAppointmentById;
 exports.createAppointment = createAppointment;
 exports.updateAppointment = updateAppointment;
@@ -44,12 +45,19 @@ const patientRepo = __importStar(require("../dataAccess/patientRepository"));
 const mongoose_1 = require("mongoose");
 const cacheHelpers_1 = require("../utils/cacheHelpers");
 /**
- * List appointments with optional filters (cache key includes filters)
+ * List appointments with optional filters
  */
 async function getAppointments(companyId, clinicId, filters = {}) {
     const filtersKey = JSON.stringify(filters);
     const cacheKey = `appointments:${companyId}:${clinicId}:${filtersKey}`;
     return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => repo.listAppointments(companyId, clinicId, filters));
+}
+/**
+ * Get appointments for a specific employee and day (busy slots)
+ */
+async function getEmployeeBusySlots(companyId, clinicId, employeeId, day) {
+    // no cache for busy slots, always live
+    return repo.listEmployeeAppointmentsForDay(companyId, clinicId, employeeId, day);
 }
 /**
  * Get single appointment by ID
@@ -59,11 +67,9 @@ async function getAppointmentById(companyId, clinicId, appointmentId) {
     return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => repo.findAppointmentById(companyId, clinicId, appointmentId));
 }
 /**
- * Create a new appointment.
- *   - We only decrement the patient's credit if it's > 0.
+ * Create a new appointment (supports individual, group, custom)
  */
-async function createAppointment(companyId, clinicId, data, // must include data.patientId
-createdByUid) {
+async function createAppointment(companyId, clinicId, data, createdByUid) {
     const doc = {
         companyId: new mongoose_1.Types.ObjectId(companyId),
         clinicId: new mongoose_1.Types.ObjectId(clinicId),
@@ -72,8 +78,8 @@ createdByUid) {
     };
     // 1) create the appointment
     const appt = await repo.createAppointment(doc);
-    // 2) decrement the patient’s credit by 1, but only if current credit > 0
-    if (data.patientId) {
+    // 2) decrement the patient’s credit by 1, only for individual with patientId and > 0
+    if (appt.appointmentType === "individual" && data.patientId) {
         const pid = data.patientId.toString();
         const patient = await patientRepo.findPatientById(companyId, clinicId, pid);
         if (patient && typeof patient.credit === "number" && patient.credit > 0) {
@@ -94,20 +100,17 @@ async function updateAppointment(companyId, clinicId, appointmentId, updates) {
     return updated;
 }
 /**
- * Delete an appointment.
- *   - We always restore 1 credit back to the patient.
+ * Delete an appointment. Restore credit if applicable.
  */
 async function deleteAppointment(companyId, clinicId, appointmentId) {
-    // 1) fetch appointment so we know its patientId
+    // fetch appointment for patientId
     const toDelete = await repo.findAppointmentById(companyId, clinicId, appointmentId);
-    // 2) delete the appointment
     const deleted = await repo.deleteAppointmentById(appointmentId);
-    // 3) give the patient back 1 credit
-    if (toDelete?.patientId) {
+    // restore credit if patientId and individual
+    if (toDelete?.appointmentType === "individual" && toDelete?.patientId) {
         const pid = toDelete.patientId.toString();
         await patientRepo.updatePatientById(pid, { $inc: { credit: 1 } });
     }
-    // 4) invalidate caches
     await (0, cacheHelpers_1.invalidateCache)(`appointment:${appointmentId}`);
     await (0, cacheHelpers_1.invalidateCache)(`appointments:${companyId}:${clinicId}:${JSON.stringify({})}`);
     return deleted;

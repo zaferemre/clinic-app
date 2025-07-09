@@ -5,7 +5,7 @@ import { Types } from "mongoose";
 import { getOrSetCache, invalidateCache } from "../utils/cacheHelpers";
 
 /**
- * List appointments with optional filters (cache key includes filters)
+ * List appointments with optional filters
  */
 export async function getAppointments(
   companyId: string,
@@ -16,6 +16,24 @@ export async function getAppointments(
   const cacheKey = `appointments:${companyId}:${clinicId}:${filtersKey}`;
   return getOrSetCache(cacheKey, () =>
     repo.listAppointments(companyId, clinicId, filters)
+  );
+}
+
+/**
+ * Get appointments for a specific employee and day (busy slots)
+ */
+export async function getEmployeeBusySlots(
+  companyId: string,
+  clinicId: string,
+  employeeId: string,
+  day: Date
+) {
+  // no cache for busy slots, always live
+  return repo.listEmployeeAppointmentsForDay(
+    companyId,
+    clinicId,
+    employeeId,
+    day
   );
 }
 
@@ -34,13 +52,12 @@ export async function getAppointmentById(
 }
 
 /**
- * Create a new appointment.
- *   - We only decrement the patient's credit if it's > 0.
+ * Create a new appointment (supports individual, group, custom)
  */
 export async function createAppointment(
   companyId: string,
   clinicId: string,
-  data: any, // must include data.patientId
+  data: any,
   createdByUid: string
 ) {
   const doc = {
@@ -53,8 +70,8 @@ export async function createAppointment(
   // 1) create the appointment
   const appt = await repo.createAppointment(doc);
 
-  // 2) decrement the patient’s credit by 1, but only if current credit > 0
-  if (data.patientId) {
+  // 2) decrement the patient’s credit by 1, only for individual with patientId and > 0
+  if (appt.appointmentType === "individual" && data.patientId) {
     const pid = data.patientId.toString();
     const patient = await patientRepo.findPatientById(companyId, clinicId, pid);
 
@@ -91,31 +108,27 @@ export async function updateAppointment(
 }
 
 /**
- * Delete an appointment.
- *   - We always restore 1 credit back to the patient.
+ * Delete an appointment. Restore credit if applicable.
  */
 export async function deleteAppointment(
   companyId: string,
   clinicId: string,
   appointmentId: string
 ) {
-  // 1) fetch appointment so we know its patientId
+  // fetch appointment for patientId
   const toDelete = await repo.findAppointmentById(
     companyId,
     clinicId,
     appointmentId
   );
-
-  // 2) delete the appointment
   const deleted = await repo.deleteAppointmentById(appointmentId);
 
-  // 3) give the patient back 1 credit
-  if (toDelete?.patientId) {
+  // restore credit if patientId and individual
+  if (toDelete?.appointmentType === "individual" && toDelete?.patientId) {
     const pid = toDelete.patientId.toString();
     await patientRepo.updatePatientById(pid, { $inc: { credit: 1 } });
   }
 
-  // 4) invalidate caches
   await invalidateCache(`appointment:${appointmentId}`);
   await invalidateCache(
     `appointments:${companyId}:${clinicId}:${JSON.stringify({})}`

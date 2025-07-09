@@ -33,9 +33,11 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteAppointment = exports.updateAppointment = exports.createAppointment = exports.getAppointment = exports.listAppointments = void 0;
+exports.deleteAppointment = exports.updateAppointment = exports.createAppointment = exports.getEmployeeBusySlots = exports.getAppointment = exports.listAppointments = void 0;
 const appointmentService = __importStar(require("../services/appointmentService"));
-// List all appointments
+/**
+ * List appointments (optionally filter by employeeId, patientId, groupId, etc.)
+ */
 const listAppointments = async (req, res, next) => {
     try {
         const filters = {};
@@ -45,6 +47,8 @@ const listAppointments = async (req, res, next) => {
             filters.patientId = req.query.patientId;
         if (req.query.groupId)
             filters.groupId = req.query.groupId;
+        if (req.query.appointmentType)
+            filters.appointmentType = req.query.appointmentType;
         const appointments = await appointmentService.getAppointments(req.params.companyId, req.params.clinicId, filters);
         res.json(appointments);
     }
@@ -53,7 +57,9 @@ const listAppointments = async (req, res, next) => {
     }
 };
 exports.listAppointments = listAppointments;
-// Get a single appointment
+/**
+ * Get a single appointment
+ */
 const getAppointment = async (req, res, next) => {
     try {
         const appointment = await appointmentService.getAppointmentById(req.params.companyId, req.params.clinicId, req.params.appointmentId);
@@ -68,7 +74,34 @@ const getAppointment = async (req, res, next) => {
     }
 };
 exports.getAppointment = getAppointment;
-// Create new appointment
+/**
+ * Get busy slots for employee on a given day
+ * GET /company/:companyId/clinics/:clinicId/employees/:employeeId/busy?date=YYYY-MM-DD
+ */
+const getEmployeeBusySlots = async (req, res, next) => {
+    try {
+        const { employeeId } = req.params;
+        const { date } = req.query;
+        if (!date) {
+            res.status(400).json({ error: "date is required" });
+            return;
+        }
+        const day = new Date(date);
+        const busy = await appointmentService.getEmployeeBusySlots(req.params.companyId, req.params.clinicId, employeeId, day);
+        // Output: [{ start: Date, end: Date }, ...]
+        res.json(busy.map((a) => ({
+            start: a.start,
+            end: a.end,
+        })));
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.getEmployeeBusySlots = getEmployeeBusySlots;
+/**
+ * Create new appointment
+ */
 const createAppointment = async (req, res, next) => {
     try {
         const uid = req.user?.uid;
@@ -76,8 +109,7 @@ const createAppointment = async (req, res, next) => {
             res.status(401).json({ error: "Unauthorized" });
             return;
         }
-        const created = await appointmentService.createAppointment(req.params.companyId, req.params.clinicId, req.body, // contains employeeId = Firebase UID
-        uid);
+        const created = await appointmentService.createAppointment(req.params.companyId, req.params.clinicId, req.body, uid);
         res.status(201).json(created);
     }
     catch (err) {
@@ -85,7 +117,9 @@ const createAppointment = async (req, res, next) => {
     }
 };
 exports.createAppointment = createAppointment;
-// Update appointment
+/**
+ * Update appointment
+ */
 const updateAppointment = async (req, res, next) => {
     try {
         const updated = await appointmentService.updateAppointment(req.params.companyId, req.params.clinicId, req.params.appointmentId, req.body);
@@ -100,7 +134,9 @@ const updateAppointment = async (req, res, next) => {
     }
 };
 exports.updateAppointment = updateAppointment;
-// Delete appointment
+/**
+ * Delete appointment
+ */
 const deleteAppointment = async (req, res, next) => {
     try {
         const deleted = await appointmentService.deleteAppointment(req.params.companyId, req.params.clinicId, req.params.appointmentId);

@@ -1,3 +1,4 @@
+// src/models/Appointment.ts
 import { Schema, model, Document, Types } from "mongoose";
 
 export interface AppointmentDocument extends Document {
@@ -10,8 +11,9 @@ export interface AppointmentDocument extends Document {
   start: Date;
   end: Date;
   status: "scheduled" | "done" | "cancelled" | "no-show";
-  appointmentType: "individual" | "group";
-  createdBy: string; // Firebase UID
+  appointmentType: "individual" | "group" | "custom";
+  customDuration?: number;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -37,10 +39,11 @@ const AppointmentSchema = new Schema<AppointmentDocument>(
     },
     appointmentType: {
       type: String,
-      enum: ["individual", "group"],
+      enum: ["individual", "group", "custom"],
       required: true,
     },
-    createdBy: { type: String, required: true }, // Firebase UID
+    customDuration: { type: Number }, // Yalnızca custom randevu için
+    createdBy: { type: String, required: true },
   },
   { timestamps: true }
 );

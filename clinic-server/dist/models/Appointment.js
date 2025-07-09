@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+// src/models/Appointment.ts
 const mongoose_1 = require("mongoose");
 const AppointmentSchema = new mongoose_1.Schema({
     companyId: { type: mongoose_1.Schema.Types.ObjectId, ref: "Company", required: true },
@@ -21,10 +22,11 @@ const AppointmentSchema = new mongoose_1.Schema({
     },
     appointmentType: {
         type: String,
-        enum: ["individual", "group"],
+        enum: ["individual", "group", "custom"],
         required: true,
     },
-    createdBy: { type: String, required: true }, // Firebase UID
+    customDuration: { type: Number }, // Yalnızca custom randevu için
+    createdBy: { type: String, required: true },
 }, { timestamps: true });
 AppointmentSchema.index({
     companyId: 1,

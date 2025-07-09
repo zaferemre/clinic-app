@@ -1,7 +1,7 @@
+// src/dataAccess/appointmentRepository.ts
 import Appointment, { AppointmentDocument } from "../models/Appointment";
 import { Types } from "mongoose";
 
-// List appointments, with optional filters
 export async function listAppointments(
   companyId: string,
   clinicId: string,
@@ -10,11 +10,31 @@ export async function listAppointments(
   return Appointment.find({
     companyId: new Types.ObjectId(companyId),
     clinicId: new Types.ObjectId(clinicId),
-    ...filter, // employeeId here is a string
+    ...filter,
   }).exec();
 }
 
-// Find single appointment by ID within company/clinic
+export async function listEmployeeAppointmentsForDay(
+  companyId: string,
+  clinicId: string,
+  employeeId: string,
+  day: Date
+): Promise<AppointmentDocument[]> {
+  const dayStart = new Date(day);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(day);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  return Appointment.find({
+    companyId: new Types.ObjectId(companyId),
+    clinicId: new Types.ObjectId(clinicId),
+    employeeId: new Types.ObjectId(employeeId),
+    start: { $lt: dayEnd },
+    end: { $gt: dayStart },
+    status: { $ne: "cancelled" },
+  }).exec();
+}
+
 export async function findAppointmentById(
   companyId: string,
   clinicId: string,
@@ -27,14 +47,12 @@ export async function findAppointmentById(
   }).exec();
 }
 
-// Create a new appointment
 export async function createAppointment(
   doc: Partial<AppointmentDocument>
 ): Promise<AppointmentDocument> {
   return Appointment.create(doc);
 }
 
-// Update an existing appointment by ID
 export async function updateAppointmentById(
   appointmentId: string,
   updates: Partial<AppointmentDocument>
@@ -44,13 +62,8 @@ export async function updateAppointmentById(
   }).exec();
 }
 
-// Delete an appointment by ID
 export async function deleteAppointmentById(
   appointmentId: string
 ): Promise<AppointmentDocument | null> {
   return Appointment.findByIdAndDelete(appointmentId).exec();
-}
-
-export async function listAppointmentsByUser(userId: string) {
-  return Appointment.find({ employeeId: userId }).exec();
 }

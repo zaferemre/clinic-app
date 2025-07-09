@@ -1,13 +1,18 @@
+// src/controllers/appointmentController.ts
 import { RequestHandler } from "express";
 import * as appointmentService from "../services/appointmentService";
 
-// List all appointments
+/**
+ * List appointments (optionally filter by employeeId, patientId, groupId, etc.)
+ */
 export const listAppointments: RequestHandler = async (req, res, next) => {
   try {
     const filters: any = {};
     if (req.query.employeeId) filters.employeeId = req.query.employeeId;
     if (req.query.patientId) filters.patientId = req.query.patientId;
     if (req.query.groupId) filters.groupId = req.query.groupId;
+    if (req.query.appointmentType)
+      filters.appointmentType = req.query.appointmentType;
 
     const appointments = await appointmentService.getAppointments(
       req.params.companyId,
@@ -20,7 +25,9 @@ export const listAppointments: RequestHandler = async (req, res, next) => {
   }
 };
 
-// Get a single appointment
+/**
+ * Get a single appointment
+ */
 export const getAppointment: RequestHandler = async (req, res, next) => {
   try {
     const appointment = await appointmentService.getAppointmentById(
@@ -38,7 +45,41 @@ export const getAppointment: RequestHandler = async (req, res, next) => {
   }
 };
 
-// Create new appointment
+/**
+ * Get busy slots for employee on a given day
+ * GET /company/:companyId/clinics/:clinicId/employees/:employeeId/busy?date=YYYY-MM-DD
+ */
+export const getEmployeeBusySlots: RequestHandler = async (req, res, next) => {
+  try {
+    const { employeeId } = req.params;
+    const { date } = req.query;
+    if (!date) {
+      res.status(400).json({ error: "date is required" });
+      return;
+    }
+    const day = new Date(date as string);
+
+    const busy = await appointmentService.getEmployeeBusySlots(
+      req.params.companyId,
+      req.params.clinicId,
+      employeeId,
+      day
+    );
+    // Output: [{ start: Date, end: Date }, ...]
+    res.json(
+      busy.map((a) => ({
+        start: a.start,
+        end: a.end,
+      }))
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Create new appointment
+ */
 export const createAppointment: RequestHandler = async (req, res, next) => {
   try {
     const uid = (req.user as any)?.uid;
@@ -49,7 +90,7 @@ export const createAppointment: RequestHandler = async (req, res, next) => {
     const created = await appointmentService.createAppointment(
       req.params.companyId,
       req.params.clinicId,
-      req.body, // contains employeeId = Firebase UID
+      req.body,
       uid
     );
     res.status(201).json(created);
@@ -58,7 +99,9 @@ export const createAppointment: RequestHandler = async (req, res, next) => {
   }
 };
 
-// Update appointment
+/**
+ * Update appointment
+ */
 export const updateAppointment: RequestHandler = async (req, res, next) => {
   try {
     const updated = await appointmentService.updateAppointment(
@@ -77,7 +120,9 @@ export const updateAppointment: RequestHandler = async (req, res, next) => {
   }
 };
 
-// Delete appointment
+/**
+ * Delete appointment
+ */
 export const deleteAppointment: RequestHandler = async (req, res, next) => {
   try {
     const deleted = await appointmentService.deleteAppointment(

@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+// src/routes/appointmentRouter.ts
 const express_1 = require("express");
 const apptCtrl = __importStar(require("../controllers/appointmentController"));
 const router = (0, express_1.Router)({ mergeParams: true });
