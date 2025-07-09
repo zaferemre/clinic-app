@@ -9,6 +9,7 @@ exports.removeEmployee = removeEmployee;
 exports.createEmployee = createEmployee;
 exports.updateEmployee = updateEmployee;
 exports.deleteEmployee = deleteEmployee;
+exports.findEmployeeById = findEmployeeById;
 const Employee_1 = __importDefault(require("../models/Employee"));
 const mongoose_1 = require("mongoose");
 async function upsertEmployee(companyId, clinicId, userUid, data) {
@@ -55,4 +56,21 @@ async function deleteEmployee(employeeId) {
         ? employeeId
         : new mongoose_1.Types.ObjectId(employeeId);
     return Employee_1.default.findByIdAndDelete(eId).exec();
+}
+// Add to employeeRepository.ts
+async function findEmployeeById(companyId, clinicId, employeeId) {
+    const cId = companyId instanceof mongoose_1.Types.ObjectId
+        ? companyId
+        : new mongoose_1.Types.ObjectId(companyId);
+    const clId = clinicId instanceof mongoose_1.Types.ObjectId
+        ? clinicId
+        : new mongoose_1.Types.ObjectId(clinicId);
+    const eId = employeeId instanceof mongoose_1.Types.ObjectId
+        ? employeeId
+        : new mongoose_1.Types.ObjectId(employeeId);
+    return Employee_1.default.findOne({
+        _id: eId,
+        companyId: cId,
+        clinicId: clId,
+    }).lean();
 }

@@ -79,3 +79,28 @@ export async function deleteEmployee(employeeId: string | Types.ObjectId) {
       : new Types.ObjectId(employeeId);
   return Employee.findByIdAndDelete(eId).exec();
 }
+// Add to employeeRepository.ts
+export async function findEmployeeById(
+  companyId: string | Types.ObjectId,
+  clinicId: string | Types.ObjectId,
+  employeeId: string | Types.ObjectId
+) {
+  const cId =
+    companyId instanceof Types.ObjectId
+      ? companyId
+      : new Types.ObjectId(companyId);
+  const clId =
+    clinicId instanceof Types.ObjectId
+      ? clinicId
+      : new Types.ObjectId(clinicId);
+  const eId =
+    employeeId instanceof Types.ObjectId
+      ? employeeId
+      : new Types.ObjectId(employeeId);
+
+  return Employee.findOne({
+    _id: eId,
+    companyId: cId,
+    clinicId: clId,
+  }).lean();
+}

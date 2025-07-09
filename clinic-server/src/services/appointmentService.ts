@@ -3,7 +3,8 @@ import * as repo from "../dataAccess/appointmentRepository";
 import * as patientRepo from "../dataAccess/patientRepository";
 import { Types } from "mongoose";
 import { getOrSetCache, invalidateCache } from "../utils/cacheHelpers";
-
+import { createNotification } from "./notificationService";
+import * as employeeRepo from "../dataAccess/employeeRepository";
 /**
  * List appointments with optional filters
  */
@@ -79,6 +80,30 @@ export async function createAppointment(
       await patientRepo.updatePatientById(pid, { $inc: { credit: -1 } });
     }
   }
+
+  // >>>>>>>>>>>> NEW: Notify assigned employee if different from creator
+  if (appt.employeeId) {
+    const emp = await employeeRepo.findEmployeeById(
+      companyId,
+      clinicId,
+      appt.employeeId.toString()
+    );
+    // employee object may look like { _id, userUid, ... }
+    if (emp && emp.userUid && emp.userUid !== createdByUid) {
+      // Send notification to this employee
+      await createNotification(companyId, clinicId, {
+        type: "system",
+        status: "pending",
+        title: "Yeni Randevu",
+        message: `Siz atandınız: ${appt.start.toLocaleString()} randevusu oluşturuldu.`,
+        workerUid: emp.userUid, // the employee's userUid
+        targetUserId: emp.userUid, // for push delivery
+        priority: "normal",
+        meta: { appointmentId: appt._id },
+      });
+    }
+  }
+  // <<<<<<<<<<<<<
 
   // 3) invalidate the appointment list cache for this clinic/company
   await invalidateCache(

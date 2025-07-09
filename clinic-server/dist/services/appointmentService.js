@@ -44,6 +44,8 @@ const repo = __importStar(require("../dataAccess/appointmentRepository"));
 const patientRepo = __importStar(require("../dataAccess/patientRepository"));
 const mongoose_1 = require("mongoose");
 const cacheHelpers_1 = require("../utils/cacheHelpers");
+const notificationService_1 = require("./notificationService");
+const employeeRepo = __importStar(require("../dataAccess/employeeRepository"));
 /**
  * List appointments with optional filters
  */
@@ -86,6 +88,25 @@ async function createAppointment(companyId, clinicId, data, createdByUid) {
             await patientRepo.updatePatientById(pid, { $inc: { credit: -1 } });
         }
     }
+    // >>>>>>>>>>>> NEW: Notify assigned employee if different from creator
+    if (appt.employeeId) {
+        const emp = await employeeRepo.findEmployeeById(companyId, clinicId, appt.employeeId.toString());
+        // employee object may look like { _id, userUid, ... }
+        if (emp && emp.userUid && emp.userUid !== createdByUid) {
+            // Send notification to this employee
+            await (0, notificationService_1.createNotification)(companyId, clinicId, {
+                type: "system",
+                status: "pending",
+                title: "Yeni Randevu",
+                message: `Siz atandınız: ${appt.start.toLocaleString()} randevusu oluşturuldu.`,
+                workerUid: emp.userUid, // the employee's userUid
+                targetUserId: emp.userUid, // for push delivery
+                priority: "normal",
+                meta: { appointmentId: appt._id },
+            });
+        }
+    }
+    // <<<<<<<<<<<<<
     // 3) invalidate the appointment list cache for this clinic/company
     await (0, cacheHelpers_1.invalidateCache)(`appointments:${companyId}:${clinicId}:${JSON.stringify({})}`);
     return appt;
