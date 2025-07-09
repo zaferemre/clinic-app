@@ -1,10 +1,11 @@
-// src/services/appointmentService.ts
 import * as repo from "../dataAccess/appointmentRepository";
 import * as patientRepo from "../dataAccess/patientRepository";
+import * as employeeRepo from "../dataAccess/employeeRepository";
+import * as userRepo from "../dataAccess/userRepository";
 import { Types } from "mongoose";
 import { getOrSetCache, invalidateCache } from "../utils/cacheHelpers";
 import { createNotification } from "./notificationService";
-import * as employeeRepo from "../dataAccess/employeeRepository";
+
 /**
  * List appointments with optional filters
  */
@@ -29,7 +30,6 @@ export async function getEmployeeBusySlots(
   employeeId: string,
   day: Date
 ) {
-  // no cache for busy slots, always live
   return repo.listEmployeeAppointmentsForDay(
     companyId,
     clinicId,
@@ -53,7 +53,9 @@ export async function getAppointmentById(
 }
 
 /**
- * Create a new appointment (supports individual, group, custom)
+ * Create a new appointment (supports individual, group, custom).
+ * Also creates a notification for the assigned employee (if not the creator), and
+ * always fills the employee name in the notification (even if missing in Employee doc).
  */
 export async function createAppointment(
   companyId: string,
@@ -81,16 +83,22 @@ export async function createAppointment(
     }
   }
 
-  // >>>>>>>>>>>> NEW: Notify assigned employee if different from creator
+  // >>>>>>>>>>>> Notify assigned employee (with correct name) if different from creator
   if (appt.employeeId) {
     const emp = await employeeRepo.findEmployeeById(
       companyId,
       clinicId,
       appt.employeeId.toString()
     );
-    // employee object may look like { _id, userUid, ... }
+
     if (emp && emp.userUid && emp.userUid !== createdByUid) {
-      // Send notification to this employee
+      // Fallback: If employee.name is not set, fetch user name
+      let employeeName = emp.name;
+      if (!employeeName && emp.userUid) {
+        const user = await userRepo.findByUid(emp.userUid);
+        employeeName = user?.name;
+      }
+
       const start = new Date(appt.start);
       const end = new Date(appt.end);
       const formatTime = (date: Date) =>
@@ -104,19 +112,20 @@ export async function createAppointment(
             hour12: false,
           })
           .replace(",", "");
+
       await createNotification(companyId, clinicId, {
         type: "system",
         status: "pending",
         title: "Yeni Randevu Oluşturuldu",
         message: `Randevu Detayı: ${formatTime(start)} - ${formatTime(
           end
-        )}\nÇalışan: ${emp.name}`,
-        workerUid: emp.userUid, // the employee's userUid
-        targetUserId: emp.userUid, // for push delivery
-        priority: "normal",
+        )}\nÇalışan: ${employeeName}`,
+        workerUid: emp.userUid,
+        targetUserId: emp.userUid,
+        priority: "low",
         meta: {
           appointmentId: appt._id,
-          employee: { id: emp._id, name: emp.name },
+          employee: { id: emp._id, name: employeeName },
         },
       });
     }

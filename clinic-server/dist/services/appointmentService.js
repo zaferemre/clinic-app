@@ -39,13 +39,13 @@ exports.getAppointmentById = getAppointmentById;
 exports.createAppointment = createAppointment;
 exports.updateAppointment = updateAppointment;
 exports.deleteAppointment = deleteAppointment;
-// src/services/appointmentService.ts
 const repo = __importStar(require("../dataAccess/appointmentRepository"));
 const patientRepo = __importStar(require("../dataAccess/patientRepository"));
+const employeeRepo = __importStar(require("../dataAccess/employeeRepository"));
+const userRepo = __importStar(require("../dataAccess/userRepository"));
 const mongoose_1 = require("mongoose");
 const cacheHelpers_1 = require("../utils/cacheHelpers");
 const notificationService_1 = require("./notificationService");
-const employeeRepo = __importStar(require("../dataAccess/employeeRepository"));
 /**
  * List appointments with optional filters
  */
@@ -58,7 +58,6 @@ async function getAppointments(companyId, clinicId, filters = {}) {
  * Get appointments for a specific employee and day (busy slots)
  */
 async function getEmployeeBusySlots(companyId, clinicId, employeeId, day) {
-    // no cache for busy slots, always live
     return repo.listEmployeeAppointmentsForDay(companyId, clinicId, employeeId, day);
 }
 /**
@@ -69,7 +68,9 @@ async function getAppointmentById(companyId, clinicId, appointmentId) {
     return (0, cacheHelpers_1.getOrSetCache)(cacheKey, () => repo.findAppointmentById(companyId, clinicId, appointmentId));
 }
 /**
- * Create a new appointment (supports individual, group, custom)
+ * Create a new appointment (supports individual, group, custom).
+ * Also creates a notification for the assigned employee (if not the creator), and
+ * always fills the employee name in the notification (even if missing in Employee doc).
  */
 async function createAppointment(companyId, clinicId, data, createdByUid) {
     const doc = {
@@ -88,12 +89,16 @@ async function createAppointment(companyId, clinicId, data, createdByUid) {
             await patientRepo.updatePatientById(pid, { $inc: { credit: -1 } });
         }
     }
-    // >>>>>>>>>>>> NEW: Notify assigned employee if different from creator
+    // >>>>>>>>>>>> Notify assigned employee (with correct name) if different from creator
     if (appt.employeeId) {
         const emp = await employeeRepo.findEmployeeById(companyId, clinicId, appt.employeeId.toString());
-        // employee object may look like { _id, userUid, ... }
         if (emp && emp.userUid && emp.userUid !== createdByUid) {
-            // Send notification to this employee
+            // Fallback: If employee.name is not set, fetch user name
+            let employeeName = emp.name;
+            if (!employeeName && emp.userUid) {
+                const user = await userRepo.findByUid(emp.userUid);
+                employeeName = user?.name;
+            }
             const start = new Date(appt.start);
             const end = new Date(appt.end);
             const formatTime = (date) => date
@@ -110,13 +115,13 @@ async function createAppointment(companyId, clinicId, data, createdByUid) {
                 type: "system",
                 status: "pending",
                 title: "Yeni Randevu Oluşturuldu",
-                message: `Randevu Detayı: ${formatTime(start)} - ${formatTime(end)}\nÇalışan: ${emp.name}`,
-                workerUid: emp.userUid, // the employee's userUid
-                targetUserId: emp.userUid, // for push delivery
-                priority: "normal",
+                message: `Randevu Detayı: ${formatTime(start)} - ${formatTime(end)}\nÇalışan: ${employeeName}`,
+                workerUid: emp.userUid,
+                targetUserId: emp.userUid,
+                priority: "low",
                 meta: {
                     appointmentId: appt._id,
-                    employee: { id: emp._id, name: emp.name },
+                    employee: { id: emp._id, name: employeeName },
                 },
             });
         }
