@@ -91,15 +91,33 @@ export async function createAppointment(
     // employee object may look like { _id, userUid, ... }
     if (emp && emp.userUid && emp.userUid !== createdByUid) {
       // Send notification to this employee
+      const start = new Date(appt.start);
+      const end = new Date(appt.end);
+      const formatTime = (date: Date) =>
+        date
+          .toLocaleString("tr-TR", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })
+          .replace(",", "");
       await createNotification(companyId, clinicId, {
         type: "system",
         status: "pending",
-        title: "Yeni Randevu",
-        message: `Siz atandınız: ${appt.start.toLocaleString()} randevusu oluşturuldu.`,
+        title: "Yeni Randevu Oluşturuldu",
+        message: `Randevu Detayı: ${formatTime(start)} - ${formatTime(
+          end
+        )}\nÇalışan: ${emp.name}`,
         workerUid: emp.userUid, // the employee's userUid
         targetUserId: emp.userUid, // for push delivery
         priority: "normal",
-        meta: { appointmentId: appt._id },
+        meta: {
+          appointmentId: appt._id,
+          employee: { id: emp._id, name: emp.name },
+        },
       });
     }
   }
